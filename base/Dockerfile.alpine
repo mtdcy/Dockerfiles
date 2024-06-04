@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+
+ARG     ALPINE_VERSION=3
+# linuxserver baseimage: alpine + s6
+FROM    ghcr.io/linuxserver/baseimage-alpine:${ALPINE_VERSION}
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+# s6-overlay breaks a job into pieces => complexity
+# prepare s6 ##
+#ARG S6_VERSION=3.1.6.2
+#ARG S6_ARCH=x86_64
+#
+#ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz \
+#    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
+#    /tmp
+#
+#RUN tar -C / -Jxpvf /tmp/s6-overlay-noarch.tar.xz && \
+#    tar -C / -Jxpvf /tmp/s6-overlay-${S6_ARCH}.tar.xz
+
+#ENTRYPOINT ["/init"]
+
+## configurations ##
+
+ARG TZ=Asia/Shanghai
+ENV TZ=${TZ}
+
+# s6: strange behavior
+ENV S6_KEEP_ENV=1
+
+# mirror?
+ARG MIRROR=""
+RUN test -n "$MIRROR" && \
+    sed -e "s|https\?://dl-cdn.alpinelinux.org|$MIRROR|g" \
+        -i /etc/apk/repositories
+
+RUN ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo "$TZ" > /etc/timezone

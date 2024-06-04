@@ -1,0 +1,26 @@
+# syntax=docker/dockerfile:1
+
+ARG UBUNTU_VERSION=jammy
+
+# linuxserver baseimage: ubuntu + s6
+# https://github.com/linuxserver/docker-baseimage-ubuntu
+# https://github.com/linuxserver/docker-baseimage-ubuntu/pkgs/container/baseimage-ubuntu
+FROM    ghcr.io/linuxserver/baseimage-ubuntu:${UBUNTU_VERSION}
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+# ENV & ARG variables
+ARG TZ=Asia/Shanghai
+ENV TZ=${TZ}
+ENV DEBIAN_FRONTEND noninteractive
+
+# s6: strange behavior
+ENV S6_KEEP_ENV=1
+
+# mirror?
+ARG MIRROR=""
+RUN test -n "${MIRROR}" && \
+    sed -e "s|http://archive.ubuntu.com|${MIRROR}|g" \
+        -e "s|http://security.ubuntu.com|${MIRROR}|g" \
+        -i /etc/apt/sources.list
+
+RUN ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && echo "$TZ" > /etc/timezone
