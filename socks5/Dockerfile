@@ -16,5 +16,6 @@ EXPOSE 1070
 VOLUME /config
 
 COPY socks5.sh /
+RUN chmod a+x /socks5.sh
 
 CMD ["/socks5.sh", "verbose"]
