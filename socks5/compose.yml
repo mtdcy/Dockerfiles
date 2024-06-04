@@ -1,0 +1,25 @@
+---
+version: '3'
+
+services:
+  socks5:
+    image: mtdcy/socks5:latest
+    container_name: socks5-dev
+    network_mode: bridge
+    restart: always
+    environment:
+      - SSH_HOST=mtdcy@ecs.mtdcy.top:6015
+      - SSH_IDENT=/config/ssh_id_rsa
+      - SSH_CONFIG=/config/ssh_config
+      - SSH_OPTS=UserKnownHostsFile=/config/ssh_known_hosts
+      #- SSH_BIND=0.0.0.0:7070   # work only in host mode
+    ports: # bridge mode
+      - 1080:1070
+    volumes:
+      - ${HOME}/.ssh/id_rsa:/config/ssh_id_rsa
+    healthcheck:
+      test: curl -x socks5h://127.0.0.1:7070 --fail https://google.com || exit 1
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s

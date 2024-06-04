@@ -1,4 +1,4 @@
-SUBDIRS := base distcc
+SUBDIRS := base distcc socks5
 
 all: $(SUBDIRS)
 $(SUBDIRS):
