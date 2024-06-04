@@ -1,4 +1,4 @@
-SUBDIRS := base
+SUBDIRS := base distcc
 
 all: $(SUBDIRS)
 $(SUBDIRS):

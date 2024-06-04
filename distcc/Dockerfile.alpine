@@ -1,0 +1,43 @@
+# syntax=docker/dockerfile:1
+
+FROM    mtdcy/alpine:latest
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+ENV LANG=en_US.UTF-8
+
+RUN apk update &&                       \
+    apk add --no-cache                  \
+        alpine-sdk clang-dev openmp-dev \
+        ccache bash shadow distcc-pump
+
+# user distcc exists in alpine
+#ENV HOME=/home/distcc
+#RUN useradd -s /bin/bash distcc
+
+# distccd default pars
+ENTRYPOINT [              \
+  "distccd",              \
+  "--daemon",             \
+  "--no-detach",          \
+  "--user", "distcc",     \
+  "--port", "3632",       \
+  "--stats",              \
+  "--stats-port", "3633", \
+  "--log-level", "info",  \
+  "--listen", "0.0.0.0"   \
+  ]
+
+# user custom pars
+CMD [                     \
+  "--allow", "0.0.0.0/0", \
+  "--nice", "4"           \
+  ]
+
+EXPOSE 3632/tcp 3633/tcp
+
+# ccache volume
+VOLUME /home/distcc/.ccache
+
+# healthcheck in compose.yml
+#HEALTHCHECK --interval=5m --timeout=3s \
+#  CMD curl --fail http://0.0.0.0:3633/ || exit 1

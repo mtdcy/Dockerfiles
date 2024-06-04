@@ -1,0 +1,15 @@
+---
+services:
+  distcc:
+    image: mtdcy/distcc-alpine:latest
+    container_name: distcc
+    network_mode: bridge
+    restart: unless-stopped
+    ports: # bridge mode
+      - 3632:3632
+      - 3633:3633 # stats
+    healthcheck:
+      test: curl --fail http://127.0.0.1:3633 || exit 1
+      interval: 5m
+      timeout: 3s
+      start_period: 60s
