@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if test -n "$@"; then
-    exec "$@"
+if [ $# -gt 0 ]; then
+    "$@"
 else
     distccd --daemon --no-detach \
         --verbose                \
