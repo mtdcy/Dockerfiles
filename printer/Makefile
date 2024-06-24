@@ -1,6 +1,6 @@
 
 
-all: cupsd p910nd
+all: p910nd
 
 cupsd:
 	docker buildx build        \
