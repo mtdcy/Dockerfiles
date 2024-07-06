@@ -32,7 +32,7 @@ log-dhcp
 log-queries=extra
 
 ## bind
-port=53
+port=5353
 bind-dynamic
 
 # resolv
@@ -87,9 +87,12 @@ $(echo -e "$YELLOW")
     dhcp server is not easy to work with bridge network,
     the simplest way to get dhcp working with docker is
     to use host network mode.
+
+    technical: the eth0 and dhcp must on the same subnet.
     ---
 $(echo -e "$NC")
 EOF
+    # FIXME: setup dhcp based on eth0 ip address
     prefix="${DNSMASQ_DHCP_ROUTER%.*}"
     opts+=("--dhcp-range=$prefix.2,$prefix.99,255.255.255.0,12h")
     opts+=("--dhcp-option=option:router,$DNSMASQ_DHCP_ROUTER") # gateway

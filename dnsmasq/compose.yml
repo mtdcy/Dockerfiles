@@ -11,12 +11,12 @@ services:
       # envs are append after dnsmasq.conf, but its priority is undefined.
       - DNSMASQ_SERVERS="10.10.10.1 114.114.114.114"
       # define dhcp server with gw address, net mask is 255.255.255.0
-      - DNSMASQ_DHCP_ROUTER=10.20.30.1
+      - DNSMASQ_DHCP_ROUTER=10.10.10.1
       #- DNSMASQ_DHCP_SERVERS= # dns servers for dhcp
       # more option key=value pairs
       - DNSMASQ_OPTS="--log-facility=-"
     ports: # bridge mode
-      - 5353:53/udp
+      - 5353:5353/udp
       - 67:67/udp
     #volumes:
     #  - /path/to/dnsmasq/config:/config

@@ -14,6 +14,6 @@ alpine:
 compose:
 	docker compose up -d
 
-
+# dhcp works easy with host network mode
 test-dhcp:
-	sudo nmap --script broadcast-dhcp-discover -e docker0
+	sudo nmap --script broadcast-dhcp-discover -e br0
