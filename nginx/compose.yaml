@@ -1,0 +1,19 @@
+---
+version: '3'
+
+volumes:
+  data:
+
+services:
+  server:
+    image: mtdcy/nginx
+    container_name: nginx
+    network_mode: bridge
+    restart: always
+    ports:
+      - "8080:80"
+      #- "8443:443"
+    volumes:
+      - data:/data
+    #  - ./nginx.conf:/app/nginx/nginx.conf
+    #  - /var/log/nginx:/var/log/nginx
