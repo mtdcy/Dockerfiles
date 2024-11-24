@@ -11,7 +11,7 @@ LABEL   maintainer="mtdcy.chen@gmail.com"
 # ENV & ARG variables
 ARG TZ=Asia/Shanghai
 ENV TZ=${TZ}
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 
 # s6: strange behavior
 ENV S6_KEEP_ENV=1

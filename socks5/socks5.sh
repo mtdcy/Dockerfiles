@@ -3,7 +3,7 @@
 function usage {
     cat << EOF
 socks5.sh <action [argument]> ...
-    connect [user@]server[:port]    - connect remote server 
+    connect [user@]server[:port]    - connect remote server
     bind <ip:port>                  - bind local address
     ident <user>                    - specify identify file by user name
     verbose                         - run ssh in verbose mode
@@ -21,7 +21,7 @@ sshc="ssh -CN -q"
 sshc+=" -n"
 
 SSH_HOST="${SSH_HOST:-}"
-SSH_BIND="${SSH_BIND:-0.0.0.0:1070}"
+SSH_BIND="${SSH_BIND:-*:1070}"
 SSH_VERBOSE="${SSH_VERBOSE:-0}"
 
 SSH_IDENT="${SSH_IDENT:-$HOME/.ssh/id_rsa}"
@@ -30,17 +30,18 @@ SSH_CONFIG="${SSH_CONFIG:-$HOME/.ssh/config}"
 # optimized ssh parameters [high prio => override SSH_CONFIG]
 IFS=' ' read -r -a SSH_OPTS <<< "$SSH_OPTS"
 SSH_OPTS+=(
-    TCPKeepAlive=yes            # spoofable
-    ServerAliveInterval=25      # < 30s, send a null packet to server
-    ServerAliveCountMax=3       # disconnect after max * interval
-    ConnectTimeout=59           # wait before connectting timeout
-    ConnectionAttempts=3        # attempts before stop connectting
-    StrictHostKeyChecking=no    # no strict host key check
+    TCPKeepAlive=yes                # spoofable
+    ServerAliveInterval=15          # < 30s, send a null packet to server
+    ServerAliveCountMax=3           # disconnect after max * interval
+    ConnectTimeout=59               # wait before connectting timeout
+    ConnectionAttempts=3            # attempts before stop connectting
+    StrictHostKeyChecking=no        # no strict host key check
+    ExitOnForwardFailure=yes        # exit if the connection cann't setup
 )
 
 while [ $# -gt 0 ]; do
     opt=$1; shift
-    case $opt in 
+    case $opt in
         connect)    SSH_HOST="$1"   ; shift ;;
         bind)       SSH_BIND="$1"   ; shift ;;
         ident)      SSH_IDENT="$1"  ; shift ;;
@@ -68,13 +69,13 @@ else
     sshc+=" -b 0.0.0.0:1070"
 fi
 
-if [ -n "$SSH_CONFIG" ]; then 
+if [ -n "$SSH_CONFIG" ]; then
     if [ ! -f "$SSH_CONFIG" ]; then
         echo "no $SSH_CONFIG, initial with system default."
         cp /etc/ssh/ssh_config "$SSH_CONFIG" || true
     fi
 
-    sshc+=" -F $SSH_CONFIG" 
+    sshc+=" -F $SSH_CONFIG"
 else
     sshc+=" -F none"
 fi
@@ -87,7 +88,7 @@ done
 
 [ "$SSH_VERBOSE" -ne 0 ] && sshc+=" -v"
 
-# starting socks5 tunnel 
+# starting socks5 tunnel
 echo "[socks5] ${sshc}"
 
 $sshc exit 3>&1 2>&1 |
