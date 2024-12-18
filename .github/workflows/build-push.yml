@@ -82,3 +82,18 @@ jobs:
             TZ=Asia/Shanghai
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache,mode=max
+
+      - name: Build and Push (socks5)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: socks5
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/mtdcy/socks5:latest
+          file: socks5/Dockerfile
+          build-args: |
+            BASEIMAGE=alpine:3
+            MIRROR=mirrors.mtdcy.top
+            TZ=Asia/Shanghai
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/socks5:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/socks5:buildcache,mode=max
