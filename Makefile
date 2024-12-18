@@ -1,4 +1,6 @@
 
+REGISTRY ?= mcr.io
+
 # official ubuntu
 BASEIMAGE ?= ubuntu:24.04
 
@@ -9,7 +11,7 @@ MAKEFLAGS += --always-make
 %:
 	docker buildx build 					\
 		-t mtdcy/$@:latest           		\
-		-t mcr.io/mtdcy/$@:latest      		\
+		-t $(REGISTRY)/mtdcy/$@:latest      \
 		--build-arg BASEIMAGE=${BASEIMAGE} 	\
 		--build-arg MIRROR=$(MIRROR)    	\
 		--build-arg TZ=Asia/Shanghai 		\
