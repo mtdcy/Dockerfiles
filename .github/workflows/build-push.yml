@@ -7,6 +7,7 @@ on:
       - nginx/**
       - nginx-ui/**
       - socks5/**
+      - printer/**
       - .github/workflows/build-push.yml
 
 jobs:
@@ -97,6 +98,24 @@ jobs:
         env:
           PROJECT: socks5
           BASEIMAGE: alpine:3
+        with:
+          context: ${{ env.PROJECT }}
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          file: ${{ env.PROJECT }}/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
+
+      - name: Build and Push (printer)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: printer
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:latest
         with:
           context: ${{ env.PROJECT }}
           push: true
