@@ -6,6 +6,7 @@ on:
       - baseimage/**
       - nginx/**
       - nginx-ui/**
+      - socks5/**
       - .github/workflows/build-push.yml
 
 jobs:
@@ -20,80 +21,91 @@ jobs:
           fetch-depth: 1
 
       - name: Setup buildx
-        if: ${{ vars.REGISTRY == '' }}
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
 
       - name: Setup buildx (local registry)
-        if: ${{ vars.REGISTRY }}
+        if: ${{ vars.LOCAL_REGISTRY }}
         uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
         with:
           buildkitd-config-inline: |
-            [registry."docker.io"]
-              mirrors = ["${{ vars.REGISTRY }}:5050"]
-            [registry."ghcr.io"]
-              mirrors = ["${{ vars.REGISTRY }}:5051"]
-            [registry."lscr.io"]
-              mirrors = ["${{ vars.REGISTRY }}:5052"]
-            [registry."${{ vars.REGISTRY }}"]
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
               http = true
-              insecure = true
+            [registry."docker.io"]
+              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5050"]
+            [registry."ghcr.io"]
+              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5051"]
+            [registry."lscr.io"]
+              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5052"]
 
       - name: Build and Push (baseimage)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: baseimage
+          BASEIMAGE: ubuntu:24.04
         with:
-          context: .
+          context: ${{ env.PROJECT }}
           push: true
           tags: |
-            ${{ vars.REGISTRY }}/mtdcy/baseimage:latest
-          file: baseimage/Dockerfile
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
-            BASEIMAGE=ubuntu:24.04
-            MIRROR=mirrors.mtdcy.top
-            TZ=Asia/Shanghai
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/baseimage:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/baseimage:buildcache,mode=max
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
 
       - name: Build and Push (nginx)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: nginx
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:latest
         with:
-          context: nginx
+          context: ${{ env.PROJECT }}
           push: true
           tags: |
-            ${{ vars.REGISTRY }}/mtdcy/nginx:latest
-          file: nginx/Dockerfile
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
-            BASEIMAGE=${{ vars.REGISTRY }}/mtdcy/baseimage:latest
-            MIRROR=mirrors.mtdcy.top
-            TZ=Asia/Shanghai
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx:buildcache,mode=max
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
 
       - name: Build and Push (nginx-ui)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: nginx-ui
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
         with:
-          context: nginx-ui
+          context: ${{ env.PROJECT }}
           push: true
           tags: |
-            ${{ vars.REGISTRY }}/mtdcy/nginx-ui:latest
-          file: nginx-ui/Dockerfile
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
-            BASEIMAGE=${{ vars.REGISTRY }}/mtdcy/nginx:latest
-            MIRROR=mirrors.mtdcy.top
-            TZ=Asia/Shanghai
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache,mode=max
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
 
       - name: Build and Push (socks5)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: socks5
+          BASEIMAGE: alpine:3
         with:
-          context: socks5
+          context: ${{ env.PROJECT }}
           push: true
           tags: |
-            ${{ vars.REGISTRY }}/mtdcy/socks5:latest
-          file: socks5/Dockerfile
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
-            BASEIMAGE=alpine:3
-            MIRROR=mirrors.mtdcy.top
-            TZ=Asia/Shanghai
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/socks5:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/socks5:buildcache,mode=max
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
