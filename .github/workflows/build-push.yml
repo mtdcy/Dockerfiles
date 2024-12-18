@@ -1,0 +1,84 @@
+name: Build and Push
+
+on:
+  push:
+    paths:
+      - baseimage/**
+      - nginx/**
+      - nginx-ui/**
+      - .github/workflows/build-push.yml
+
+jobs:
+  build-docker-images:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://git.mtdcy.top/actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Setup buildx
+        if: ${{ vars.REGISTRY == '' }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.REGISTRY }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          buildkitd-config-inline: |
+            [registry."docker.io"]
+              mirrors = ["${{ vars.REGISTRY }}:5050"]
+            [registry."ghcr.io"]
+              mirrors = ["${{ vars.REGISTRY }}:5051"]
+            [registry."lscr.io"]
+              mirrors = ["${{ vars.REGISTRY }}:5052"]
+            [registry."${{ vars.REGISTRY }}"]
+              http = true
+              insecure = true
+
+      - name: Build and Push (baseimage)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/mtdcy/baseimage:latest
+          file: baseimage/Dockerfile
+          build-args: |
+            BASEIMAGE=ubuntu:24.04
+            MIRROR=mirrors.mtdcy.top
+            TZ=Asia/Shanghai
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/baseimage:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/baseimage:buildcache,mode=max
+
+      - name: Build and Push (nginx)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: nginx
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/mtdcy/nginx:latest
+          file: nginx/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ vars.REGISTRY }}/mtdcy/baseimage:latest
+            MIRROR=mirrors.mtdcy.top
+            TZ=Asia/Shanghai
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx:buildcache,mode=max
+
+      - name: Build and Push (nginx-ui)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: nginx-ui
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/mtdcy/nginx-ui:latest
+          file: nginx-ui/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ vars.REGISTRY }}/mtdcy/nginx:latest
+            MIRROR=mirrors.mtdcy.top
+            TZ=Asia/Shanghai
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/mtdcy/nginx-ui:buildcache,mode=max
