@@ -36,14 +36,19 @@ jobs:
         uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
         with:
           buildkitd-config-inline: |
+            debug = true
             [registry."${{ vars.LOCAL_REGISTRY }}"]
               http = true
+              insecure = true
             [registry."docker.io"]
-              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5051"]
+              http = true
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
             [registry."ghcr.io"]
-              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5052"]
+              http = true
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
             [registry."lscr.io"]
-              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5053"]
+              http = true
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
 
       - name: Build and Push (baseimage)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
