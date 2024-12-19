@@ -17,16 +17,13 @@ RUN apk add --no-cache curl xz
 ARG S6_VERSION=3.1.6.2
 ARG S6_ARCH=x86_64
 
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz /tmp
-RUN tar -C /rootfs -Jxpf /tmp/s6-overlay-noarch.tar.xz
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz /tmp
-RUN tar -C /rootfs -Jxpf /tmp/s6-overlay-${S6_ARCH}.tar.xz
+ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz \
+    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
+    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz \
+    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-arch.tar.xz /tmp
 
-# s6 optional symlinks
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz /tmp
-RUN tar -C /rootfs -Jxpf /tmp/s6-overlay-symlinks-noarch.tar.xz
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-arch.tar.xz /tmp
-RUN tar -C /rootfs -Jxpf /tmp/s6-overlay-symlinks-arch.tar.xz
+RUN find /tmp -name "s6-overlay-*" -exec tar -C /rootfs -Jxpf {} \; && \
+    du -a -h | tee /rootfs/installed-files
 
 FROM ${BASEIMAGE}
 # labels
@@ -68,5 +65,7 @@ RUN \
 
 # s6: strange behavior
 ENV S6_KEEP_ENV=1
+
 COPY --from=stage /rootfs/ /
+
 ENTRYPOINT ["/init"]

@@ -119,18 +119,20 @@ FROM ${BASEIMAGE}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-# always apply MIRROR
+#1. always apply MIRROR
+#2. install dependencies
 ARG MIRROR
-RUN test -n "${MIRROR}" && { \
+RUN \
+    echo "**** apply mirrors ****" && \
+    test -n "${MIRROR}" && { \
         sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
             -e "s|security.ubuntu.com|${MIRROR}|g" \
             -i /etc/apt/sources.list.d/ubuntu.sources || true; \
         sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true; \
-    }
-
-# install dependencies
-RUN which apt-get && { \
+    }; \
+    echo "**** install essentials ****" && \
+    which apt-get && { \
         apt-get update && \
         apt-get install -y \
             libpcre3 \
@@ -153,21 +155,17 @@ RUN which apt-get && { \
             cron \
             logrotate \
             ; \
-    }
-
-# prepare rootfs
-RUN \
+    }; \
+    echo "**** prepare rootfs ****" && \
     cp -r /etc/nginx /etc/nginx.default && \
-    rm -rf /etc/cron.*
-
-COPY --from=builder /rootfs/ /
-COPY etc/ /etc/
-
-# best practice: mount volume on /var/log
-RUN ln -sfv /dev/stdout /var/log/nginx/access.log
-RUN ln -sfv /dev/stderr /var/log/nginx/error.log
+    rm -rf /etc/cron.* && \
+    ln -sfv /dev/stdout /var/log/nginx/access.log && \
+    ln -sfv /dev/stderr /var/log/nginx/error.log
 
 EXPOSE  80 443
 
-ADD --chmod=0755 entrypoint.sh /entrypoint.sh
+# prepare rootfs
+COPY --from=builder /rootfs/ /
+COPY rootfs/ /
+
 ENTRYPOINT ["/entrypoint.sh"]

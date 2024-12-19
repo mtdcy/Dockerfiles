@@ -7,18 +7,19 @@ FROM ${BASEIMAGE}
 # lables
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-# always apply MIRROR
+#1. always apply MIRROR
 ARG MIRROR
-RUN test -n "${MIRROR}" && { \
+RUN \
+    echo "**** apply mirrors ****" && \
+    test -n "${MIRROR}" && { \
         sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
             -e "s|security.ubuntu.com|${MIRROR}|g" \
             -i /etc/apt/sources.list \
             -i /etc/apt/sources.list.d/ubuntu.sources || true; \
         sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true; \
-    }
-
-RUN \
+    }; \
+    echo "**** install essentials ****" && \
     which apt-get && { \
         apt-get update && \
         apt-get install -y openssh-client \
@@ -38,5 +39,6 @@ EXPOSE 1070
 
 VOLUME /config
 
-COPY --chmod=0755 socks5.sh /
+COPY rootfs/ /
+
 CMD ["/socks5.sh", "verbose"]
