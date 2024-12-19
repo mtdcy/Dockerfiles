@@ -1,0 +1,27 @@
+---
+services:
+  nginx:
+    image: ${REGISTRY:-docker.io}/mtdcy/nginx:latest
+    container_name: nginx
+    hostname: nginx
+    network_mode: bridge
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - PUID=${UID:-1000}
+      - PGID=${GID:-1000}
+      - UMASK=022
+    volumes:
+      - .:/etc/nginx # site config
+      - /var/log:/var/log
+    ports:
+      - 80:80
+      - 443:443
+    restart: always
+    healthcheck:
+      test: curl --fail -o /dev/null http://localhost:80
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s

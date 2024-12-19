@@ -1,8 +1,9 @@
 ---
 services:
   p910nd:
-    image: mtdcy/p910nd:latest
+    image: ${REGISTRY:-docker.io}/mtdcy/printer:latest
     container_name: p910nd
+    hostname: p910nd
     network_mode: bridge
     restart: always
     ports:

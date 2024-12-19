@@ -9,6 +9,12 @@ on:
       - socks5/**
       - printer/**
       - .github/workflows/build-push.yml
+    paths-ignore:
+      - LICENSE
+      - Makefile
+      - README.md
+      - '**/README.md'
+      - '**/compose.yml'
 
 jobs:
   build-docker-images:
