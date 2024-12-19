@@ -67,7 +67,7 @@ RUN \
         --conf-path=/etc/nginx/nginx.conf                \
         --http-log-path=/var/log/nginx/access.log        \
         --error-log-path=/var/log/nginx/error.log        \
-        --pid-path=/run/nginx.pid                        \
+        --pid-path=/var/run/nginx.pid                    \
         --lock-path=/var/lock/nginx.lock                 \
         --http-client-body-temp-path=/var/lib/nginx/body \
         --http-fastcgi-temp-path=/var/lib/nginx/fastcgi  \
@@ -111,7 +111,8 @@ RUN \
         -e 's%/usr/local/%/usr/%g' \
         -i objs/src/http/modules/perl/Makefile && \
     DESTDIR=/rootfs make install && \
-    du -h -a /rootfs > /rootfs/installed-files
+    rm -rf /rootfs/var && \
+    du -h -a /rootfs | tee /rootfs/installed-files
 
 FROM ${BASEIMAGE}
 

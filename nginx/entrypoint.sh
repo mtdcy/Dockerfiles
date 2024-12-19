@@ -15,7 +15,7 @@ if [ -z "$1" ]; then
 
     if [ -n "$PGID" ] && [ "$PGID" -ne "${PUID:-1000}" ]; then
         info "**** apply gid $PGID ****"
-        groupmod www-data -g $PGID
+        groupmod www-data -g $PGID || true
     fi
 
     if [ -n "$UMASK" ]; then
@@ -29,12 +29,13 @@ if [ -z "$1" ]; then
     fi
 
     info "**** apply default settings ****"
-    sed -e 's/^user\ .*;$/user www-data;/' \
+    sed -e 's%^user\ .*;$%user www-data;%' \
+        -e 's%^pid\ .*;$%pid /var/run/nginx.pid;%' \
         -e '/^daemon/s/^/#/' \
         -e '/^master_process/s/^/#/' \
         -i /etc/nginx/nginx.conf
 
-    mkdir -p /var/lib/nginx /var/log/nginx
+    mkdir -p /var/lib/nginx /var/log/nginx /var/run
     chown -R www-data /var/lib/nginx /var/log/nginx
     chmod -R 0750 /var/log/nginx
 
@@ -42,6 +43,13 @@ if [ -z "$1" ]; then
     mkdir -p /etc/nginx/conf.d
     mkdir -p /etc/nginx/sites-enabled
     mkdir -p /etc/nginx/streams-enabled
+
+    # always start submodule as root
+    for x in /entrypoint.d/*; do
+        info "**** start submodule $(basename "$x") ****"
+        sh "$x" &
+        sleep 1
+    done
 
     info "**** start crontab process ****"
     service cron start
