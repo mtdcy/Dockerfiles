@@ -3,7 +3,7 @@
 # s6-overlay breaks a job into pieces => complexity
 
 info () {
-    echo -e "==\\033[31m $(date '+%Y/%m/%d %H:%M:%S'): $* \\033[0m" >&2
+    echo -e "🐳\\033[34m [$(date '+%Y/%m/%d %H:%M:%S')] $* \\033[0m" >&2
 }
 
 if [ -z "$1" ]; then
@@ -16,6 +16,11 @@ if [ -z "$1" ]; then
     if [ -n "$PGID" ] && [ "$PGID" -ne "${PUID:-1000}" ]; then
         info "**** apply gid $PGID ****"
         groupmod www-data -g $PGID
+    fi
+
+    if [ -n "$UMASK" ]; then
+        info "**** apply umask $UMASK ****"
+        umask $UMASK
     fi
 
     if [ ! -f /etc/nginx/nginx.conf ]; then
