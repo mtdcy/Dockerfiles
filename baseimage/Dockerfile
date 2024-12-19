@@ -50,8 +50,11 @@ RUN \
         apt-get update && \
         apt-get install -y \
             locales tzdata \
-            wget curl procps \
+            wget curl \
             xz-utils zstd \
+            procps \
+            iputils-ping \
+            bind9-dnsutils \
             && \
     echo "**** generate locale ****" && \
         locale-gen en_US.UTF-8 && \
