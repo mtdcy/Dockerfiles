@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-
 ARG BASEIMAGE=mtdcy/nginx:latest
 
 FROM ${BASEIMAGE}

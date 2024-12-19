@@ -50,16 +50,64 @@ jobs:
               http = true
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
 
-      - name: Build and Push (baseimage)
+      - name: Inspect
+        id: inspect
+        run: |
+          docker buildx inspect
+
+          bash --version
+          tags() {
+            IFS='=' read -r _ v <<< "$(grep 'ARG VERSION=' $1/Dockerfile)"
+            IFS='.' read -r m n r <<< "$v"
+            t=(
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n
+            )
+            [ -n "$r" ] && t+=(
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n.$r
+            )
+            echo "$1-tags=$(tr ' ' ',' <<< "${t[*]}")" | tee -a $GITHUB_OUTPUT
+          }
+
+          tags nginx
+          tags nginx-ui
+          tags printer
+          tags socks5
+        shell: bash
+
+      - name: Build and Push (baseimage:alpine)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: baseimage
+          BASEIMAGE: alpine:3
+          TAGS: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+        with:
+          context: ${{ env.PROJECT }}
+          push: true
+          tags: ${{ env.TAGS }}
+          file: ${{ env.PROJECT }}/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
+
+      - name: Build and Push (baseimage:ubuntu)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         env:
           PROJECT: baseimage
           BASEIMAGE: ubuntu:24.04
+          TAGS: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
         with:
           context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          tags: ${{ env.TAGS }}
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}
@@ -72,12 +120,12 @@ jobs:
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         env:
           PROJECT: nginx
-          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:latest
+          TAGS: ${{ steps.inspect.outputs.nginx-tags }}
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
         with:
           context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          tags: ${{ env.TAGS }}
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}
@@ -90,12 +138,12 @@ jobs:
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         env:
           PROJECT: nginx-ui
+          TAGS: ${{ steps.inspect.outputs.nginx-ui-tags }}
           BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
         with:
           context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          tags: ${{ env.TAGS }}
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}
@@ -108,12 +156,12 @@ jobs:
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         env:
           PROJECT: socks5
-          BASEIMAGE: alpine:3
+          TAGS: ${{ steps.inspect.outputs.socks5-tags }}
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
         with:
           context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          tags: ${{ env.TAGS }}
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}
@@ -126,12 +174,12 @@ jobs:
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         env:
           PROJECT: printer
-          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:latest
+          TAGS: ${{ steps.inspect.outputs.printer-tags }}
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
         with:
           context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:latest
+          tags: ${{ env.TAGS }}
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}

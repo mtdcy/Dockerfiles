@@ -1,10 +1,10 @@
 # syntax=docker/dockerfile:1
-
 ARG BASEIMAGE=ubuntu:latest
 
 FROM ${BASEIMAGE} AS builder
 
-ARG NGX_VERSION=1.25.1
+ARG VERSION=1.25.1
+ARG NGX_VERSION=${VERSION}
 ARG NGX_CONNECT=0.0.7
 ARG NGX_GEOIP2=3.4
 

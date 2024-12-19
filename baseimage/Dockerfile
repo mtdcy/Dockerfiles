@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=ubuntu:latest
+ARG BASEIMAGE=ubuntu:24.04
 
 # download or build using stage
 FROM alpine:3 AS stage
@@ -36,14 +36,18 @@ ENV TZ=${TZ}
 ENV DEBIAN_FRONTEND=noninteractive
 
 ARG MIRROR
-RUN test -z "${MIRROR}" || \
+RUN \
+    echo "**** apply mirrors ****" && \
+    test -n "${MIRROR}" && { \
         sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
             -e "s|security.ubuntu.com|${MIRROR}|g" \
             -i /etc/apt/sources.list \
-            -i /etc/apt/sources.list.d/ubuntu.sources
-
-RUN \
-    echo "**** install packages ****" && \
+            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
+        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
+            -i /etc/apk/repositories || true; \
+    }; \
+    echo "**** install essentials ****" && \
+    which apt-get && { \
         apt-get update && \
         apt-get install -y \
             locales tzdata \
@@ -53,15 +57,24 @@ RUN \
             iputils-ping \
             bind9-dnsutils \
             && \
-    echo "**** generate locale ****" && \
         locale-gen en_US.UTF-8 && \
-    echo "**** setup timezone ****" && \
-        ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
-        echo "$TZ" > /etc/timezone && \
-    echo "**** cleanup ****" && \
         apt-get autoremove && \
         apt-get clean && \
-        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/*
+        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/*; \
+    } || { \
+        apk add --no-cache \
+            bash musl-locales tzdata \
+            wget curl \
+            xz zstd \
+            procps \
+            iputils \
+            bind-tools \
+            && \
+        /usr/glibc-compat/bin/localdef -i en_US -f UTF-8 en_US.UTF-8; \
+    }; \
+    echo "**** setup timezone ****" && \
+        ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
+        echo "$TZ" > /etc/timezone
 
 # s6: strange behavior
 ENV S6_KEEP_ENV=1

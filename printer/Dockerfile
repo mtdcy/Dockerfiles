@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 ARG BASEIMAGE=ubuntu:latest
 
-# download or build using stage
 FROM ${BASEIMAGE}
 
 # labels
 LABEL   maintainer="mtdcy.chen@gmail.com"
 
 ## prepare ##
+ARG VERSION=0.1
 ENV DEBIAN_FRONTEND=noninteractive
 
 #1. no p910nd in alpine

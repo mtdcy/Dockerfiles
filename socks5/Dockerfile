@@ -1,13 +1,13 @@
 # syntax=docker/dockerfile:1
 ARG BASEIMAGE=alpine:3
 
-# download or build using stage
 FROM ${BASEIMAGE}
 
 # lables
 LABEL maintainer="mtdcy.chen@gmail.com"
 
 #1. always apply MIRROR
+ARG VERSION=0.1
 ARG MIRROR
 RUN \
     echo "**** apply mirrors ****" && \
