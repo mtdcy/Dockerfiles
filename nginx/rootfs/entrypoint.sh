@@ -41,7 +41,9 @@ if [ -z "$1" ]; then
 
     # some directories included by nginx.conf
     mkdir -p /etc/nginx/conf.d
+    mkdir -p /etc/nginx/sites-available
     mkdir -p /etc/nginx/sites-enabled
+    mkdir -p /etc/nginx/streams-available
     mkdir -p /etc/nginx/streams-enabled
 
     # always start submodule as root
