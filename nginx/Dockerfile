@@ -139,22 +139,30 @@ RUN which apt-get && { \
             perl \
             openssl \
             nginx-full \
+            cron \
+            logrotate \
             && \
         apt-get autoremove && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/*; \
     } || { \
         apk update && \
-        apk add --no-cache nginx; \
+        apk add --no-cache \
+            nginx \
+            cron \
+            logrotate \
+            ; \
     }
 
-# override nginx from builder
+# prepare rootfs
+RUN \
+    cp -r /etc/nginx /etc/nginx.default && \
+    rm -rf /etc/cron.*
+
 COPY --from=builder /rootfs/ /
+COPY etc/ /etc/
 
-RUN cp -r /etc/nginx /etc/nginx.default
-ADD --chmod=0644 nginx.conf /etc/nginx.default/nginx.conf
-
-# hack
+# best practice: mount volume on /var/log
 RUN ln -sfv /dev/stdout /var/log/nginx/access.log
 RUN ln -sfv /dev/stderr /var/log/nginx/error.log
 

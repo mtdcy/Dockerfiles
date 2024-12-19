@@ -32,11 +32,14 @@ if [ -z "$1" ]; then
     mkdir -p /var/lib/nginx /var/log/nginx
     chown -R www-data /var/lib/nginx /var/log/nginx
     chmod -R 0750 /var/log/nginx
-    
+
     # some directories included by nginx.conf
     mkdir -p /etc/nginx/conf.d
     mkdir -p /etc/nginx/sites-enabled
     mkdir -p /etc/nginx/streams-enabled
+
+    info "**** start crontab process ****"
+    service cron start
 
     info "**** start nginx process ****"
     $(which nginx) -g "daemon on; master_process on;"
@@ -44,7 +47,7 @@ if [ -z "$1" ]; then
     info "**** start nginx-ui process ****"
     mkdir -p /etc/nginx-ui
     exec $(which nginx-ui) -config /etc/nginx-ui/app.ini
-    
+
     # don't tail log files here because of logrotate
 else
     exec "$@"

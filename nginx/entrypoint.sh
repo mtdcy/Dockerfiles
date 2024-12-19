@@ -38,9 +38,12 @@ if [ -z "$1" ]; then
     mkdir -p /etc/nginx/sites-enabled
     mkdir -p /etc/nginx/streams-enabled
 
+    info "**** start crontab process ****"
+    service cron start
+
     info "**** start nginx process ****"
     exec $(which nginx) -g "daemon off; master_process on;"
-    
+
     # don't tail log files here because of logrotate
 else
     exec "$@"
