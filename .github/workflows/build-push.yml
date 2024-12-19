@@ -39,11 +39,11 @@ jobs:
             [registry."${{ vars.LOCAL_REGISTRY }}"]
               http = true
             [registry."docker.io"]
-              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5050"]
-            [registry."ghcr.io"]
               mirrors = ["${{ vars.LOCAL_REGISTRY }}:5051"]
-            [registry."lscr.io"]
+            [registry."ghcr.io"]
               mirrors = ["${{ vars.LOCAL_REGISTRY }}:5052"]
+            [registry."lscr.io"]
+              mirrors = ["${{ vars.LOCAL_REGISTRY }}:5053"]
 
       - name: Build and Push (baseimage)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6

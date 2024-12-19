@@ -1,5 +1,5 @@
 
-REGISTRY ?= mcr.io
+REGISTRY ?= lcr.io
 
 # official ubuntu
 BASEIMAGE ?= ubuntu:24.04
