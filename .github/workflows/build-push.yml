@@ -30,11 +30,18 @@ jobs:
       - name: Setup buildx
         if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
         uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
         with:
+          driver-opts:
+            network=host
+          cleanup: true
           buildkitd-config-inline: |
             debug = true
             [registry."${{ vars.LOCAL_REGISTRY }}"]
