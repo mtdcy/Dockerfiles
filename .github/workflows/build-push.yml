@@ -39,16 +39,21 @@ jobs:
             debug = true
             [registry."${{ vars.LOCAL_REGISTRY }}"]
               http = true
-              insecure = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
             [registry."docker.io"]
-              http = true
               mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
             [registry."ghcr.io"]
-              http = true
               mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
-            [registry."lscr.io"]
               http = true
+            [registry."lscr.io"]
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
 
       - name: Inspect
         id: inspect
