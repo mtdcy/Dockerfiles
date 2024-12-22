@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - baseimage/**
+      - builder/**
       - nginx/**
       - nginx-ui/**
       - socks5/**
@@ -120,6 +121,24 @@ jobs:
           context: ${{ env.PROJECT }}
           push: true
           tags: ${{ env.TAGS }}
+          file: ${{ env.PROJECT }}/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ env.BASEIMAGE }}
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max
+
+      - name: Build and Push (builder)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        env:
+          PROJECT: builder
+          BASEIMAGE: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+        with:
+          context: ${{ env.PROJECT }}
+          push: true
+          tags:
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:ubuntu-latest
           file: ${{ env.PROJECT }}/Dockerfile
           build-args: |
             BASEIMAGE=${{ env.BASEIMAGE }}
