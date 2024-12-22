@@ -66,6 +66,8 @@ ENV DISTCC_DIR=
 ENV DISTCC_OPTS=
 ENV DISTCC_HOSTS=
 
+RUN useradd -U -m -s /bin/bash buildbot
+
 RUN echo -e '#!/bin/bash\n\neval -- "$@"\n' > /entrypoint.sh && \
     chmod 0755 /entrypoint.sh
 
