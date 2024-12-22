@@ -20,7 +20,7 @@ RUN echo "**** apply mirrors ****" && \
             -i /etc/apt/sources.list.d/ubuntu.sources || true; \
         sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true; \
-    } || true
+    }
 
 #2
 ENV DEBIAN_FRONTEND=noninteractive
@@ -31,7 +31,7 @@ RUN echo "**** install essentials ****" && \
             wget curl git \
             xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
-            automake autoconf gettext-dev \
+            automake autoconf gettext autopoint \
             cmake meson \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
