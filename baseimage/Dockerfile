@@ -50,7 +50,7 @@ RUN \
     which apt-get && { \
         apt-get update && \
         apt-get install -y \
-            locales tzdata \
+            bash locales tzdata \
             wget curl \
             xz-utils zstd \
             procps \
@@ -73,7 +73,7 @@ RUN \
             && \
         /usr/glibc-compat/bin/localdef -i en_US -f UTF-8 en_US.UTF-8; \
     }; \
-    echo "**** setup timezone ****" && \
+    echo "**** post setup ****" && \
         ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
         echo "$TZ" > /etc/timezone
 

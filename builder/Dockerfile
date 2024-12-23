@@ -25,9 +25,9 @@ RUN echo "**** apply mirrors ****" && \
 #2
 ENV DEBIAN_FRONTEND=noninteractive
 RUN echo "**** install essentials ****" && \
+    which apt-get && { \
         apt-get update && \
         apt-get install -y \
-            locales tzdata \
             wget curl git \
             xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
@@ -36,25 +36,28 @@ RUN echo "**** install essentials ****" && \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
             nodejs python3 moreutils \
-            openssh-client rsync
-
-#3
-RUN echo "**** setup ccache & distcc ****" && \
-        apt-get install -y ccache distcc && \
-        update-distcc-symlinks
-
-#4
-RUN echo "**** cleanup ****" && \
-        apt-get autoremove && \
+            openssh-client rsync \
+            ccache distcc \
+            && \
+        update-distcc-symlinks && \
         apt-get clean && \
-        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/*
-
-#5
-RUN echo "**** setup locales and timezone ****" && \
-        locale-gen en_US.UTF-8 && \
-        ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
-        echo "$TZ" > /etc/timezone && \
-        ln -sfv /bin/bash /bin/sh
+        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/* \
+        ; \
+    } || { \
+        apk update && \
+        apk add --no-cache \
+            wget curl git \
+            xz lzip unzip zstd \
+            build-base libtool pkgconfig \
+            automake autoconf gettext \
+            cmake meson \
+            nasm yasm bison flex \
+            luajit perl perl-http-daemon \
+            nodejs python3 moreutils \
+            openssh rsync \
+            ccache distcc \
+            ; \
+    }
 
 # ccache: disable by default
 ENV USE_CCACHE=0
