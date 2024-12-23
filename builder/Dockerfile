@@ -35,7 +35,8 @@ RUN echo "**** install essentials ****" && \
             cmake meson \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
-            nodejs python3 moreutils
+            nodejs python3 moreutils \
+            openssh-client rsync
 
 #3
 RUN echo "**** setup ccache & distcc ****" && \
