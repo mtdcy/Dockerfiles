@@ -63,7 +63,8 @@ RUN \
         rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/*; \
     } || { \
         apk add --no-cache \
-            bash musl-locales tzdata \
+            bash shadow \
+            musl-locales tzdata \
             wget curl \
             xz zstd \
             procps \
