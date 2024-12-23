@@ -52,7 +52,7 @@ RUN \
         apt-get install -y \
             bash locales tzdata \
             wget curl \
-            xz-utils zstd \
+            tar xz-utils zstd lzip \
             procps \
             iputils-ping \
             bind9-dnsutils \
@@ -66,7 +66,7 @@ RUN \
             bash shadow \
             musl-locales tzdata \
             wget curl \
-            xz zstd \
+            tar xz zstd lzip \
             procps \
             iputils \
             bind-tools \

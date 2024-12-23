@@ -29,7 +29,7 @@ RUN echo "**** install essentials ****" && \
         apt-get update && \
         apt-get install -y \
             wget curl git \
-            xz-utils lzip unzip zstd \
+            tar xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
             automake autoconf gettext autopoint \
             cmake meson \
@@ -47,7 +47,7 @@ RUN echo "**** install essentials ****" && \
         apk update && \
         apk add --no-cache \
             wget curl git \
-            xz lzip unzip zstd \
+            tar xz lzip unzip zstd \
             build-base libtool pkgconfig \
             automake autoconf gettext \
             cmake meson \
