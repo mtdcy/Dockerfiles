@@ -52,7 +52,7 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
-      - name: Build and Push
+      - name: Build and Push (24.04/latest)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         with:
           context: baseimage
@@ -63,6 +63,21 @@ jobs:
           file: baseimage/Dockerfile
           build-args: |
             BASEIMAGE=ubuntu:24.04
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+
+      - name: Build and Push (22.04)
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: baseimage
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
+          file: baseimage/Dockerfile
+          build-args: |
+            BASEIMAGE=ubuntu:22.04
             MIRROR=${{ vars.MIRRORS }}
             TZ=${{ vars.TZ }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
