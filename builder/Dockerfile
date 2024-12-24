@@ -57,9 +57,7 @@ ENV DISTCC_HOSTS=
 RUN useradd -U -m -s /bin/bash buildbot
 
 # override entrypoint
-RUN echo -e '#!/bin/bash\n\neval -- "$@"\n' > /entrypoint.sh && \
-    chmod 0755 /entrypoint.sh
-
+COPY --chmod=0755 entrypoint.sh /
 ENTRYPOINT ["/entrypoint.sh"]
 
 ENV BUILDER_NAME=cmdlets-builder
