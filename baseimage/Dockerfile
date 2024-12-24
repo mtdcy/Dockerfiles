@@ -53,14 +53,18 @@ RUN \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
 
+ARG TZ=Asia/Shanghai
+ARG LANG=en_US.UTF-8
 RUN \
     echo "**** post setup ****" && \
         locale-gen en_US.UTF-8 && \
-        ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
-        echo "$TZ" > /etc/timezone
-
-ARG TZ=Asia/Shanghai
-ARG LANG=en_US.UTF-8
+        if [ -e /usr/share/zoneinfo/$TZ ]; then \
+            ln -svf /usr/share/zoneinfo/$TZ /etc/localtime && \
+            echo "$TZ" > /etc/timezone \
+            ; \
+        else \
+            echo ">>>> wrong TZ:$TZ <<<<"; \
+        fi
 
 ENV TZ=${TZ}
 ENV LANG=${LANG}
