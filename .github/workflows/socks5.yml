@@ -1,0 +1,92 @@
+name: Build socks5
+
+on:
+  push:
+    paths:
+      - socks5/Dockerfile
+      - .github/workflows/socks5.yml
+
+  workflows_run:
+    workflows: [Build baseimage-alpine]
+    types:
+      - completed
+
+jobs:
+  build-socks5:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://git.mtdcy.top/actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+
+      - name: Inspect
+        id: inspect
+        run: |
+          docker buildx inspect
+
+          bash --version
+          tags() {
+            IFS='=' read -r _ v <<< "$(grep 'VERSION=' $1/Dockerfile)"
+            IFS='.' read -r m n r <<< "$v"
+            t=(
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n
+            )
+            [ -n "$r" ] && t+=(
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n.$r
+            )
+            echo "tags=$(tr ' ' ',' <<< "${t[*]}")" | tee -a $GITHUB_OUTPUT
+          }
+
+          tags socks5
+
+      - name: Build and Push
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: socks5
+          push: true
+          tags: ${{ steps.inspect.outputs.tags }}
+          file: socks5/Dockerfile
+          build-args: |
+            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/socks5:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/socks5:buildcache,mode=max
