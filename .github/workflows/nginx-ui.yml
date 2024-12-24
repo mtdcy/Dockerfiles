@@ -89,6 +89,6 @@ jobs:
           tags: ${{ steps.inspect.outputs.tags }}
           file: nginx-ui/Dockerfile
           build-args: |
-            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache,mode=max
