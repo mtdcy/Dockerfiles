@@ -67,3 +67,15 @@ jobs:
             TZ=${{ vars.TZ }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+
+  build-builder:
+    uses: ./.github/workflows/builder.yml
+    needs: [build-baseimage]
+
+  build-nginx:
+    uses: ./.github/workflows/nginx.yml
+    needs: [build-baseimage]
+
+  build-printer:
+    uses: ./.github/workflows/printer.yml
+    needs: [build-baseimage]

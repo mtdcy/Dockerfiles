@@ -6,10 +6,12 @@ on:
       - nginx/Dockerfile
       - .github/workflows/nginx.yml
 
-  workflows_run:
-    workflows: [Build baseimage]
-    types:
-      - completed
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call:
 
 jobs:
   build-nginx:
@@ -90,3 +92,7 @@ jobs:
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:buildcache,mode=max
+
+  build-nginx-ui:
+    uses: ./.github/workflows/nginx-ui.yml
+    needs: [build-nginx]

@@ -6,10 +6,12 @@ on:
       - nginx-ui/Dockerfile
       - .github/workflows/nginx-ui.yml
 
-  workflows_run:
-    workflows: [Build nginx]
-    types:
-      - completed
+# workflows_run:
+#   workflows: [Build nginx]
+#   types:
+#     - completed
+
+  workflow_call:
 
 jobs:
   build-nginx-ui:

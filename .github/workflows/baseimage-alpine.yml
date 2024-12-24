@@ -67,3 +67,11 @@ jobs:
             TZ=${{ vars.TZ }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+
+  build-builder-alpine:
+    uses: ./.github/workflows/builder-alpine.yml
+    needs: [build-baseimage-alpine]
+
+  build-socks5-alpine:
+    uses: ./.github/workflows/socks5.yml
+    needs: [build-baseimage-alpine]

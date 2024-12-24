@@ -6,10 +6,12 @@ on:
       - socks5/Dockerfile
       - .github/workflows/socks5.yml
 
-  workflows_run:
-    workflows: [Build baseimage-alpine]
-    types:
-      - completed
+# workflows_run:
+#   workflows: [Build baseimage-alpine]
+#   types:
+#     - completed
+
+  workflow_call:
 
 jobs:
   build-socks5:

@@ -6,10 +6,12 @@ on:
       - builder/Dockerfile.alpine
       - .github/workflows/builder-alpine.yml
 
-  workflows_run:
-    workflows: [Build baseimage-alpine]
-    types:
-      - completed
+# workflows_run:
+#   workflows: [Build baseimage-alpine]
+#   types:
+#     - completed
+
+  workflow_call:
 
 jobs:
   build-builder-alpine:

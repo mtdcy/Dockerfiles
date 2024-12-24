@@ -6,10 +6,12 @@ on:
       - printer/Dockerfile
       - .github/workflows/printer.yml
 
-  workflows_run:
-    workflows: [Build baseimage]
-    types:
-      - completed
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call:
 
 jobs:
   build-printer:
