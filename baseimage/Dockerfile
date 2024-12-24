@@ -42,10 +42,12 @@ RUN \
         sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
             -e "s|security.ubuntu.com|${MIRROR}|g" \
             -i /etc/apt/sources.list \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
+            -i /etc/apt/sources.list.d/* || true; \
         sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true; \
-    }; \
+    }
+
+RUN \
     echo "**** install essentials ****" && \
     which apt-get && { \
         apt-get update && \
@@ -57,10 +59,9 @@ RUN \
             iputils-ping \
             bind9-dnsutils \
             && \
-        locale-gen en_US.UTF-8 && \
-        apt-get autoremove && \
         apt-get clean && \
-        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/*; \
+        rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/* && \
+        locale-gen en_US.UTF-8; \
     } || { \
         apk add --no-cache \
             bash shadow \

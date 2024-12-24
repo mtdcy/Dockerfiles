@@ -6,26 +6,10 @@ FROM ${BASEIMAGE:-ubuntu:latest}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-# ENV & ARG variables
-ARG TZ=Asia/Shanghai
-ENV TZ=${TZ}
-
-#1
-ARG MIRROR
-RUN echo "**** apply mirrors ****" && \
-    test -n "${MIRROR}" && { \
-        sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|security.ubuntu.com|${MIRROR}|g" \
-            -i /etc/apt/sources.list \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
-        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
-            -i /etc/apk/repositories || true; \
-    }
-
-#2
-ENV DEBIAN_FRONTEND=noninteractive
+# install packages
 RUN echo "**** install essentials ****" && \
     which apt-get && { \
+        export DEBIAN_FRONTEND=noninteractive && \
         apt-get update && \
         apt-get install -y \
             wget curl git \
@@ -41,7 +25,7 @@ RUN echo "**** install essentials ****" && \
             && \
         update-distcc-symlinks && \
         apt-get clean && \
-        rm -rf /tmp/* /var/lib/apt/lists/* /var/tmp/* /var/log/* \
+        rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/* \
         ; \
     } || { \
         apk update && \
@@ -72,6 +56,7 @@ ENV DISTCC_HOSTS=
 
 RUN useradd -U -m -s /bin/bash buildbot
 
+# override entrypoint
 RUN echo -e '#!/bin/bash\n\neval -- "$@"\n' > /entrypoint.sh && \
     chmod 0755 /entrypoint.sh
 

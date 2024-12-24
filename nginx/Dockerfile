@@ -8,16 +8,6 @@ ARG NGX_VERSION=${VERSION}
 ARG NGX_CONNECT=0.0.7
 ARG NGX_GEOIP2=3.4
 
-# always apply MIRROR
-ARG MIRROR
-RUN test -n "${MIRROR}" && { \
-        sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|security.ubuntu.com|${MIRROR}|g" \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
-        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
-            -i /etc/apk/repositories || true; \
-    }
-
 ADD https://github.com/leev/ngx_http_geoip2_module/archive/${NGX_GEOIP2}.tar.gz \
     https://github.com/chobits/ngx_http_proxy_connect_module/archive/v${NGX_CONNECT}.tar.gz \
     http://nginx.org/download/nginx-${NGX_VERSION}.tar.gz \
@@ -119,18 +109,8 @@ FROM ${BASEIMAGE}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-#1. always apply MIRROR
-#2. install dependencies
-ARG MIRROR
+# install dependencies
 RUN \
-    echo "**** apply mirrors ****" && \
-    test -n "${MIRROR}" && { \
-        sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|security.ubuntu.com|${MIRROR}|g" \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
-        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
-            -i /etc/apk/repositories || true; \
-    }; \
     echo "**** install essentials ****" && \
     which apt-get && { \
         apt-get update && \

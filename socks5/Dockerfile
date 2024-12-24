@@ -8,17 +8,7 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 
 #1. always apply MIRROR
 ARG VERSION=0.1
-ARG MIRROR
 RUN \
-    echo "**** apply mirrors ****" && \
-    test -n "${MIRROR}" && { \
-        sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|security.ubuntu.com|${MIRROR}|g" \
-            -i /etc/apt/sources.list \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true; \
-        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
-            -i /etc/apk/repositories || true; \
-    }; \
     echo "**** install essentials ****" && \
     which apt-get && { \
         apt-get update && \
