@@ -59,7 +59,7 @@ jobs:
           push: true
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-24.04
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
           file: baseimage/Dockerfile.alpine
           build-args: |
             BASEIMAGE=alpine:3
