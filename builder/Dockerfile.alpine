@@ -12,7 +12,7 @@ RUN echo "**** install essentials ****" && \
         apk add --no-cache \
             grep sed gawk \
             wget curl git diffutils \
-            tar xz lzip unzip zstd \
+            tar gzip xz lzip unzip zstd \
             build-base libtool pkgconfig \
             automake autoconf gettext \
             cmake meson \

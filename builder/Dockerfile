@@ -12,7 +12,7 @@ RUN echo "**** install essentials ****" && \
         apt-get update && \
         apt-get install -y \
             wget curl git diffutils \
-            tar xz-utils lzip unzip zstd \
+            tar gzip xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
             automake autoconf gettext autopoint \
             cmake meson \
