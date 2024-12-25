@@ -10,6 +10,7 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 RUN echo "**** install essentials ****" && \
         apk update && \
         apk add --no-cache \
+            grep sed gawk \
             wget curl git \
             tar xz lzip unzip zstd \
             build-base libtool pkgconfig \
