@@ -11,7 +11,7 @@ RUN echo "**** install essentials ****" && \
         apk update && \
         apk add --no-cache \
             grep sed gawk \
-            wget curl git diffutils \
+            wget curl git diffutils findutils \
             tar gzip xz lzip unzip zstd \
             build-base libtool pkgconfig \
             automake autoconf gettext \

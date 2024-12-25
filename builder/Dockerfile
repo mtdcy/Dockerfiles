@@ -11,7 +11,7 @@ RUN echo "**** install essentials ****" && \
         export DEBIAN_FRONTEND=noninteractive && \
         apt-get update && \
         apt-get install -y \
-            wget curl git diffutils \
+            wget curl git diffutils findutils \
             tar gzip xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
             automake autoconf gettext autopoint \
