@@ -13,7 +13,7 @@ RUN echo "**** install essentials ****" && \
             grep sed gawk \
             wget curl git diffutils findutils \
             tar gzip xz lzip unzip zstd \
-            build-base libtool pkgconfig \
+            linux-headers build-base libtool pkgconfig \
             automake autoconf gettext \
             cmake meson \
             nasm yasm bison flex \
