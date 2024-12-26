@@ -28,6 +28,10 @@ RUN echo "**** install essentials ****" && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
 
+# add Implib.so
+RUN git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
+COPY --chmod=0755 Implib.so /usr/bin/
+
 # ccache: disable by default
 ENV USE_CCACHE=0
 ENV CCACHE_UMASK=022
