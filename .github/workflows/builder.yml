@@ -16,6 +16,9 @@ on:
 jobs:
   build-builder:
     runs-on: ubuntu-latest
+    env:
+      PROJECT: builder
+      file: Dockerfile
 
     steps:
       - name: Checkout
@@ -59,16 +62,31 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
+      - name: Inspect
+        id: inspect
+        shell: bash
+        run: |
+          docker buildx inspect
+          bash --version
+          set -x
+
+          # ARG BASEIMAGE=alpine:3
+          IFS='=:' read -r _ base ver <<< "$(grep 'BASEIMAGE=' ${{ env.PROJECT }}/${{ env.FILE }})"
+          # ARG REVISION=1
+          IFS='='  read -r _ rev      <<< "$(grep 'REVISION='  ${{ env.PROJECT }}/${{ env.FILE }})"
+          tags=(
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:$base-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:$base-$ver
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:$base-$ver-${rev:-1}
+          )
+          echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         with:
-          context: builder
+          context: ${{ env.PROJECT }}
           push: true
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
-          file: builder/Dockerfile
-          build-args: |
-            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:buildcache,mode=max
+          tags: ${{ steps.inspect.outputs.tags }}
+          file: ${{ env.PROJECT }}/${{ env.FILE }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/${{ env.PROJECT }}:buildcache,mode=max

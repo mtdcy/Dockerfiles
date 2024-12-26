@@ -1,7 +1,9 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE
+ARG BASEIMAGE=ubuntu:22.04
+# version embeded in baseiamge
+ARG REVISION=1
 
-FROM ${BASEIMAGE:-ubuntu:latest}
+FROM $BASEIMAGE
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
