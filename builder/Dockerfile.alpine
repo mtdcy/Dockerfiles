@@ -13,7 +13,7 @@ RUN echo "**** install essentials ****" && \
         apk update && \
         apk add --no-cache \
             grep sed gawk \
-            wget curl git diffutils findutils \
+            wget curl git diffutils findutils ncurses \
             tar gzip xz lzip unzip zstd \
             linux-headers build-base libtool pkgconfig \
             automake autoconf gettext \
