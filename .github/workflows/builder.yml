@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - builder/Dockerfile
+      - builder/entrypoint.sh
+      - builder/Implib.so
       - .github/workflows/builder.yml
 
 # workflows_run:

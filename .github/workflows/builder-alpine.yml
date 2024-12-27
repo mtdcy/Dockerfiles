@@ -4,6 +4,8 @@ on:
   push:
     paths:
       - builder/Dockerfile.alpine
+      - builder/entrypoint.sh
+      - builder/Implib.so
       - .github/workflows/builder-alpine.yml
 
 # workflows_run:
