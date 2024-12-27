@@ -1,7 +1,5 @@
 # syntax=docker/dockerfile:1
 ARG BASEIMAGE=alpine:3
-# version embeded in baseiamge
-ARG REVISION=1
 
 FROM ${BASEIMAGE}
 
