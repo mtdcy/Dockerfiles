@@ -1,0 +1,127 @@
+# syntax=docker/dockerfile:1
+ARG BASEIMAGE=ubuntu:24.04
+
+FROM ${BASEIMAGE} AS builder
+
+WORKDIR /tmp
+
+# refer: https://github.com/msys2/msys2-docker/blob/main/build-base/Dockerfile
+ADD https://gitlab.winehq.org/jhol/wine.git#msys2-hacks-18 /tmp/wine.git
+RUN \
+    echo "**** Install WINE build dependencies ****" && \
+        sed -e 's/^Types: deb$/Types: deb deb-src/' \
+            -i /etc/apt/sources.list \
+            -i /etc/apt/sources.list.d/* || true; \
+        apt-get update && \
+        apt-get build-dep --install-recommends -y wine && \
+        apt-get install -y \
+            curl zstd git \
+            gcc-mingw-w64-i686
+
+RUN \
+    echo "**** Install patched WINE ****" && \
+        # https://gitlab.winehq.org/jhol/wine/-/commits/msys2-hacks-18
+        #git clone https://gitlab.winehq.org/jhol/wine.git \
+        #    --branch msys2-hacks-18 --single-branch /tmp/wine.git && \
+        #git checkout 90e376d085e78ed4c5e91480f354866637f53e1c && \
+        cd /tmp/wine.git && \
+        ./configure --help && \
+        ./configure \
+            --prefix=/usr \
+            --enable-win64 \
+            --disable-win16 \
+            --disable-tests \
+            --with-mingw \
+            --enable-archs=x86_64,i386 \
+            && \
+        make -j$(nproc) && \
+        DESTDIR=/rootfs make install && \
+        find /rootfs -type f -exec strip --strip-all {} \; && \
+        find /rootfs -type f -name "*.a" -exec rm -f {} \; && \
+        rm -rf /rootfs/usr/include
+
+ADD https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.tar.zst /tmp
+RUN \
+    echo "**** Install MSYS2 ****" && \
+        #curl --fail -sL 'https://github.com/msys2/msys2-installer/releases/download/nightly-x86_64/msys2-base-x86_64-latest.tar.zst' | tar -x --zstd -C  /rootfs/ && \
+        tar -C /rootfs --zstd -xf /tmp/msys2-base-x86_64-latest.tar.zst
+
+RUN du -a -h /rootfs | tee /rootfs/installed-files
+
+# no s6 overlay for MSYS2
+FROM ${BASEIMAGE}
+# labels
+LABEL maintainer="mtdcy.chen@gmail.com"
+
+SHELL ["/bin/bash", "-c"]
+
+# Install wine64 and runtime deps
+RUN \
+    echo "**** install runtime deps ****" && \
+        apt-get update && \
+        apt-get install -y file wine64 && \
+        rm -rf /var/lib/apt/lists/*
+# override with patched wine64
+COPY --from=builder /rootfs/ /
+
+ARG MIRROR
+#1. Signature validation is too slow
+#2. Disable space checks to speed up package installation
+#3. Not strictly necessary
+#.. Apply mirrors
+RUN \
+    echo "**** apply pacman settings ****" && \
+    sed -e 's/SigLevel\ \+= Required/SigLevel = Never/g' \
+        -e 's/^CheckSpace/#CheckSpace/g' \
+        -i /msys64/etc/pacman.conf; \
+    sed -e 's/--refresh-keys/--version/g' \
+        -i /msys64/etc/post-install/07-pacman-key.post; \
+    test -n "${MIRROR}" && { \
+        for x in /msys64/etc/pacman.d/mirrorlist.*; do \
+            echo "Server = https://${MIRROR}/msys2/mingw/\$repo/" > "$x"; \
+        done && \
+        echo "Server = https://${MIRROR}/msys2/msys/\$arch/" \
+            > /msys64/etc/pacman.d/mirrorlist.msys; \
+    }
+
+# Setup WINE64 & MSYS2
+ARG WINEPREFIX=/win64
+WORKDIR ${WINEPREFIX}/drive_c/
+
+ENV WINEPREFIX=${WINEPREFIX}
+ENV WINEPATH=C:\\msys64\\usr\\bin
+ENV WINEDEBUG=-all
+ENV WINEARCH=win64
+ENV MSYSTEM=MINGW64
+
+RUN \
+    echo "**** prepare wine64 ****" && \
+        ldconfig && winecfg && \
+        echo "WINEARCH=${WINEARCH:-win64}" > $WINEPREFIX/.winearch && \
+        ln -sfv /msys64 $WINEPREFIX/drive_c/ && \
+        chmod -R 777 $WINEPREFIX/drive_c && \
+    echo "**** pollute MSYS2 ****" && \
+        rm -rf  /msys64/{home,opt,mnt,media} && \
+        ln -sfv /home           /msys64/ && \
+        ln -sfv /opt            /msys64/ && \
+        ln -sfv /media          /msys64/ && \
+        ln -sfv /mnt            /msys64/ && \
+        ln -sfv /etc/passwd     /msys64/etc/ && \
+        ln -sfv /etc/group      /msys64/etc/ && \
+        ln -sfv /etc/localtime  /msys64/etc/ && \
+    echo "**** generate MSYS2 files on first login ****" && \
+        wine bash.exe -l -c ""
+
+# MSYS2
+SHELL ["/usr/bin/wine", "bash.exe", "-c"]
+RUN \
+    echo "**** install essentials ****" && \
+        pacman -Sy && \
+        pacman --noconfirm --ignore pacman --needed -S \
+            wget curl \
+            tar xz zstd lzip \
+            procps-ng inetutils \
+            && \
+        rm -rf /var/cache/pacman/pkg/*
+
+CMD ["wine", "bash.exe", "-l"]

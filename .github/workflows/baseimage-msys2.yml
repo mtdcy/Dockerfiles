@@ -1,0 +1,72 @@
+name: Build baseimage
+
+on:
+  push:
+    paths:
+      - baseimage/Dockerfile.msys2
+      - .github/workflows/baseimage-msys2.yml
+
+jobs:
+  build-baseimage-msys2:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://git.mtdcy.top/actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+
+      - name: Build and Push
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: baseimage
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+          file: baseimage/Dockerfile.msys2
+          build-args: |
+            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+            MIRROR=${{ vars.MIRRORS }}
+            TZ=${{ vars.TZ }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+
+  build-builder:
+    uses: ./.github/workflows/builder-msys2.yml
+    needs: [build-baseimage-msys2]
