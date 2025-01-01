@@ -65,8 +65,8 @@ jobs:
             BASEIMAGE=ubuntu:24.04
             MIRROR=${{ vars.MIRRORS }}
             TZ=${{ vars.TZ }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
 
       - name: Build and Push (22.04)
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
@@ -80,8 +80,8 @@ jobs:
             BASEIMAGE=ubuntu:22.04
             MIRROR=${{ vars.MIRRORS }}
             TZ=${{ vars.TZ }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache,mode=max
 
   build-builder:
     uses: ./.github/workflows/builder.yml

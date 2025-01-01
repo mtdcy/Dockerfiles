@@ -65,8 +65,8 @@ jobs:
             BASEIMAGE=alpine:3
             MIRROR=${{ vars.MIRRORS }}
             TZ=${{ vars.TZ }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
 
   build-builder-alpine:
     uses: ./.github/workflows/builder-alpine.yml
