@@ -46,7 +46,8 @@ RUN \
             tar xz zstd lzip \
             procps \
             iputils \
-            bind-tools
+            bind-tools \
+            sudo
 
 ARG TZ=Asia/Shanghai
 ARG LANG=en_US.UTF-8

@@ -49,6 +49,7 @@ RUN \
             procps \
             iputils-ping \
             bind9-dnsutils \
+            sudo \
             && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
