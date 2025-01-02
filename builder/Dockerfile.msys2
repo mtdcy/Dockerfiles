@@ -6,35 +6,47 @@ FROM ${BASEIMAGE}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-SHELL ["/bin/bash", "-c"]
-
-RUN useradd -U -m -s /bin/bash buildbot
-
 # install packages
+ARG MSYSTEM=MINGW64
+ENV MSYSTEM=${MSYSTEM}
 SHELL ["/usr/bin/wine", "bash.exe", "-c"]
 RUN \
+    case "$MSYSTEM" in \
+        MINGW*)     prefix=mingw-w64-$(uname -m)- ;; \
+        UCRT*)      prefix=mingw-w64-ucrt-$(uname -m)- ;; \
+        CLANG*)     prefix=mingw-w64-clang-$(uname -m)- ;; \
+    esac && \
     echo "**** install essentials ****" && \
         pacman -Sy && \
         pacman --noconfirm --ignore pacman --needed -S \
             wget curl git diffutils findutils ncurses \
             tar gzip xz lzip unzip zstd \
-            patch automake autoconf gettext \
+            make patch automake autoconf gettext \
             bison flex lua perl perl-HTTP-Daemon \
             python3 moreutils rsync ccache \
+            ${prefix}gcc \
+            ${prefix}pkgconf \
+            ${prefix}libtool \
+            ${prefix}nasm \
+            ${prefix}yasm \
+            ${prefix}ntldd \
+            ${prefix}make \
+            ${prefix}cmake \
+            ${prefix}meson \
+            ${prefix}nodejs \
+            ${prefix}gettext-tools \
             && \
-    echo "**** install toolchain ****" && \
-        for x in gcc pkg-config libtool nasm yasm ntldd \
-            make cmake meson \
-            nodejs gettext-tools \
-            ; do \
-            pacman --noconfirm --ignore pacman --needed -S \
-                mingw-w64-$(uname -m)-$x \
-                mingw-w64-ucrt-$(uname -m)-$x \
-                mingw-w64-clang-$(uname -m)-$x \
-                ; \
-        done && \
-    echo "**** cleanup ****" && \
         rm -rf /var/cache/pacman/pkg/*
+# make => unix syntax and paths
+# mingw32-make => windows syntax and paths
+
+SHELL ["/bin/bash", "-c"]
+RUN \
+    echo "**** prepare user buildbot ****" && \
+        useradd -U -m -s /bin/bash buildbot && \
+        chown buildbot:buildbot /wine && \
+        chown -R buildbot:buildbot /msys64 && \
+        su buildbot -c "wine bash.exe -l -c ''"
 
 # ccache: disable by default
 ENV USE_CCACHE=0

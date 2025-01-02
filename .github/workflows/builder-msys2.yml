@@ -15,7 +15,7 @@ on:
   workflow_call:
 
 jobs:
-  build-builder-msys2:
+  build-builder-mingw64:
     runs-on: ubuntu-latest
 
     steps:
@@ -66,9 +66,128 @@ jobs:
           context: builder
           push: true
           tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:msys2-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
           file: builder/Dockerfile.msys2
           build-args: |
+            MSYSTEM=MINGW64
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:msys2-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:msys2-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-buildcache,mode=max
+
+  build-builder-ucrt64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://git.mtdcy.top/actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+
+      - name: Build and Push
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: builder
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ucrt64-latest
+          file: builder/Dockerfile.msys2
+          build-args: |
+            MSYSTEM=UCRT64
+            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ucrt64-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ucrt64-buildcache,mode=max
+
+  build-builder-clang64:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: https://git.mtdcy.top/actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        with:
+          driver-opts:
+            network=host
+          cleanup: true
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+
+      - name: Build and Push
+        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        with:
+          context: builder
+          push: true
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:clang64-latest
+          file: builder/Dockerfile.msys2
+          build-args: |
+            MSYSTEM=CLANG64
+            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:clang64-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:clang64-buildcache,mode=max
