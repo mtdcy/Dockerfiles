@@ -93,12 +93,14 @@ ENV WINEDEBUG=-all
 ENV MSYSTEM=MINGW64
 
 WORKDIR $WINEPREFIX
+SHELL ["/bin/bash", "-c"]
 RUN \
     echo "**** Prepare WINE64 & MSYS2 ****" && \
         ldconfig &&  \
         wine winecfg /v $WINDOWS && \
         ln -sfv /msys64 dosdevices/d: && \
-        ln -sfv /etc/localtime /msys64/etc/ && \
+        rm -rf /msys64/tmp && ln -sfv /tmp /msys64/ && \
+        rm -rf /msys64/localtime && ln -sfv /etc/localtime /msys64/etc/ && \
     echo "**** Generate MSYS2 files on first login ****" && \
         wine bash.exe -l -c ""
 
