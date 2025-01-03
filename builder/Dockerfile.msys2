@@ -21,20 +21,18 @@ RUN \
         pacman --noconfirm --ignore pacman --needed -S \
             wget curl git diffutils findutils ncurses \
             tar gzip xz lzip unzip zstd \
-            make patch automake autoconf gettext \
+            patch gettext \
             bison flex lua perl perl-HTTP-Daemon \
             python3 moreutils rsync ccache \
-            ${prefix}gcc \
-            ${prefix}pkgconf \
-            ${prefix}libtool \
+            ${prefix}toolchain \
+            ${prefix}autotools \
             ${prefix}nasm \
             ${prefix}yasm \
-            ${prefix}ntldd \
             ${prefix}make \
             ${prefix}cmake \
             ${prefix}meson \
+            ${prefix}ntldd \
             ${prefix}nodejs \
-            ${prefix}gettext-tools \
             && \
         rm -rf /var/cache/pacman/pkg/*
 # make => unix syntax and paths
