@@ -19,7 +19,7 @@ RUN \
             gcc-mingw-w64-i686
 
 RUN \
-    echo "**** Install patched WINE ****" && \
+    echo "**** Install patched WINE64 ****" && \
         # https://gitlab.winehq.org/jhol/wine/-/commits/msys2-hacks-18
         #git clone https://gitlab.winehq.org/jhol/wine.git \
         #    --branch msys2-hacks-18 --single-branch /tmp/wine.git && \
@@ -52,8 +52,6 @@ RUN du -a -h /rootfs | tee /rootfs/installed-files
 FROM ${BASEIMAGE}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
-
-SHELL ["/bin/bash", "-c"]
 
 # Install wine64 and runtime deps
 RUN \
@@ -90,6 +88,7 @@ ENV WINEPREFIX=/wine
 # MSYS2 on D:
 ENV WINEPATH=D:\\usr\\bin
 ENV WINEDEBUG=-all
+ENV WINEARCH=win64
 ENV MSYSTEM=MINGW64
 
 WORKDIR $WINEPREFIX
