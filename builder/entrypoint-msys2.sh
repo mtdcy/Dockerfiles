@@ -1,9 +1,7 @@
 #!/bin/bash -e
 
 if [ "$(id -u)" -ne 0 ]; then
-    cat <<EOF
-Please run as root and set PUID|PGID instead.
-EOF
+    echo "Please run as root and set PUID|PGID instead."
     exit 1
 fi
 
