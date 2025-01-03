@@ -28,7 +28,6 @@ RUN \
             ${prefix}autotools \
             ${prefix}nasm \
             ${prefix}yasm \
-            ${prefix}make \
             ${prefix}cmake \
             ${prefix}meson \
             ${prefix}ntldd \
