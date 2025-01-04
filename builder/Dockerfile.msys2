@@ -6,6 +6,15 @@ FROM ${BASEIMAGE}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
+# workflows OCI runtime exec ignores our entrypoint
+SHELL ["/bin/bash", "-c"]
+RUN echo "**** install essentials ****" && \
+        export DEBIAN_FRONTEND=noninteractive && \
+        apt-get update && \
+        apt-get install -y nodejs && \
+        apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
+
 # install packages
 ARG MSYSTEM=MINGW64
 ENV MSYSTEM=${MSYSTEM}
