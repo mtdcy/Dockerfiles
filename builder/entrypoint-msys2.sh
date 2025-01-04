@@ -46,7 +46,7 @@ fi
 
 if [ -n "$*" ]; then
     # shellcheck disable=SC2145
-    su buildbot -c "wine bash.exe -li -c '$@'"
+    su buildbot -c "xvfb-run -a wine bash.exe -li -c '$@'"
 else
-    su buildbot -c "wine bash.exe -li"
+    su buildbot -c "xvfb-run -a wine bash.exe -li"
 fi
