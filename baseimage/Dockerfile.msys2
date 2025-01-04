@@ -100,6 +100,9 @@ RUN \
         ln -sfv /msys64 dosdevices/d: && \
         rm -rf /msys64/tmp && ln -sfv /tmp /msys64/ && \
         rm -rf /msys64/localtime && ln -sfv /etc/localtime /msys64/etc/ && \
+        # https://bjg.io/guide/cygwin-ad/
+        sed -e '/^passwd:/s/.*/passwd: files/' -i /msys64/etc/nsswitch.conf && \
+        sed -e '/^group:/s/.*/group: files/'   -i /msys64/etc/nsswitch.conf && \
     echo "**** Generate MSYS2 files on first login ****" && \
         wine bash.exe -l -c ""
 
