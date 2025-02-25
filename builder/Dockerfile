@@ -21,6 +21,7 @@ RUN echo "**** install essentials ****" && \
             nodejs python3 moreutils \
             openssh-client rsync \
             ccache distcc \
+            cargo \
             && \
         update-distcc-symlinks && \
         apt-get clean && \

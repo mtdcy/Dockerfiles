@@ -20,7 +20,8 @@ RUN echo "**** install essentials ****" && \
             luajit perl perl-http-daemon \
             nodejs python3 moreutils \
             openssh rsync \
-            ccache distcc
+            ccache distcc \
+            cargo
 
 # add Implib.so
 RUN git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so

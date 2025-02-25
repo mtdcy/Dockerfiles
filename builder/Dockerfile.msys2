@@ -41,6 +41,7 @@ RUN \
             ${prefix}meson \
             ${prefix}ntldd \
             ${prefix}nodejs \
+            ${prefix}rust \
             && \
         rm -rf /var/cache/pacman/pkg/*
 # make => unix syntax and paths
