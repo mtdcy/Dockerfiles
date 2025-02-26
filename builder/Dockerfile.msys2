@@ -42,6 +42,7 @@ RUN \
             ${prefix}ntldd \
             ${prefix}nodejs \
             ${prefix}rust \
+            ${prefix}go \
             && \
         rm -rf /var/cache/pacman/pkg/*
 # make => unix syntax and paths

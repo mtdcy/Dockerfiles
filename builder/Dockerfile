@@ -1,6 +1,11 @@
 # syntax=docker/dockerfile:1
 ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest} AS stage
 
+ADD https://go.dev/dl/go1.23.6.linux-amd64.tar.gz /tmp/
+RUN tar -C /usr/local -xvf /tmp/go1.23.6.linux-amd64.tar.gz
+
+ARG BASEIMAGE
 FROM ${BASEIMAGE:-ubuntu:latest}
 
 # labels
@@ -26,6 +31,9 @@ RUN echo "**** install essentials ****" && \
         update-distcc-symlinks && \
         apt-get clean && \
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
+
+COPY --from=stage /usr/local/go /usr/local/
+ENV PATH="/usr/local/go/bin:$PATH"
 
 # add Implib.so
 RUN git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
