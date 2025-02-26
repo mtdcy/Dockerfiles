@@ -1,9 +1,9 @@
 # Base Images
 
-[ghcr.io/linuxserver/baseimage-alpine:3.20](https://github.com/linuxserver/docker-baseimage-alpine)
-[ghcr.io/linuxserver/baseimage-ubuntu:jammy](https://github.com/linuxserver/docker-baseimage-ubuntu)
+- lcr.io/mtdcy/baseimage:ubuntu-latest
+- lcr.io/mtdcy/baseimage:alpine-latest
 
-## Addons/Features
+## ARGs
 
-- default timezone support: 'TZ=Asia/Shanghai'
-- mirror support with ARG:MIRROR
+- MIRROR=https://mirrors.mtdcy.top
+- TZ=Asia/Shanghai

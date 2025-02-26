@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=ubuntu:24.04
 
-FROM ${BASEIMAGE} AS builder
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest} AS builder
 
 WORKDIR /tmp
 
@@ -49,7 +49,9 @@ RUN \
 RUN du -a -h /rootfs | tee /rootfs/installed-files
 
 # no s6 overlay for MSYS2
-FROM ${BASEIMAGE}
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest}
+
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
@@ -63,7 +65,7 @@ RUN \
 # override with patched wine64
 COPY --from=builder /rootfs/ /
 
-ARG MIRROR
+ARG MIRROR=https://mirrors.mtdcy.top
 #1. Signature validation is too slow
 #2. Disable space checks to speed up package installation
 #.. Apply mirrors
@@ -74,9 +76,9 @@ RUN \
         -i /msys64/etc/pacman.conf; \
     test -n "${MIRROR}" && { \
         for x in /msys64/etc/pacman.d/mirrorlist.*; do \
-            echo "Server = https://${MIRROR}/msys2/mingw/\$repo/" > "$x"; \
+            echo "Server = ${MIRROR}/msys2/mingw/\$repo/" > "$x"; \
         done && \
-        echo "Server = https://${MIRROR}/msys2/msys/\$arch/" \
+        echo "Server = ${MIRROR}/msys2/msys/\$arch/" \
             > /msys64/etc/pacman.d/mirrorlist.msys; \
     }
 

@@ -55,15 +55,12 @@ jobs:
       - name: Build and Push
         uses: https://git.mtdcy.top/actions/docker-build-push@v6
         with:
-          context: baseimage
           push: true
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
           file: baseimage/Dockerfile.msys2
           build-args: |
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
-            MIRROR=${{ vars.MIRRORS }}
-            TZ=${{ vars.TZ }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache,mode=max
 

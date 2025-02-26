@@ -17,10 +17,11 @@ endif
 
 # e.g: make baseimage/Dockerfile.alpine
 %:
-	docker buildx build $(BUILDX_ARGS) 					\
+	docker buildx build \
 		-t mtdcy/$(shell dirname $@):latest          	\
 		-t $(REGISTRY)/mtdcy/$(shell dirname $@):latest \
 		--output type=docker 							\
+		--progress plain 								\
 		-f $@ 											\
 		$(shell dirname $@)
 

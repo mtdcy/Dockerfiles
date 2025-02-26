@@ -1,12 +1,10 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=alpine:3
-
-FROM ${BASEIMAGE}
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-alpine:3}
 
 # lables
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-#1. always apply MIRROR
 ARG VERSION=0.1
 RUN \
     echo "**** install essentials ****" && \

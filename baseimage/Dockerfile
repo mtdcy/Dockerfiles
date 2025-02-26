@@ -1,5 +1,4 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=ubuntu:24.04
 
 # download or build using stage
 FROM alpine:3 AS stage
@@ -7,9 +6,9 @@ FROM alpine:3 AS stage
 WORKDIR /rootfs
 
 # prepare tools
-ARG MIRROR
+ARG MIRROR=https://mirrors.mtdcy.top
 RUN test -n "${MIRROR}" && \
-        sed -e "s|dl-cdn.alpinelinux.org|${MIRROR}|g" \
+        sed -e "s|https://dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true
 RUN apk add --no-cache curl xz
 
@@ -25,16 +24,18 @@ ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSIO
 RUN find /tmp -name "s6-overlay-*" -exec tar -C /rootfs -Jxpf {} \; && \
     du -a -h | tee /rootfs/installed-files
 
-FROM ${BASEIMAGE}
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest}
+
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-ARG MIRROR
+ARG MIRROR=http://mirrors.mtdcy.top
 RUN \
     echo "**** apply mirrors ****" && \
     test -n "${MIRROR}" && \
-        sed -e "s|archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|security.ubuntu.com|${MIRROR}|g" \
+        sed -e "s|https\?://archive.ubuntu.com|${MIRROR}|g" \
+            -e "s|https\?://security.ubuntu.com|${MIRROR}|g" \
             -i /etc/apt/sources.list \
             -i /etc/apt/sources.list.d/* || true
 
