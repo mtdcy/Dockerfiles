@@ -12,14 +12,14 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: https://git.mtdcy.top/actions/checkout@v4
+        uses: actions/checkout@v4
         with:
           submodules: false
           fetch-depth: 1
 
       - name: Setup buildx
         if: ${{ vars.LOCAL_REGISTRY == '' }}
-        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        uses: docker/setup-buildx-action@v3
         with:
           driver-opts:
             network=host
@@ -27,7 +27,7 @@ jobs:
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
-        uses: https://git.mtdcy.top/actions/docker-setup-buildx@v3
+        uses: docker/setup-buildx-action@v3
         with:
           driver-opts:
             network=host
@@ -53,7 +53,7 @@ jobs:
               http = true
 
       - name: Build and Push (24.04/latest)
-        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        uses: docker/build-push-action@v6
         with:
           context: baseimage
           push: true
@@ -67,7 +67,7 @@ jobs:
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
 
       - name: Build and Push (22.04)
-        uses: https://git.mtdcy.top/actions/docker-build-push@v6
+        uses: docker/build-push-action@v6
         with:
           context: baseimage
           push: true
