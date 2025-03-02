@@ -1,15 +1,16 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=ubuntu:latest
-
-FROM ${BASEIMAGE} AS builder
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest} AS builder
 
 ARG VERSION=1.25.1
 ARG NGX_VERSION=${VERSION}
 ARG NGX_CONNECT=0.0.7
 ARG NGX_GEOIP2=3.4
+ARG NGX_FANCYINDEX=0.5.2
 
 ADD https://github.com/leev/ngx_http_geoip2_module/archive/${NGX_GEOIP2}.tar.gz \
     https://github.com/chobits/ngx_http_proxy_connect_module/archive/v${NGX_CONNECT}.tar.gz \
+    https://github.com/aperezdc/ngx-fancyindex/archive/v${NGX_FANCYINDEX}.tar.gz \
     http://nginx.org/download/nginx-${NGX_VERSION}.tar.gz \
     /tmp/build/
 
@@ -93,8 +94,9 @@ RUN \
         --with-stream_realip_module                      \
         --with-stream_geoip_module                       \
         --with-stream_ssl_preread_module                 \
-        --add-module=../ngx_http_geoip2_module-${NGX_GEOIP2}        \
-        --add-module=../ngx_http_proxy_connect_module-${NGX_CONNECT}\
+        --add-module=../ngx_http_geoip2_module-${NGX_GEOIP2}            \
+        --add-module=../ngx_http_proxy_connect_module-${NGX_CONNECT}    \
+        --add-module=../ngx-fancyindex-${NGX_FANCYINDEX}                \
         && \
     make && \
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
@@ -104,7 +106,8 @@ RUN \
     rm -rf /rootfs/var && \
     du -h -a /rootfs | tee /rootfs/installed-files
 
-FROM ${BASEIMAGE}
+ARG BASEIMAGE
+FROM ${BASEIMAGE:-ubuntu:latest}
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
