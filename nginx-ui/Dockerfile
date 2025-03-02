@@ -7,7 +7,7 @@ FROM ${BASEIMAGE}
 LABEL   maintainer="mtdcy.chen@gmail.com"
 
 # prepare nginx-ui
-ARG VERSION=2.0.0-beta.42
+ARG VERSION=2.0.0-rc.3
 ARG TARGET=linux-64
 ADD https://github.com/0xJacky/nginx-ui/releases/download/v${VERSION}/nginx-ui-${TARGET}.tar.gz /tmp/
 
