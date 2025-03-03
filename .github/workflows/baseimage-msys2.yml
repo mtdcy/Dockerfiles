@@ -6,6 +6,8 @@ on:
       - baseimage/Dockerfile.msys2
       - .github/workflows/baseimage-msys2.yml
 
+  workflow_dispatch:
+
 jobs:
   build-baseimage-msys2:
     runs-on: ubuntu-latest

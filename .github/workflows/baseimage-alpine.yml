@@ -6,6 +6,8 @@ on:
       - baseimage/Dockerfile.alpine
       - .github/workflows/baseimage-alpine.yml
 
+  workflow_dispatch:
+
 jobs:
   build-baseimage-alpine:
     runs-on: ubuntu-latest

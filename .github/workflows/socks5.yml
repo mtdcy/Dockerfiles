@@ -13,6 +13,8 @@ on:
 
   workflow_call:
 
+  workflow_dispatch:
+
 jobs:
   build-socks5:
     runs-on: ubuntu-latest

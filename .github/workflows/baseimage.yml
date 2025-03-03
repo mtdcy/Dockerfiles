@@ -6,6 +6,8 @@ on:
       - baseimage/Dockerfile
       - .github/workflows/baseimage.yml
 
+  workflow_dispatch:
+
 jobs:
   build-baseimage:
     runs-on: ubuntu-latest

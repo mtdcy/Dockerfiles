@@ -14,6 +14,8 @@ on:
 
   workflow_call:
 
+  workflow_dispatch:
+
 jobs:
   build-builder-msys2:
     runs-on: ubuntu-latest
