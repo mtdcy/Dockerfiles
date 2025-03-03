@@ -65,6 +65,7 @@ jobs:
           file: baseimage/Dockerfile.alpine
           build-args: |
             BASEIMAGE=alpine:3
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
 

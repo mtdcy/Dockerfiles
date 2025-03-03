@@ -74,5 +74,6 @@ jobs:
           file: builder/Dockerfile
           build-args: |
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache,mode=max

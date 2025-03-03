@@ -65,6 +65,7 @@ jobs:
           file: baseimage/Dockerfile
           build-args: |
             BASEIMAGE=ubuntu:24.04
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
 
@@ -78,6 +79,7 @@ jobs:
           file: baseimage/Dockerfile
           build-args: |
             BASEIMAGE=ubuntu:22.04
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache,mode=max
 

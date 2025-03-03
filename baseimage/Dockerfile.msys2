@@ -65,7 +65,7 @@ RUN \
 # override with patched wine64
 COPY --from=builder /rootfs/ /
 
-ARG MIRROR=https://mirrors.mtdcy.top
+ARG MIRROR
 #1. Signature validation is too slow
 #2. Disable space checks to speed up package installation
 #.. Apply mirrors

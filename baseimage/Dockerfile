@@ -6,7 +6,7 @@ FROM alpine:3 AS stage
 WORKDIR /rootfs
 
 # prepare tools
-ARG MIRROR=https://mirrors.mtdcy.top
+ARG MIRROR
 RUN test -n "${MIRROR}" && \
         sed -e "s|https://dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true
@@ -30,7 +30,7 @@ FROM ${BASEIMAGE:-ubuntu:latest}
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-ARG MIRROR=http://mirrors.mtdcy.top
+ARG MIRROR
 RUN \
     echo "**** apply mirrors ****" && \
     test -n "${MIRROR}" && \

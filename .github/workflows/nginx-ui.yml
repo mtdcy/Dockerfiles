@@ -92,5 +92,6 @@ jobs:
           file: nginx-ui/Dockerfile
           build-args: |
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache,mode=max

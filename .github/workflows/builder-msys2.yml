@@ -86,5 +86,6 @@ jobs:
           build-args: |
             MSYSTEM=${{ steps.prepare.outputs.MSYSTEM }}
             BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-buildcache,mode=max
