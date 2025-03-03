@@ -50,7 +50,10 @@ ENV DISTCC_DIR=
 ENV DISTCC_OPTS=
 ENV DISTCC_HOSTS=
 
-RUN useradd -U -m -s /bin/bash buildbot
+# delete default user(1000)
+RUN \
+    userdel ubuntu || true; \
+    useradd -U -m -s /bin/bash buildbot
 
 # override entrypoint
 COPY --chmod=0755 entrypoint.sh /
