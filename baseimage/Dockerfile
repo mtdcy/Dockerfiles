@@ -66,7 +66,8 @@ RUN \
             ; \
         else \
             echo ">>>> wrong TZ:$TZ <<<<"; \
-        fi
+        fi; \
+        userdel ubuntu || true
 
 ENV TZ=${TZ}
 ENV LANG=${LANG}
