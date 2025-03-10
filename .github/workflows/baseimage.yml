@@ -7,7 +7,10 @@ on:
       - baseimage/Dockerfile
       - .github/workflows/baseimage.yml
 
-  workflow_dispatch:
+  workflow_dispatch: null
+
+env:
+  platforms: linux/amd64,linux/arm64
 
 jobs:
   build-baseimage:
@@ -52,40 +55,58 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
-      - name: Build and Push (24.04/latest)
+      - name: Build and Push (ubuntu-latest)
         uses: docker/build-push-action@v6
         with:
+          push: ${{ vars.PUSH_REGISTRY }}
           context: baseimage
-          push: true
-          platforms: linux/amd64,linux/arm64
+          file: baseimage/Dockerfile
+          platforms: ${{ env.platforms }}
           # https://docs.docker.com/build/ci/github-actions/named-contexts
           build-contexts: |
             ubuntu:latest=docker-image://ubuntu:24.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
-          file: baseimage/Dockerfile
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
 
-      - name: Build and Push (22.04)
+      - name: Build and Push (ubuntu-22.04)
         uses: docker/build-push-action@v6
         with:
+          push: ${{ vars.PUSH_REGISTRY }}
           context: baseimage
-          push: true
-          platforms: linux/amd64,linux/arm64
+          file: baseimage/Dockerfile
+          platforms: ${{ env.platforms }}
           # https://docs.docker.com/build/ci/github-actions/named-contexts
           build-contexts: |
             ubuntu:latest=docker-image://ubuntu:22.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
-          file: baseimage/Dockerfile
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache,mode=max
+
+      - name: Build and Push (alpine-latest)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: baseimage
+          file: baseimage/Dockerfile
+          platforms: ${{ env.platforms }}
+          # https://docs.docker.com/build/ci/github-actions/named-contexts
+          build-contexts: |
+            ubuntu:latest=docker-image://alpine:3
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+          build-args: |
+            MIRROR=${{ vars.MIRRORS }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
 
   build-builder:
     uses: ./.github/workflows/builder.yml
