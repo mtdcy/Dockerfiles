@@ -1,6 +1,5 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE
-FROM ${BASEIMAGE:-ubuntu:latest} AS builder
+FROM ubuntu:latest AS builder
 
 ARG VERSION=1.25.1
 ARG NGX_VERSION=${VERSION}
@@ -16,9 +15,13 @@ ADD https://github.com/leev/ngx_http_geoip2_module/archive/${NGX_GEOIP2}.tar.gz 
 
 WORKDIR /rootfs
 
-RUN \
-    which apt-get && { \
-        apt-get update && \
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN <<-EOS
+    set -ex
+    echo "**** prepare build tools ****"
+
+    if which apt-get; then
+        apt-get update
         apt-get install -y \
             build-essential \
             zlib1g-dev \
@@ -29,9 +32,9 @@ RUN \
             libxslt-dev \
             libgd-dev \
             libgeoip-dev \
-            libperl-dev \
-            ; \
-    } || { \
+            libperl-dev
+    else
+        apk update
         apk add --no-cache \
             build-base \
             openssl-dev \
@@ -41,16 +44,20 @@ RUN \
             libxslt-dev \
             gd-dev \
             geoip-dev \
-            perl-dev \
-            ; \
-    } && \
-    cd /tmp/build && \
-    find . -name "*.tar.gz" -exec tar -xf {} \; && \
-    cd nginx-${NGX_VERSION} && \
-    case "${NGX_VERSION}" in \
-        1.24.*|1.25.*|1.26.*|1.27.*) \
-            patch -p1 < ../ngx_http_proxy_connect_module-${NGX_CONNECT}/patch/proxy_connect_rewrite_102101.patch;; \
-    esac && \
+            perl-dev
+    fi
+
+    echo "**** build nginx ****"
+
+    cd /tmp/build
+    find . -name "*.tar.gz" -exec tar -xf {} \;
+    cd nginx-${NGX_VERSION}
+    case "${NGX_VERSION}" in
+        1.24.*|1.25.*|1.26.*|1.27.*)
+            patch -p1 < ../ngx_http_proxy_connect_module-${NGX_CONNECT}/patch/proxy_connect_rewrite_102101.patch
+            ;;
+    esac
+
     ./configure \
         --with-cc-opt='-g -O2 -flto=auto -ffat-lto-objects -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2' \
         --with-ld-opt='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto -Wl,-z,relro -Wl,-z,now -fPIC' \
@@ -96,27 +103,30 @@ RUN \
         --with-stream_ssl_preread_module                 \
         --add-module=../ngx_http_geoip2_module-${NGX_GEOIP2}            \
         --add-module=../ngx_http_proxy_connect_module-${NGX_CONNECT}    \
-        --add-module=../ngx-fancyindex-${NGX_FANCYINDEX}                \
-        && \
-    make && \
+        --add-module=../ngx-fancyindex-${NGX_FANCYINDEX}
+    make
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
         -e 's%/usr/local/%/usr/%g' \
-        -i objs/src/http/modules/perl/Makefile && \
-    DESTDIR=/rootfs make install && \
-    rm -rf /rootfs/var && \
+        -i objs/src/http/modules/perl/Makefile
+    DESTDIR=/rootfs make install
+    rm -rf /rootfs/var
     du -h -a /rootfs | tee /rootfs/installed-files
+EOS
 
-ARG BASEIMAGE
-FROM ${BASEIMAGE:-ubuntu:latest}
+FROM ubuntu:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
 # install dependencies
-RUN \
-    echo "**** install essentials ****" && \
-    which apt-get && { \
-        apt-get update && \
+SHELL ["/bin/bash", "-c"]
+RUN <<-EOS
+    set -ex
+    echo "**** install nginx runtimes ****"
+
+    if which apt-get; then
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
         apt-get install -y \
             libpcre3 \
             libxslt1.1 \
@@ -126,24 +136,25 @@ RUN \
             openssl \
             nginx-full \
             cron \
-            logrotate \
-            && \
-        apt-get autoremove && \
-        apt-get clean && \
-        rm -rf /var/lib/apt/lists/*; \
-    } || { \
-        apk update && \
+            logrotate
+        apt-get autoremove
+        apt-get clean
+        rm -rf /var/lib/apt/lists/*
+    else
+        apk update
         apk add --no-cache \
             nginx \
             cron \
-            logrotate \
-            ; \
-    }; \
-    echo "**** prepare rootfs ****" && \
-    cp -r /etc/nginx /etc/nginx.default && \
-    rm -rf /etc/cron.* && \
-    ln -sfv /dev/stdout /var/log/nginx/access.log && \
+            logrotate
+    fi
+
+    echo "**** prepare rootfs ****"
+
+    cp -r /etc/nginx /etc/nginx.default
+    rm -rf /etc/cron.*
+    ln -sfv /dev/stdout /var/log/nginx/access.log
     ln -sfv /dev/stderr /var/log/nginx/error.log
+EOS
 
 EXPOSE  80 443
 
