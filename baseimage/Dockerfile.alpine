@@ -10,22 +10,21 @@ ARG MIRROR
 RUN test -n "${MIRROR}" && \
         sed -e "s|https://dl-cdn.alpinelinux.org|${MIRROR}|g" \
             -i /etc/apk/repositories || true
-RUN apk add --no-cache curl xz
+RUN apk add --no-cache wget xz
 
 # prepare s6
 ARG S6_VERSION=3.1.6.2
-ARG S6_ARCH=x86_64
 
-ADD https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz \
-    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-${S6_ARCH}.tar.xz \
-    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz \
-    https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-arch.tar.xz /tmp
-
-RUN find /tmp -name "s6-overlay-*" -exec tar -C /rootfs -Jxpf {} \; && \
+RUN echo "ARCH = $(uname -m)" && \
+    cd /tmp && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-$(uname -m).tar.xz && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-arch.tar.xz && \
+    find /tmp -name "s6-overlay-*" -exec tar -C /rootfs -Jxpf {} \; && \
     du -a -h | tee /rootfs/installed-files
 
-ARG BASEIMAGE
-FROM ${BASEIMAGE:-alpine:3}
+FROM alpine:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"

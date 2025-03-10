@@ -19,20 +19,17 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Setup buildx
         if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts:
-            network=host
-          cleanup: true
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts:
-            network=host
           cleanup: true
           buildkitd-config-inline: |
             debug = true
@@ -59,12 +56,15 @@ jobs:
         with:
           context: baseimage
           push: true
+          platforms: linux/amd64,linux/arm64
+          # https://docs.docker.com/build/ci/github-actions/named-contexts
+          build-contexts: |
+            alpine:latest=docker-image://alpine:3
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
           file: baseimage/Dockerfile.alpine
           build-args: |
-            BASEIMAGE=alpine:3
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max

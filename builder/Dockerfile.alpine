@@ -1,13 +1,10 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=alpine:3
-FROM ${BASEIMAGE} AS stage
+FROM alpine:latest as stage
 
 ADD https://go.dev/dl/go1.23.6.linux-amd64.tar.gz /tmp/
 RUN tar -C /usr/local -xvf /tmp/go1.23.6.linux-amd64.tar.gz
 
-ARG BASEIMAGE=alpine:3
-
-FROM ${BASEIMAGE}
+FROM alpine:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
