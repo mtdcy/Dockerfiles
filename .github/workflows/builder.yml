@@ -18,6 +18,9 @@ on:
 
   workflow_dispatch: null
 
+env:
+  platforms: linux/amd64,linux/arm64
+
 jobs:
   build-builder:
     runs-on: ubuntu-latest
@@ -60,20 +63,32 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
-      - name: Build and Push
+      - name: Build and Push (ubuntu-latest)
         uses: docker/build-push-action@v6
         with:
+          push: ${{ vars.PUSH_REGISTRY }}
           context: builder
-          push: true
-          platforms: linux/amd64,linux/arm64
-          # https://docs.docker.com/build/ci/github-actions/named-contexts
+          file: builder/Dockerfile
+          platforms: ${{ env.platforms }}
           build-contexts: |
             ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
-          file: builder/Dockerfile
-          build-args: |
-            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache,mode=max
+
+      - name: Build and Push (alpine-latest)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: builder
+          file: builder/Dockerfile
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-buildcache,mode=max
