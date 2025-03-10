@@ -1,3 +1,4 @@
+---
 name: Build baseimage
 
 on:
@@ -19,20 +20,17 @@ jobs:
           submodules: false
           fetch-depth: 1
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Setup buildx
         if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts:
-            network=host
-          cleanup: true
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts:
-            network=host
           cleanup: true
           buildkitd-config-inline: |
             debug = true
@@ -59,12 +57,15 @@ jobs:
         with:
           context: baseimage
           push: true
+          platforms: linux/amd64,linux/arm64
+          # https://docs.docker.com/build/ci/github-actions/named-contexts
+          build-contexts: |
+            ubuntu:latest=docker-image://ubuntu:24.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
           file: baseimage/Dockerfile
           build-args: |
-            BASEIMAGE=ubuntu:24.04
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
@@ -74,23 +75,29 @@ jobs:
         with:
           context: baseimage
           push: true
+          platforms: linux/amd64,linux/arm64
+          # https://docs.docker.com/build/ci/github-actions/named-contexts
+          build-contexts: |
+            ubuntu:latest=docker-image://ubuntu:22.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           file: baseimage/Dockerfile
           build-args: |
-            BASEIMAGE=ubuntu:22.04
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache,mode=max
 
   build-builder:
     uses: ./.github/workflows/builder.yml
-    needs: [build-baseimage]
+    needs:
+      - build-baseimage
 
   build-nginx:
     uses: ./.github/workflows/nginx.yml
-    needs: [build-baseimage]
+    needs:
+      - build-baseimage
 
   build-printer:
     uses: ./.github/workflows/printer.yml
-    needs: [build-baseimage]
+    needs:
+      - build-baseimage
