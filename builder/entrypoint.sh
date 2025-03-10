@@ -19,5 +19,5 @@ if [ "$PUID" -gt 0 ]; then
     # shellcheck disable=SC2145
     su buildbot -c "$@"
 else
-    "$@"
+    eval -- "$*"
 fi
