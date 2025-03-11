@@ -1,25 +1,26 @@
 # syntax=docker/dockerfile:1
-ARG BASEIMAGE=mtdcy/nginx:latest
-
-FROM ${BASEIMAGE}
+FROM nginx:latest
 
 # labels
 LABEL   maintainer="mtdcy.chen@gmail.com"
 
-# prepare nginx-ui
-ARG VERSION=2.0.0-rc.3
-ARG TARGET=linux-64
-ADD https://github.com/0xJacky/nginx-ui/releases/download/v${VERSION}/nginx-ui-${TARGET}.tar.gz /tmp/
+ARG VERSION=2.0.0-rc.4
 
-# install nginx if not exists
-RUN \
-    echo "**** install essentials ****" && \
-    apt-get update && \
-    { which nginx || apt-get install -y nginx; } && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/* && \
-    tar -C /usr/bin -xf /tmp/nginx-ui-* nginx-ui && \
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN <<-EOS
+    set -ex
+    echo "**** download nginx-ui prebuilts ****"
+
+    case "$(uname -m)" in
+        aarch64)    ARCH=arm32-v7a ;; # no arm64 prebuilts
+        *)          ARCH=64 ;;
+    esac
+
+    cd /tmp
+    wget https://github.com/0xJacky/nginx-ui/releases/download/v${VERSION}/nginx-ui-linux-${ARCH}.tar.gz
+    tar -C /usr/bin -xf /tmp/nginx-ui-*.tar.gz nginx-ui
     rm /tmp/nginx-ui-*
+EOS
 
 # prepare rootfs
 ENV NGX_UI_LOGFILE=/var/log/nginx-ui.log

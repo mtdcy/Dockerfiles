@@ -1,3 +1,4 @@
+---
 name: Build nginx-ui
 
 on:
@@ -11,9 +12,12 @@ on:
 #   types:
 #     - completed
 
-  workflow_call:
+  workflow_call: null
 
-  workflow_dispatch:
+  workflow_dispatch: null
+
+env:
+  platforms: linux/amd64,linux/arm64
 
 jobs:
   build-nginx-ui:
@@ -30,16 +34,14 @@ jobs:
         if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts:
-            network=host
+          driver-opts: network=host
           cleanup: true
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts:
-            network=host
+          driver-opts: network=host
           cleanup: true
           buildkitd-config-inline: |
             debug = true
@@ -86,12 +88,12 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
+          push: ${{ vars.PUSH_REGISTRY }}
           context: nginx-ui
-          push: true
-          tags: ${{ steps.inspect.outputs.tags }}
           file: nginx-ui/Dockerfile
-          build-args: |
-            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
-            MIRROR=${{ vars.MIRRORS }}
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            nginx:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+          tags: ${{ steps.inspect.outputs.tags }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx-ui:buildcache,mode=max
