@@ -1,0 +1,57 @@
+---
+name: update revisions
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # daily
+
+  workflow_dispatch: null
+
+jobs:
+  try-update-revisions:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+          token: ${{ secrets.COMMIT_TOKEN }}
+
+      - name: Prepare
+        shell: bash
+        run: |
+          pwd -P
+
+          git config --global user.name "bot"
+          git config --global user.email "bot@mtdcy.top"
+
+      - name: Update Nginx
+        run: |-
+          set -ex
+
+          IFS='=' read -r _ v <<< "$(grep 'VERSION=' nginx/Dockerfile)"
+          IFS='.' read -r m n r <<< "$v"
+
+          # update revision
+          if curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$n.$((r+1)).tar.gz; then
+            r=$((r+1))
+          # update minor
+          elif curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$((n+1)).0.tar.gz; then
+            n=$((n+1))
+            r=0
+          else
+            exit 0
+          fi
+
+          echo "update nginx => $m.$n.$r"
+          sed -e "s/VERSION=.*$/VERSION=$m.$n.$r/" -i nginx/Dockerfile
+
+          git add nginx/Dockerfile
+          git commit -m "update nginx => $m.$n.$r"
+
+      - name: Commit
+        shell: bash
+        run: |-
+          git push
