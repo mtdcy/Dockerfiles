@@ -1,8 +1,8 @@
 # syntax=docker/dockerfile:1
 FROM ubuntu:latest AS builder
 
-ARG VERSION=1.25.2
-ARG NGX_VERSION=1.25.2
+ARG VERSION=1.26.3
+ARG NGX_VERSION=$VERSION
 ARG NGX_CONNECT=0.0.7
 ARG NGX_GEOIP2=3.4
 ARG NGX_FANCYINDEX=0.5.2
@@ -12,8 +12,6 @@ ADD https://github.com/leev/ngx_http_geoip2_module/archive/${NGX_GEOIP2}.tar.gz 
     https://github.com/aperezdc/ngx-fancyindex/archive/v${NGX_FANCYINDEX}.tar.gz \
     http://nginx.org/download/nginx-${NGX_VERSION}.tar.gz \
     /tmp/build/
-
-WORKDIR /rootfs
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN <<-EOS
@@ -46,7 +44,9 @@ RUN <<-EOS
             geoip-dev \
             perl-dev
     fi
+EOS
 
+RUN <<-EOS
     echo "**** build nginx ****"
 
     cd /tmp/build
