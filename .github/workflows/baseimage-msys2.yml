@@ -1,5 +1,5 @@
 ---
-name: Build baseimage
+name: Build baseimage msys2
 
 on:
   push:
@@ -76,7 +76,7 @@ jobs:
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache,mode=max
 
-  build-builder:
+  build-builder-msys2:
     uses: ./.github/workflows/builder-msys2.yml
     needs:
       - build-baseimage-msys2
