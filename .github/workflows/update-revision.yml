@@ -48,7 +48,10 @@ jobs:
           echo "update nginx => $m.$n.$r"
           sed -e "s/VERSION=.*$/VERSION=$m.$n.$r/" -i nginx/Dockerfile
 
-          git add nginx/Dockerfile
+          curl --fail -sL https://nginx.org/en/CHANGES-$m.$n -o nginx/CHANGES ||
+          curl --fail -sL https://nginx.org/en/CHANGES -o nginx/CHANGES || true
+
+          git add nginx
           git commit -m "update nginx => $m.$n.$r"
 
       - name: Commit
