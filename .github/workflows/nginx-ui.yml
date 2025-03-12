@@ -32,8 +32,8 @@ jobs:
 
       - name: Login
         env:
-          login_enabled: ${{ secrets.REGISTRY_TOKEN != '' }}
-        if: ${{ env.login_enabled }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+        if: ${{ env.password != '' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.REGISTRY }}
