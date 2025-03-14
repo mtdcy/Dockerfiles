@@ -39,7 +39,7 @@ RUN <<-EOS
             tar gzip xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
             automake autoconf gettext autopoint \
-            cmake meson \
+            cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
             nodejs python3 moreutils \
@@ -57,7 +57,7 @@ RUN <<-EOS
             tar gzip xz lzip unzip zstd \
             linux-headers build-base libtool pkgconfig \
             automake autoconf gettext \
-            cmake meson \
+            cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl perl-http-daemon \
             nodejs python3 moreutils \
