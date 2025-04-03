@@ -91,7 +91,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: builder
-          push: true
+          push: ${{ vars.PUSH_REGISTRY }}
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-latest
           file: builder/Dockerfile.msys2
