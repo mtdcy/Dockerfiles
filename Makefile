@@ -1,28 +1,17 @@
 
-# no default value
-BASEIMAGE ?=
-
-REGISTRY ?= lcr.io
-
-MIRROR ?= mirrors.mtdcy.top
-
 MAKEFLAGS += --always-make
+
+MIRROR ?= http://mirrors.mtdcy.top
 
 BUILDX_ARGS += --build-arg MIRROR=$(MIRROR)
 BUILDX_ARGS += --build-arg TZ=Asia/Shanghai
 
-ifneq ($(BASEIMAGE),)
-BUILDX_ARGS += --build-arg BASEIMAGE=$(BASEIMAGE)
-endif
-
 # e.g: make baseimage/Dockerfile.alpine
 %:
-	docker buildx build \
-		-t mtdcy/$(shell dirname $@):latest          	\
-		-t $(REGISTRY)/mtdcy/$(shell dirname $@):latest \
-		--output type=docker 							\
-		--progress plain 								\
-		-f $@ 											\
+	docker buildx build $(BUILDX_ARGS) 	\
+		-t $(shell dirname $@):latest  	\
+		--progress plain 				\
+		-f $@ 							\
 		$(shell dirname $@)
 
 .PHONY: all

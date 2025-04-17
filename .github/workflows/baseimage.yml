@@ -5,12 +5,21 @@ on:
   push:
     paths:
       - baseimage/Dockerfile
+      - baseimage/Dockerfile.wine
+      - baseimage/Dockerfile.msys2
+      - baseimage/wine/**
+      - baseimage/msys2
       - .github/workflows/baseimage.yml
 
   workflow_dispatch: null
 
 env:
   platforms: linux/amd64,linux/arm64
+  ubuntu: 24.04
+  alpine: 3
+  msys2: 20250221
+  wine_url: https://gitlab.winehq.org/jhol/wine.git
+  wine_tag: msys2-hacks-19
 
 jobs:
   build-baseimage:
@@ -72,16 +81,15 @@ jobs:
           context: baseimage
           file: baseimage/Dockerfile
           platforms: ${{ env.platforms }}
-          # https://docs.docker.com/build/ci/github-actions/named-contexts
           build-contexts: |
-            ubuntu:latest=docker-image://ubuntu:24.04
+            ubuntu:latest=docker-image://ubuntu:${{ env.ubuntu }}
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ env.ubuntu }}
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache,mode=max
 
       - name: Build and Push (alpine-latest)
         uses: docker/build-push-action@v6
@@ -90,13 +98,51 @@ jobs:
           context: baseimage
           file: baseimage/Dockerfile
           platforms: ${{ env.platforms }}
-          # https://docs.docker.com/build/ci/github-actions/named-contexts
           build-contexts: |
-            ubuntu:latest=docker-image://alpine:3
+            ubuntu:latest=docker-image://alpine:${{ env.alpine }}
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-${{ env.alpine }}
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
+
+      - name: Build and Push (wine-latest)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: baseimage
+          file: baseimage/Dockerfile.wine
+          # only amd64
+          platforms: linux/amd64
+          build-contexts: |
+            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
+          build-args: |
+            MIRROR=${{ vars.MIRRORS }}
+            WINE_URL=${{ env.wine_url }}
+            WINE_TAG=${{ env.wine_tag }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache,mode=max
+
+      - name: Build and Push (msys2-latest)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: baseimage
+          file: baseimage/Dockerfile.msys2
+          # only amd64
+          platforms: linux/amd64
+          build-contexts: |
+            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-msys2-hacks-19
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ env.msys2 }}
+          build-args: |
+            MIRROR=${{ vars.MIRRORS }}
+            MSYS2_VERSION=${{ env.msys2 }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache,mode=max
