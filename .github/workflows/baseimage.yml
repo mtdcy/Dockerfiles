@@ -83,23 +83,6 @@ jobs:
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu24-buildcache,mode=max
 
-      - name: Build and Push (ubuntu-22.04)
-        uses: docker/build-push-action@v6
-        with:
-          push: ${{ vars.PUSH_REGISTRY }}
-          context: baseimage
-          file: baseimage/Dockerfile
-          platforms: ${{ env.platforms }}
-          # https://docs.docker.com/build/ci/github-actions/named-contexts
-          build-contexts: |
-            ubuntu:latest=docker-image://ubuntu:22.04
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
-          build-args: |
-            MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu22-buildcache,mode=max
-
       - name: Build and Push (alpine-latest)
         uses: docker/build-push-action@v6
         with:
@@ -117,18 +100,3 @@ jobs:
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
-
-# build-builder:
-#   uses: ./.github/workflows/builder.yml
-#   needs:
-#     - build-baseimage
-
-# build-nginx:
-#   uses: ./.github/workflows/nginx.yml
-#   needs:
-#     - build-baseimage
-
-# build-printer:
-#   uses: ./.github/workflows/printer.yml
-#   needs:
-#     - build-baseimage
