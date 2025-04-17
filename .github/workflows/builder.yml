@@ -81,7 +81,7 @@ jobs:
           file: builder/Dockerfile
           platforms: ${{ env.platforms }}
           build-contexts: |
-            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
@@ -96,7 +96,7 @@ jobs:
           file: builder/Dockerfile
           platforms: ${{ env.platforms }}
           build-contexts: |
-            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3

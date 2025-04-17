@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:latest AS stage
+FROM baseimage:latest AS stage
 
 ARG GO_VERSION=1.23.6
 
@@ -17,7 +17,7 @@ RUN <<-EOS
     tar -C /usr/local -xvf /tmp/*.tar.gz
 EOS
 
-FROM ubuntu:latest
+FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"

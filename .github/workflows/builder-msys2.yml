@@ -47,16 +47,11 @@ jobs:
       - name: Setup buildx
         if: ${{ vars.LOCAL_REGISTRY == '' }}
         uses: docker/setup-buildx-action@v3
-        with:
-          driver-opts: network=host
-          cleanup: true
 
       - name: Setup buildx (local registry)
         if: ${{ vars.LOCAL_REGISTRY }}
         uses: docker/setup-buildx-action@v3
         with:
-          driver-opts: network=host
-          cleanup: true
           buildkitd-config-inline: |
             debug = true
             [registry."${{ vars.LOCAL_REGISTRY }}"]
@@ -90,14 +85,14 @@ jobs:
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
-          context: builder
           push: ${{ vars.PUSH_REGISTRY }}
+          context: builder
+          file: builder/Dockerfile.msys2
+          build-contexts: |
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-latest
-          file: builder/Dockerfile.msys2
           build-args: |
             MSYSTEM=${{ steps.prepare.outputs.MSYSTEM }}
-            BASEIMAGE=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
-            MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.msystem }}-buildcache,mode=max
