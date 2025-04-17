@@ -1,31 +1,5 @@
 # syntax=docker/dockerfile:1
 
-# download or build using stage
-FROM alpine:3 AS stage
-
-WORKDIR /rootfs
-
-ARG MIRROR
-ARG S6_VERSION=3.1.6.2
-RUN <<-EOS
-    set -ex
-    echo "**** prepare tools ****"
-
-    if test -n "${MIRROR}"; then
-        sed -e "s|https://dl-cdn.alpinelinux.org|${MIRROR}|g" -i /etc/apk/repositories || true
-    fi
-    apk add --no-cache wget xz
-
-    echo "**** prepare s6 overlay for $(uname -m) ****"
-    cd /tmp
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-noarch.tar.xz
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-$(uname -m).tar.xz
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-noarch.tar.xz
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_VERSION}/s6-overlay-symlinks-arch.tar.xz
-    find /tmp -name "s6-overlay-*" -exec tar -C /rootfs -Jxpf {} \;
-    du -a -h | tee /rootfs/installed-files
-EOS
-
 FROM ubuntu:latest
 
 # labels
@@ -34,6 +8,12 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 ARG TZ=Asia/Shanghai
 ARG LANG=en_US.UTF-8
 ARG MIRROR
+
+ENV TZ=${TZ}
+ENV LANG=${LANG}
+ENV LC_ALL=${LANG}
+
+ENV DEBIAN_FRONTEND=noninteractive
 RUN <<-EOS
     set -ex
     echo "**** apply mirrors ****"
@@ -51,8 +31,11 @@ RUN <<-EOS
     echo "**** install essentials ****"
 
     if which apt-get; then
-        export DEBIAN_FRONTEND=noninteractive
         apt-get update
+
+        # Fix: error processing package libc-bin
+        apt-get --reinstall install libc-bin
+
         apt-get install -y \
             bash locales tzdata \
             wget curl \
@@ -61,6 +44,9 @@ RUN <<-EOS
             iputils-ping \
             bind9-dnsutils \
             sudo
+
+        dpkg-reconfigure tzdata
+
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
     else
@@ -85,16 +71,6 @@ RUN <<-EOS
     else
         echo ">>>> wrong TZ:$TZ <<<<"; \
     fi
+
     userdel ubuntu || true
 EOS
-
-ENV TZ=${TZ}
-ENV LANG=${LANG}
-ENV LC_ALL=${LANG}
-
-# s6: strange behavior
-ENV S6_KEEP_ENV=1
-
-COPY --from=stage /rootfs/ /
-
-ENTRYPOINT ["/init"]
