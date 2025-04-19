@@ -3,6 +3,9 @@ MAKEFLAGS += --always-make
 
 MIRROR ?= http://mirrors.mtdcy.top
 
+DOCKER_PLATFORM ?= linux/amd64
+
+BUILDX_ARGS += --platform $(DOCKER_PLATFORM)
 BUILDX_ARGS += --build-arg MIRROR=$(MIRROR)
 BUILDX_ARGS += --build-arg TZ=Asia/Shanghai
 
