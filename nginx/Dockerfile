@@ -147,14 +147,16 @@ COPY rootfs/ /
 # prepare plugins
 ARG NGX_UI_VER=2.0.0-rc.5
 
+ARG TARGETPLATFORM
+
 SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex -o pipefail
     echo "**** prepare nginx-ui ****"
 
-    TARGET="$(uname -s)-64"
-    case "$(uname -m)" in
-        aarch64)    TARGET=linux-arm64-v8a ;;
+    TARGET="linux-64"
+    case "$TARGETPLATFORM" in
+        linux/arm64)    TARGET=linux-arm64-v8a ;;
     esac
 
     curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
