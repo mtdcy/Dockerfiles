@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # s6-overlay breaks a job into pieces => complexity
 
@@ -7,25 +7,27 @@ info () {
 }
 
 if [ -z "$1" ]; then
-    if [ -n "$PUID" ]; then
-        info "**** apply uid $PUID ****"
-        usermod www-data -u $PUID 2>/dev/null ||
-        useradd www-data -u $PUID -U -M -s /sbin/nologin
-    fi
-
-    if [ -n "$PGID" ] && [ "$PGID" -ne "${PUID:-1000}" ]; then
-        info "**** apply gid $PGID ****"
-        groupmod www-data -g $PGID || true
-    fi
-
     if [ -n "$UMASK" ]; then
         info "**** apply umask $UMASK ****"
-        umask $UMASK
+        umask "$UMASK"
+    fi
+
+    if [ -n "$PUID" ] && [ "$PUID" -ne "$(id -u www-data)" ]; then
+        info "**** apply uid $PUID ****"
+        usermod www-data -u "$PUID" 2>/dev/null ||
+        useradd www-data -u "$PUID" -U -M -s /sbin/nologin
+    fi
+
+    if [ -n "$PGID" ] && [ "$PGID" -ne "$(id -g www-data)" ]; then
+        info "**** apply gid $PGID ****"
+        groupmod www-data -g "$PGID" || true
     fi
 
     if [ ! -f /etc/nginx/nginx.conf ]; then
         info "**** apply default configs ****"
-        rsync -av /etc/nginx.default/ /etc/nginx/
+        mkdir -p /etc/nginx
+        cp -rfv /etc/nginx.default/* /etc/nginx/
+        chown -R www-data /etc/nginx
     fi
 
     info "**** apply default settings ****"
@@ -46,15 +48,15 @@ if [ -z "$1" ]; then
     mkdir -p /etc/nginx/streams-available
     mkdir -p /etc/nginx/streams-enabled
 
-    # always start submodule as root
+    # always start plugins as root
     for x in /entrypoint.d/*; do
-        info "**** start submodule $(basename "$x") ****"
+        info "**** start plugins $(basename "$x") ****"
         sh "$x" &
         sleep 1
     done
 
     info "**** start crontab process ****"
-    service cron start
+    /usr/sbin/cron -P
 
     info "**** start nginx process ****"
     exec $(which nginx) -g "daemon off; master_process on;"

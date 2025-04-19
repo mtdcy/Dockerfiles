@@ -1,7 +1,7 @@
 ---
 services:
   nginx:
-    image: ${REGISTRY:-docker.io}/mtdcy/nginx:latest
+    image: nginx:latest
     container_name: nginx
     hostname: nginx
     network_mode: bridge
@@ -13,11 +13,12 @@ services:
       - PGID=${GID:-1000}
       - UMASK=022
     volumes:
-      - .:/etc/nginx # site config
+      - nginx:/etc/nginx  # site config
       - /var/log:/var/log
     ports:
       - 80:80
       - 443:443
+      - 8080:8080  # mgmt port
     restart: always
     healthcheck:
       test: curl --fail -o /dev/null http://localhost:80
@@ -25,3 +26,6 @@ services:
       timeout: 15s
       retries: 3
       start_period: 60s
+
+volumes:
+  nginx: null

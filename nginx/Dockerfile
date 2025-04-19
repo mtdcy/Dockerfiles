@@ -1,19 +1,18 @@
 # syntax=docker/dockerfile:1
-FROM ubuntu:latest AS builder
+FROM baseimage:latest AS builder
 
-ARG VERSION=1.27.5
-ARG NGX_VERSION=1.27.5
-ARG NGX_CONNECT=0.0.7
-ARG NGX_GEOIP2=3.4
-ARG NGX_FANCYINDEX=0.5.2
+ARG NGX_VER=1.27.5
+ARG NGX_CONNECT_VER=0.0.7
+ARG NGX_GEOIP2_VER=3.4
+ARG NGX_FANCYINDEX_VER=0.5.2
 
-ADD https://github.com/leev/ngx_http_geoip2_module/archive/${NGX_GEOIP2}.tar.gz \
-    https://github.com/chobits/ngx_http_proxy_connect_module/archive/v${NGX_CONNECT}.tar.gz \
-    https://github.com/aperezdc/ngx-fancyindex/archive/v${NGX_FANCYINDEX}.tar.gz \
-    http://nginx.org/download/nginx-${NGX_VERSION}.tar.gz \
+ADD https://github.com/leev/ngx_http_geoip2_module/archive/$NGX_GEOIP2_VER.tar.gz \
+    https://github.com/chobits/ngx_http_proxy_connect_module/archive/v$NGX_CONNECT_VER.tar.gz \
+    https://github.com/aperezdc/ngx-fancyindex/archive/v$NGX_FANCYINDEX_VER.tar.gz \
+    http://nginx.org/download/nginx-$NGX_VER.tar.gz \
     /tmp/build/
 
-SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
     echo "**** prepare build tools ****"
@@ -46,15 +45,16 @@ RUN <<-EOS
     fi
 EOS
 
+SHELL ["bash", "-c"]
 RUN <<-EOS
     echo "**** build nginx ****"
 
     cd /tmp/build
     find . -name "*.tar.gz" -exec tar -xf {} \;
-    cd nginx-${NGX_VERSION}
-    case "${NGX_VERSION}" in
+    cd nginx-$NGX_VER
+    case "$NGX_VER" in
         1.24.*|1.25.*|1.26.*|1.27.*)
-            patch -p1 < ../ngx_http_proxy_connect_module-${NGX_CONNECT}/patch/proxy_connect_rewrite_102101.patch
+            patch -p1 < ../ngx_http_proxy_connect_module-$NGX_CONNECT_VER/patch/proxy_connect_rewrite_102101.patch
             ;;
     esac
 
@@ -101,9 +101,9 @@ RUN <<-EOS
         --with-stream_realip_module                      \
         --with-stream_geoip_module                       \
         --with-stream_ssl_preread_module                 \
-        --add-module=../ngx_http_geoip2_module-${NGX_GEOIP2}            \
-        --add-module=../ngx_http_proxy_connect_module-${NGX_CONNECT}    \
-        --add-module=../ngx-fancyindex-${NGX_FANCYINDEX}
+        --add-module=../ngx_http_geoip2_module-$NGX_GEOIP2_VER          \
+        --add-module=../ngx_http_proxy_connect_module-$NGX_CONNECT_VER  \
+        --add-module=../ngx-fancyindex-$NGX_FANCYINDEX_VER
     make
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
         -e 's%/usr/local/%/usr/%g' \
@@ -113,13 +113,13 @@ RUN <<-EOS
     du -h -a /rootfs | tee /rootfs/installed-files
 EOS
 
-FROM ubuntu:latest
+FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
 # install dependencies
-SHELL ["/bin/bash", "-c"]
+SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
     echo "**** install nginx runtimes ****"
@@ -128,38 +128,55 @@ RUN <<-EOS
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get install -y \
-            libpcre3 \
-            libxslt1.1 \
-            libgd3 \
-            libgeoip1t64 \
-            perl \
-            openssl \
-            nginx-full \
-            cron \
-            logrotate
+            libpcre3 libxslt1.1 libgd3 libgeoip1t64 \
+            perl openssl nginx-full \
+            cron logrotate
         apt-get autoremove
         apt-get clean
         rm -rf /var/lib/apt/lists/*
     else
         apk update
-        apk add --no-cache \
-            nginx \
-            cron \
-            logrotate
+        apk add --no-cache nginx cron logrotate
     fi
-
-    echo "**** prepare rootfs ****"
-
-    cp -r /etc/nginx /etc/nginx.default
-    rm -rf /etc/cron.*
-    ln -sfv /dev/stdout /var/log/nginx/access.log
-    ln -sfv /dev/stderr /var/log/nginx/error.log
 EOS
-
-EXPOSE  80 443
 
 # prepare rootfs
 COPY --from=builder /rootfs/ /
 COPY rootfs/ /
+
+# prepare plugins
+ARG NGX_UI_VER=2.0.0-rc.5
+
+SHELL ["bash", "-c"]
+RUN <<-EOS
+    set -ex -o pipefail
+    echo "**** prepare nginx-ui ****"
+
+    TARGET="$(uname -s)-64"
+    case "$(uname -m)" in
+        aarch64)    TARGET=linux-arm64-v8a ;;
+    esac
+
+    curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+
+    echo "**** finish ****"
+
+    ldconfig
+    nginx -V
+    nginx-ui -version
+
+    mv /etc/nginx /etc/nginx.default
+
+    ln -sfv /dev/stdout /var/log/nginx/access.log
+    ln -sfv /dev/stderr /var/log/nginx/error.log
+
+    # no default crontab for logrotate
+    rm -rf /etc/cron.*
+EOS
+
+# 8080 for mgmt
+EXPOSE  80 443 8080
+
+VOLUME /etc/nginx
 
 ENTRYPOINT ["/entrypoint.sh"]

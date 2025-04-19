@@ -31,8 +31,7 @@ jobs:
         run: |-
           set -ex
 
-          IFS='=' read -r _ v <<< "$(grep 'VERSION=' nginx/Dockerfile)"
-          IFS='.' read -r m n r <<< "$v"
+          IFS='=.' read -r _ m n r <<< "$(grep 'NGX_VER=' nginx/Dockerfile)"
 
           # update revision
           if curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$n.$((r+1)).tar.gz; then
@@ -46,7 +45,7 @@ jobs:
           fi
 
           echo "update nginx => $m.$n.$r"
-          sed -e "s/VERSION=.*$/VERSION=$m.$n.$r/" -i nginx/Dockerfile
+          sed -e "s/NGX_VER=.*$/NGX_VER=$m.$n.$r/" -i nginx/Dockerfile
 
           curl --fail -sL https://nginx.org/en/CHANGES-$m.$n -o nginx/NGX_CHANGES ||
           curl --fail -sL https://nginx.org/en/CHANGES -o nginx/NGX_CHANGES || true
