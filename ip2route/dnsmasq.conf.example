@@ -1,0 +1,15 @@
+
+log-dhcp
+log-queries
+
+port=53
+bind-dynamic
+
+domain-needed
+strict-order
+cache-size=2048
+
+# upstream dns server
+server=114.114.114.114
+
+#conf-dir=/config/dnsmasq.d
