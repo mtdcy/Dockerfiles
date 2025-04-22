@@ -11,9 +11,9 @@
 # root privilege is required
 [ "$(id -u)" -eq 0 ] || exec sudo "$0" "$@"
 
-# options           .
-         IP2ROUTE_ID="${IP2ROUTE_ID:-1}"
-        IP2ROUTE_DEV="${IP2ROUTE_DEV:-tun0}"
+# options           =
+      IP2ROUTE_TABLE="${IP2ROUTE_TABLE:-1}"
+     IP2ROUTE_DEVICE="${IP2ROUTE_DEVICE:-tun0}"
      IP2ROUTE_SERVER="${IP2ROUTE_SERVER:-8.8.8.8}"
        IP2ROUTE_FILE="${IP2ROUTE_FILE:-/config/data/default.lst}"
 
@@ -23,7 +23,7 @@
 
 echocmd() {
     echo -e "--\\033[34m $(tr -s ' ' <<< "$*") \\033[0m"
-    eval -- "$*"
+    "$@"
 }
 
 is_host() { [[ "$*" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$         ]]; }
@@ -108,21 +108,30 @@ update_iplst() {
     #ipset list $name
 }
 
+iptrule=( -m set --match-set "$(basename "${IP2ROUTE_FILE%.*}")" dst -j MARK --set-mark "$IP2ROUTE_TABLE" )
+
+cleanup() {
+    echocmd ip route del default table "$IP2ROUTE_TABLE" || true
+    echocmd ip rule flush table "$IP2ROUTE_TABLE" || true
+    echocmd iptables -t mangle -D PREROUTING "${iptrule[@]}" 2>/dev/null || true
+    echocmd iptables -t mangle -D OUTPUT "${iptrule[@]}" 2>/dev/null || true
+}
+
+# always cleanup first
+cleanup
+
+[ "$1" = cleanup ] && {
+    echo -e "\n\n ==== $0 cleaned ===="
+    exit
+} || true
+
 # new table
-echocmd ip route del default table "$IP2ROUTE_ID" || true
-echocmd ip route add default dev "$IP2ROUTE_DEV" table "$IP2ROUTE_ID"
-
+echocmd ip route add default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
 # create a new route rule
-echocmd ip rule flush table "$IP2ROUTE_ID" || true
-echocmd ip rule add fwmark "$IP2ROUTE_ID" table "$IP2ROUTE_ID"
-
+echocmd ip rule add fwmark "$IP2ROUTE_TABLE" table "$IP2ROUTE_TABLE"
+# create ipset
 update_iplst "$IP2ROUTE_FILE"
-
-# route ipset to dev
-iptrule="-m set --match-set $(basename "${IP2ROUTE_FILE%.*}") dst -j MARK --set-mark $IP2ROUTE_ID"
-# FORWARD
-iptables -t mangle -C PREROUTING "$iptrule" 2>/dev/null ||
-echocmd iptables -t mangle -I PREROUTING "$iptrule"
-# OUTPUT
-iptables -t mangle -C OUTPUT "$iptrule" 2>/dev/null ||
-echocmd iptables -t mangle -I OUTPUT "$iptrule"
+# route FORWARD
+echocmd iptables -t mangle -I PREROUTING "${iptrule[@]}"
+# route OUTPUT
+echocmd iptables -t mangle -I OUTPUT "${iptrule[@]}"

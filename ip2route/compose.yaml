@@ -14,7 +14,6 @@ services:
       - MODE=route
       - REMOTE_HOST=user@remote:22
       - LOCAL_ADDR=10.0.1.110
-      - REMOTE_ADDR=10.0.1.1
       - REMOTE_TUN=1
       #- DNSMASQ_INTERFACE=br0
       - DNSMASQ_SERVER=10.10.10.1

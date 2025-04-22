@@ -47,6 +47,47 @@ if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
     echocmd ssh-keygen -f "$SSH_IDENT" -t ed25519 -q -N "sshtunnel"
 fi
 
+tcpmss=( -p tcp -m tcp --tcp-flags "SYN,RST" SYN -j TCPMSS --clamp-mss-to-pmtu )
+
+cleanup() {
+    for (( i=0; i < "$MAX_TUN"; ++i )); do
+        tun0="tun$((LOCAL_TUN + i))"
+
+        IFS='./' read -r a b c d _ <<< "$LOCAL_ADDR"
+        addr="$a.$b.$((c + i)).$d"
+
+        echocmd ip tuntap del "$tun0" mode tun || true
+
+        if [ -n "$REMOTE_ADDR" ]; then
+            echocmd ip route del "$REMOTE_ADDR" || true
+            echocmd ip route del "$REMOTE_ADDR" dev "$tun0" || true
+            echocmd ip route del "${addr%.*}.0/24" via "$REMOTE_ADDR" || true
+            echocmd ip route del "${addr%.*}.0/24" dev "$tun0" || true
+            echocmd ip route del "${addr%.*}.0/24" via "$REMOTE_ADDR" dev "$tun0" || true
+        fi
+
+        echocmd ip route del "${addr%.*}.0/24" || true
+        echocmd ip route del "${addr%.*}.0/24" dev "$tun0" || true
+        
+        # delete rules
+        iptables -S | grep -Fw -- "-i $tun0" | sed 's/-A/-D/g' | xargs iptables || true
+        iptables -S | grep -Fw -- "-o $tun0" | sed 's/-A/-D/g' | xargs iptables || true
+        iptables -t nat -S | grep -Fw -- "-i $tun0" | sed 's/-A/-D/g' | xargs iptables -t nat || true
+        iptables -t nat -S | grep -Fw -- "-o $tun0" | sed 's/-A/-D/g' | xargs iptables -t nat || true
+        iptables -t mangle -S | grep -Fw -- "-i $tun0" | sed 's/-A/-D/g' | xargs iptables -t mangle || true
+        iptables -t mangle -S | grep -Fw -- "-o $tun0" | sed 's/-A/-D/g' | xargs iptables -t mangle || true
+    done
+}
+
+# always cleanup
+[ "$MODE" = socks5 ] || cleanup
+
+# cleanup explicitly
+[ "$1" = cleanup ] && {
+    echo -e "\n\n ==== $0 cleaned ===="
+    exit 
+} || true
+
 if [ "$MODE" != socks5 ]; then
     for (( i=0; i < "$MAX_TUN"; ++i )); do
         # setup tuntap device
@@ -56,21 +97,13 @@ if [ "$MODE" != socks5 ]; then
         IFS='./' read -r a b c d _ <<< "$LOCAL_ADDR"
         addr="$a.$b.$((c + i)).$d"
 
-        echocmd ip link show "$tun0" || 
         echocmd ip tuntap add "$tun0" mode tun
-
-        echocmd ip addr flush dev "$tun0" || true
         echocmd ip addr add "$addr/24" brd + dev "$tun0"
-
         echocmd ip link set "$tun0" up
 
-        echocmd ip route del "${addr%.*}.0/24" || true
-        
         # 'RTNETLINK answers: File exists'
         if [ -n "$REMOTE_ADDR" ]; then
-            echocmd ip route del "$REMOTE_ADDR" || true 
             echocmd ip route add "$REMOTE_ADDR" dev "$tun0"
-
             echocmd ip route add "${addr%.*}.0/24" via "$REMOTE_ADDR" || true
         else
             echocmd ip route add "${addr%.*}.0/24" dev "$tun0" || true
@@ -78,31 +111,21 @@ if [ "$MODE" != socks5 ]; then
 
         if [ "$MODE" = server ]; then
             # enable FORWARD: tun0 => any
-            iptables -C FORWARD -i "$tun0" -j ACCEPT 2>/dev/null ||
             echocmd iptables -I FORWARD -i "$tun0" -j ACCEPT
-
-            iptables -C FORWARD -o "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null ||
             echocmd iptables -I FORWARD -o "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
 
             # enable MASQUERADE
-            iptables -t nat -C POSTROUTING -s "${addr%.*}.0/24" -j MASQUERADE 2>/dev/null ||
             echocmd iptables -t nat -I POSTROUTING -s "${addr%.*}.0/24" -j MASQUERADE
         else
             # enable FORWARD: any ==> tun0
-            iptables -C FORWARD -o "$tun0" -j ACCEPT 2>/dev/null ||
             echocmd iptables -I FORWARD -o "$tun0" -j ACCEPT
-
-            iptables -C FORWARD -i "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT 2>/dev/null ||
             echocmd iptables -I FORWARD -i "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
 
             # enable MASQUERADE
-            iptables -t nat -C POSTROUTING -o "$tun0" -j MASQUERADE 2>/dev/null ||
             echocmd iptables -t nat -I POSTROUTING -o "$tun0" -j MASQUERADE
         fi
 
         # enable TCPMSS
-        tcpmss=( -p tcp -m tcp --tcp-flags "SYN,RST" SYN -j TCPMSS --clamp-mss-to-pmtu )
-        iptables -t mangle -C FORWARD -o "$tun0" "${tcpmss[@]}" 2>/dev/null ||
         echocmd iptables -t mangle -I FORWARD -o "$tun0" "${tcpmss[@]}"
     done
 fi
@@ -112,6 +135,9 @@ if [ "$MODE" = server ]; then
     args=( -o PermitTunnel=yes )
     exit 0
 fi
+
+# do not trap in server mode
+trap cleanup EXIT
 
 # no default config file
 args=(-F none)
