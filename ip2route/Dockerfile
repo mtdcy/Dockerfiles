@@ -28,6 +28,10 @@ VOLUME /config
 
 WORKDIR /config
 
-EXPOSE 53 1070
+# dns
+EXPOSE 53/tcp 53/udp 
+
+# socks5
+EXPOSE 1070
 
 ENTRYPOINT ["/entrypoint.sh"]

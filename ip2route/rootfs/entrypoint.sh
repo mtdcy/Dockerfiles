@@ -22,11 +22,13 @@ export           MAX_TUN="${MAX_TUN:-1}" # server mode
 
 export          SSH_OPTS="${SSH_OPTS:-}"
 
-export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-1053}"
-
 export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
 export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # default upstream dns server
 export     DNSMASQ_IPSET="${DNSMASQ_IPSET:-/config/dnsmasq.ipset}"
+export      DNSMASQ_PORT="${DNSMASQ_PORT:-53}"
+
+export  DNS2SOCKS_SERVER="${DNS2SOCKS_SERVER:-8.8.8.8:53}" # valid only in route mode, use dnsmasq server in socks5 mode
+export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-5353}"
 
 # Notes:
 #
@@ -53,7 +55,7 @@ if [ -z "$*" ]; then
         info "*** init ssh tunnel ***"
 
         # socks5 server and ssh tunnel
-        echocmd /usr/bin/sshtunnel.sh > /config/sshtunnel.log 2>&1 &
+        echocmd /usr/bin/sshtunnel.sh >> /config/sshtunnel.log 2>&1 &
         logfiles+=(/config/sshtunnel.log)
 
         sleep 3
@@ -75,47 +77,54 @@ if [ -z "$*" ]; then
 
         info "*** init dns2socks ***"
 
-        # 1. always use 8.8.8.8 as upstream dns server
-        # 2. force tcp, otherwise dns2socks won't work sometimes.
-        echocmd /usr/bin/dns2socks                              \
-            --force-tcp                                         \
-            --verbosity debug                                   \
-            --listen-addr "127.0.0.1:$DNS2SOCKS_PORT"           \
-            --dns-remote-server 8.8.8.8:53                      \
-            --socks5-settings "socks5://127.0.0.1:$SOCKS5_PORT" \
-            --timeout 1                                         \
-            > /config/dns2socks.log 2>&1 &
+        args=( --verbosity debug )
+        # upstream dns server, use dnsmasq server in socks mode
+        [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
+        IFS=":" read -r dns port <<< "$DNS2SOCKS_SERVER"
+        args+=( --dns-remote-server "$dns:${port:-53}" )
+        # socks settings
+        args+=( --socks5-settings "socks5://127.0.0.1:$SOCKS5_PORT" )
+        # bind to localhost
+        args+=( --listen-addr "127.0.0.1:$DNS2SOCKS_PORT" )
+        # both tcp & udp
+        args+=( --force-tcp )
+        # quick failure
+        args+=( --timeout 1 )
+
+        echocmd /usr/bin/dns2socks "${args[@]}" >> /config/dns2socks.log 2>&1 &
         logfiles+=(/config/dns2socks.log)
-
-        if [ "$MODE" = route ]; then
-            info "*** init ip2route ***"
-
-            export IP2ROUTE_DEV="tun$LOCAL_TUN"
-            export IP2ROUTE_SERVER="127.0.0.1:1053"
-            echocmd /usr/bin/ip2route.sh
-
-            lan="$(ip route get "$DNSMASQ_SERVER" | grep -oP 'dev \K\S+')"
-            if [ "$lan" != "tun$LOCAL_TUN" ]; then
-                info "*** fix NAT loopback ***"
-
-                subnet="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
-                iptables -C FORWARD -i "$lan" -o "$lan" -j ACCEPT ||
-                echocmd iptables -I FORWARD -i "$lan" -o "$lan" -j ACCEPT
-
-                iptables -t nat -D POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE ||
-                echocmd iptables -t nat -I POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE
-            fi
-        else
-            # append dns2socks to dnsmasq if not in host mode
-            export DNS2SOCKS_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
-
-            # enable dnsmasq ipset only in host mode
-            unset DNSMASQ_IPSET
-        fi
-    else
-        # no ssh socks or tunnel
-        unset DNSMASQ_IPSET
     fi
+
+    if [ "$MODE" = route ]; then
+        info "*** init ip2route ***"
+
+        export IP2ROUTE_DEV="tun$LOCAL_TUN"
+        export IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+
+        echocmd /usr/bin/ip2route.sh >> /config/ip2route.log 2>&1
+        logfiles+=(/config/ip2route.log)
+    elif [ "$MODE" = socks5 ]; then
+        # replace dnsmasq server in socks5 mode
+        export DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+    fi
+
+    # fix NAT loopback in route mode
+    if [ "$MODE" = route ]; then
+        lan="$(ip route get "${DNSMASQ_SERVER%:*}" | grep -oP 'dev \K\S+')"
+        if [ "$lan" != "tun$LOCAL_TUN" ]; then
+            info "*** fix NAT loopback ***"
+
+            subnet="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
+            iptables -C FORWARD -i "$lan" -o "$lan" -j ACCEPT ||
+            echocmd iptables -I FORWARD -i "$lan" -o "$lan" -j ACCEPT
+
+            iptables -t nat -D POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE ||
+            echocmd iptables -t nat -I POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE
+        fi
+    fi
+
+    # enable dnsmasq ipset only in route mode
+    [ "$MODE" = route ] || unset DNSMASQ_IPSET
 
     info "*** setup resolv.conf ***"
     echocmd unlink /etc/resolv.conf 2>/dev/null || true
@@ -135,14 +144,12 @@ EOF
     [ -d /config/dnsmasq.d      ] && args+=( --conf-dir=/config/dnsmasq.d       ) || true
     [ -f /config/dnsmasq.host   ] && args+=( --addn-hosts=/config/dnsmasq.host  ) || true
 
-    # dns2socks settings
-    [ -z "$DNS2SOCKS_SERVER"    ] || args+=( --server="${DNS2SOCKS_SERVER//:/#}")
-
     # ip2route settings, do not use '--ipset=...'
     [ -z "$DNSMASQ_IPSET"       ] || args+=( --conf-file="$DNSMASQ_IPSET"       )
 
     # basic settings
-    [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="$DNSMASQ_SERVER"         )
+    [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="${DNSMASQ_SERVER//:/#}"  )
+    [ -z "$DNSMASQ_PORT"        ] || args+=( --port="$DNSMASQ_PORT"             )
   
     if [ -n "$DNSMASQ_INTERFACE" ]; then
         args+=( --bind-interfaces --except-interface=lo --interface="$DNSMASQ_INTERFACE" )

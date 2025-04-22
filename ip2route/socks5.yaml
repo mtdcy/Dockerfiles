@@ -1,28 +1,24 @@
 ---
 services:
-  ip2route:
+  socks5:
     image: ip2route:latest
-    container_name: ip2route
+    container_name: socks5
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
-    network_mode: host
-    cap_add:
-      - NET_ADMIN
+    network_mode: bridge
     environment:
-      - MODE=route
-      - REMOTE_HOST=user@remote:22
-      - LOCAL_ADDR=10.0.1.110
-      - REMOTE_ADDR=10.0.1.1
-      - REMOTE_TUN=1
-      #- DNSMASQ_INTERFACE=br0
-      - DNSMASQ_SERVER=10.10.10.1
+      - MODE=socks5
+      - REMOTE_HOST=user@example.org:22
+      - DNSMASQ_SERVER=8.8.8.8
     volumes:
-      - .:/config
+      - ./socks:/config
       - ~/.ssh:/config/ssh
-    devices:
-      - /dev/net/tun:/dev/net/tun
+    ports:
+      - 7070:1070
+      - 5353:53/tcp
+      - 5353:53/udp
     healthcheck:  # runs inside container
       test: curl --fail -sI -x socks5h://127.0.0.1:1070 https://google.com || exit 1
       interval: 60s
