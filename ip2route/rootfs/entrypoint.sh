@@ -10,7 +10,7 @@ echocmd() {
 }
 
 #       options         .
-export              MODE="${MODE:-socks5}" # route,socks5
+export              MODE="${MODE:-socks5}" # server,route,socks5
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 
 export       REMOTE_HOST="${REMOTE_HOST:-}" # no def value
@@ -18,8 +18,11 @@ export        LOCAL_ADDR="${LOCAL_ADDR:-10.20.30.40}"
 export       REMOTE_ADDR="${REMOTE_ADDR:-${LOCAL_ADDR%.*}.1}"
 export         LOCAL_TUN="${LOCAL_TUN:-0}"
 export        REMOTE_TUN="${REMOTE_TUN:-0}"
+export           MAX_TUN="${MAX_TUN:-1}" # server mode
 
 export          SSH_OPTS="${SSH_OPTS:-}"
+
+export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-1053}"
 
 export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
 export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # default upstream dns server
@@ -37,18 +40,26 @@ if [ -z "$*" ]; then
     [ -f "$SSH_IDENT" ] || SSH_IDENT="/config/ssh/id_rsa"
     [ -f "$SSH_IDENT" ] || SSH_IDENT="/config/ssh/id_ed25519"
 
-    if [ -n "$REMOTE_HOST" ]; then
-        info "*** init ssh tunnel ***"
+    [ "$MODE" = server ] && REMOTE_HOST= || MAX_TUN=1
 
-        # resolve host first
+    # resolve host first
+    if [ -n "$REMOTE_HOST" ]; then
         IFS='@:' read -r user host port <<< "$REMOTE_HOST"
         host=$(dig "@$DNSMASQ_SERVER" "$host" +short)
         [ -z "$host" ] || export REMOTE_HOST="$user@$host:${port:-22}"
+    fi
+
+    if [ -n "$REMOTE_HOST" ] || [ "$MODE" = server ]; then
+        info "*** init ssh tunnel ***"
 
         # socks5 server and ssh tunnel
         echocmd /usr/bin/sshtunnel.sh > /config/sshtunnel.log 2>&1 &
         logfiles+=(/config/sshtunnel.log)
 
+        sleep 3
+    fi
+
+    if [ -n "$REMOTE_HOST" ]; then
         # wait until connection is ready
         sleep 1
         if ! pgrep sshtunnel.sh; then
@@ -69,7 +80,7 @@ if [ -z "$*" ]; then
         echocmd /usr/bin/dns2socks                              \
             --force-tcp                                         \
             --verbosity debug                                   \
-            --listen-addr 127.0.0.1:1053                        \
+            --listen-addr "127.0.0.1:$DNS2SOCKS_PORT"           \
             --dns-remote-server 8.8.8.8:53                      \
             --socks5-settings "socks5://127.0.0.1:$SOCKS5_PORT" \
             --timeout 1                                         \
@@ -96,7 +107,7 @@ if [ -z "$*" ]; then
             fi
         else
             # append dns2socks to dnsmasq if not in host mode
-            export DNS2SOCKS_SERVER=127.0.0.1:1053
+            export DNS2SOCKS_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 
             # enable dnsmasq ipset only in host mode
             unset DNSMASQ_IPSET
@@ -134,7 +145,7 @@ EOF
     [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="$DNSMASQ_SERVER"         )
   
     if [ -n "$DNSMASQ_INTERFACE" ]; then
-        args+=( --interface="$DNSMASQ_INTERFACE" )
+        args+=( --bind-interfaces --except-interface=lo --interface="$DNSMASQ_INTERFACE" )
     else
         args+=( --bind-dynamic )
     fi

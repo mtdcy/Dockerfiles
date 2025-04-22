@@ -108,18 +108,12 @@ update_iplst() {
     #ipset list $name
 }
 
-# flush fisrt
-ip route del default table "$IP2ROUTE_ID" &>/dev/null || true
-ip rule flush table "$IP2ROUTE_ID" &>/dev/null || true
-
 # new table
-if [ -n "$REMOTE_ADDR" ]; then
-    echocmd ip route add default via "$REMOTE_ADDR" dev "$IP2ROUTE_DEV" table "$IP2ROUTE_ID" onlink 
-else
-    echocmd ip route add default dev "$IP2ROUTE_DEV" table "$IP2ROUTE_ID"
-fi
+echocmd ip route del default table "$IP2ROUTE_ID" || true
+echocmd ip route add default dev "$IP2ROUTE_DEV" table "$IP2ROUTE_ID"
 
 # create a new route rule
+echocmd ip rule flush table "$IP2ROUTE_ID" || true
 echocmd ip rule add fwmark "$IP2ROUTE_ID" table "$IP2ROUTE_ID"
 
 update_iplst "$IP2ROUTE_FILE"

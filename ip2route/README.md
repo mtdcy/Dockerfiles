@@ -6,6 +6,12 @@
 
 ```shell
 sudo systemctl disable systemd-resolved.service
+
+# server mode
+if ! sudo sshd -T | grep -Fwi 'PermitTunnel' | grep -Fqi yes; then
+  echo 'PermitTunnel yes' | sudo tee -a /etc/ssh/sshd_config
+  sudo systemctl restart sshd
+fi
 ```
 
 2. Start a docker container

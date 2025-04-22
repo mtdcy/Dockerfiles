@@ -1,0 +1,23 @@
+---
+services:
+  ip2route-server:
+    image: ip2route:latest
+    container_name: ip2route-server
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - MODE=server
+      - LOCAL_ADDR=10.0.0.1
+      - LOCAL_TUN=1
+      - MAX_TUN=9
+      - DNSMASQ_SERVER=8.8.8.8
+      - DNSMASQ_INTERFACE=tun1,tun2
+    volumes:
+      - ./serv:/config
+    devices:
+      - /dev/net/tun:/dev/net/tun
