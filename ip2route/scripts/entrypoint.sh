@@ -41,8 +41,8 @@ cleanup() {
     info "*** cleanup ***"
 
     # cleanup explicitly
-    /usr/bin/sshtunnel.sh cleanup || true
-    /usr/bin/ip2route.sh cleanup || true
+    /entrypoint.d/sshtunnel.sh cleanup || true
+    /entrypoint.d/ip2route.sh cleanup || true
 
     pkill -INT  ssh || true
     pkill -INT  dns2socks || true
@@ -85,7 +85,7 @@ if [ -z "$*" ]; then
         info "*** init ssh tunnel ***"
 
         # socks5 server and ssh tunnel
-        echocmd /usr/bin/sshtunnel.sh > /config/sshtunnel.log 2>&1 &
+        echocmd /entrypoint.d/sshtunnel.sh > /config/sshtunnel.log 2>&1 &
     fi
 
     if [ -n "$REMOTE_HOST" ]; then
@@ -139,7 +139,7 @@ if [ -z "$*" ]; then
         export IP2ROUTE_DEVICE="tun$LOCAL_TUN"
         export IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 
-        echocmd /usr/bin/ip2route.sh | tee -a /config/ip2route.log 2>&1 || {
+        echocmd /entrypoint.d/ip2route.sh | tee -a /config/ip2route.log 2>&1 || {
             info "*** ip2route start failed"
             exit 1
         }
@@ -229,7 +229,7 @@ dns:
   ${subnet%/*}:$DNSMASQ_PORT
 EOF
 
-    /usr/bin/healthd.sh > /config/healthd.log 2>&1 &
+    /entrypoint.d/healthd.sh > /config/healthd.log 2>&1 &
     wait $!
 else
     exec "$@"

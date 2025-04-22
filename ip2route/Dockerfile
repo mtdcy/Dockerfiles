@@ -19,7 +19,7 @@ RUN <<-EOS
         dnsmasq
 EOS
 
-COPY rootfs/ /
+COPY scripts/ /
 
 ARG TARGETPLATFORM
 COPY dns2socks/$TARGETPLATFORM/ /
