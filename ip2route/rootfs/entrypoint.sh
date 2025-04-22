@@ -29,7 +29,7 @@ export     IP2ROUTE_FILE="${IP2ROUTE_FILE:-/config/data/default.lst}"
 # - DNSMASQ_SERVER: it's for normal dns resolve, ip route get should return default.
 
 info () {
-    echo -e "🐳\\033[33m [$(date '+%Y/%m/%d %H:%M:%S')] $* \\033[0m" >&2
+    echo -e "🐳 [$(date '+%Y/%m/%d %H:%M:%S')]\\033[33m $* \\033[0m" >&2
 }
 
 echocmd() {
@@ -53,6 +53,10 @@ cleanup() {
 
 if [ -z "$*" ]; then
     trap cleanup EXIT
+
+    # sanity check
+    [ "$MODE" = route   ] || unset REMOTE_ADDR
+    [ "$MODE" = socks5  ] && unset LOCAL_ADDR || true
 
     # mount ~/.ssh to /config/ssh => multiple id files exists
     SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519

@@ -137,7 +137,7 @@ if [ "$MODE" = server ]; then
 fi
 
 # do not trap in server mode
-trap cleanup EXIT
+[ "$MODE" = socks5 ] || trap cleanup EXIT
 
 # no default config file
 args=(-F none)
