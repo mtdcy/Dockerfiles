@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 #       options         =
-export              MODE="${MODE:-socks5}" # server,route,socks5
+export              MODE="${MODE:-basic}" # basic,route,server
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 
 export       REMOTE_HOST="${REMOTE_HOST:-}" # no def value
@@ -55,8 +55,8 @@ if [ -z "$*" ]; then
     trap cleanup EXIT
 
     # sanity check
-    [ "$MODE" = route   ] || unset REMOTE_ADDR
-    [ "$MODE" = socks5  ] && unset LOCAL_ADDR || true
+    [ "$MODE" = basic ] && unset LOCAL_ADDR || true
+    [ "$MODE" = route ] || unset REMOTE_ADDR
 
     # mount ~/.ssh to /config/ssh => multiple id files exists
     SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
@@ -158,8 +158,8 @@ if [ -z "$*" ]; then
             echocmd iptables -t nat -C POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE ||
             echocmd iptables -t nat -I POSTROUTING -s "$subnet" -o "$lan" -j MASQUERADE
         fi
-    elif [ "$MODE" = socks5 ]; then
-        # replace dnsmasq server in socks5 mode
+    elif [ "$MODE" = basic ]; then
+        # replace dnsmasq server in basic mode
         export DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
     fi
 

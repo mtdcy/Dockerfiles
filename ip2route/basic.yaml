@@ -1,19 +1,18 @@
 ---
 services:
-  socks5:
+  basic:
     image: ip2route:latest
-    container_name: socks5
+    container_name: ip2route-basic
     restart: always
     build:
       context: .
       dockerfile: Dockerfile
     network_mode: bridge
     environment:
-      - MODE=socks5
       - REMOTE_HOST=user@example.org:22
       - DNSMASQ_SERVER=8.8.8.8
     volumes:
-      - ./socks:/config
+      - ./ip2route-basic:/config
       - ~/.ssh:/config/ssh
     ports:
       - 7070:1070

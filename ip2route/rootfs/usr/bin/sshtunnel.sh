@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # 
 # options       =
-            MODE="${MODE:-socks5}" # server,route,socks5
+            MODE="${MODE:-basic}" # basic,route,server
      SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 
       LOCAL_ADDR="${LOCAL_ADDR:-10.20.30.40}"
@@ -80,7 +80,7 @@ cleanup() {
 }
 
 # always cleanup
-[ "$MODE" = socks5 ] || cleanup
+[ "$MODE" = basic ] || cleanup
 
 # cleanup explicitly
 [ "$1" = cleanup ] && {
@@ -88,7 +88,7 @@ cleanup() {
     exit 
 } || true
 
-if [ "$MODE" != socks5 ]; then
+[ "$MODE" = basic ] || {
     for (( i=0; i < "$MAX_TUN"; ++i )); do
         # setup tuntap device
         tun0="tun$((LOCAL_TUN + i))"
@@ -128,7 +128,7 @@ if [ "$MODE" != socks5 ]; then
         # enable TCPMSS
         echocmd iptables -t mangle -I FORWARD -o "$tun0" "${tcpmss[@]}"
     done
-fi
+}
 
 if [ "$MODE" = server ]; then
     # start a sshd daemon?
@@ -137,7 +137,7 @@ if [ "$MODE" = server ]; then
 fi
 
 # do not trap in server mode
-[ "$MODE" = socks5 ] || trap cleanup EXIT
+[ "$MODE" = basic ] || trap cleanup EXIT
 
 # no default config file
 args=(-F none)

@@ -1,6 +1,6 @@
 ---
 services:
-  ip2route-server:
+  server:
     image: ip2route:latest
     container_name: ip2route-server
     restart: always
@@ -18,6 +18,6 @@ services:
       - DNSMASQ_SERVER=8.8.8.8
       - DNSMASQ_INTERFACE=tun1,tun2
     volumes:
-      - ./serv:/config
+      - ./ip2route-server:/config
     devices:
       - /dev/net/tun:/dev/net/tun

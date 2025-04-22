@@ -2,5 +2,5 @@
 ip2route/*.log
 ip2route/dnsmasq.ipset
 ip2route/ssh/
-ip2route/serv
-ip2route/socks
+ip2route/ip2route-basic
+ip2route/ip2route-server
