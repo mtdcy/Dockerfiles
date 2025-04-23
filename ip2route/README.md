@@ -84,3 +84,8 @@ EOF
 ### `Kernel module xt_set is not loaded in.`
 
   kernel mode `xt_set` is needed by ipset by ip2route.
+
+## Releases
+
+- 1.0.1 fix resolve issues after setting host dns server
+- 1.0.0 first version

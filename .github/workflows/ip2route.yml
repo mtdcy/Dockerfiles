@@ -1,6 +1,9 @@
 ---
 name: Build ip2route
 
+env:
+  version: 1.0.1
+
 on:
   push:
     paths:
@@ -17,9 +20,6 @@ on:
   workflow_call: null
 
   workflow_dispatch: null
-
-env:
-  version: 1.0.0
 
 jobs:
   build-ip2route:
