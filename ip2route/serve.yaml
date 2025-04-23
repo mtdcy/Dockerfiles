@@ -1,8 +1,8 @@
 ---
 services:
-  server:
+  serve:
     image: ip2route:latest
-    container_name: ip2route-server
+    container_name: ip2route-serve
     restart: always
     build:
       context: .
@@ -11,13 +11,12 @@ services:
     cap_add:
       - NET_ADMIN
     environment:
-      - MODE=server
-      - LOCAL_ADDR=10.0.0.1
+      - MODE=serve
+      - LOCAL_ADDR=10.0.1.1
       - LOCAL_TUN=1
       - MAX_TUN=9
       - DNSMASQ_SERVER=8.8.8.8
-      - DNSMASQ_INTERFACE=tun1,tun2
     volumes:
-      - ./ip2route-server:/config
+      - ./serve0:/config
     devices:
       - /dev/net/tun:/dev/net/tun

@@ -10,15 +10,25 @@
     HEALTHD_INTERVAL="${HEALTHD_INTERVAL:-60}"
         HEADTHD_HOST="${HEADTHD_HOST:-www.google.com}"
 
-IFS='@:' read -r _ host _ <<< "$REMOTE_HOST"
-[ -z "$host" ] || REMOTE_HOST="$host"
-
 check() {
-    echo -e "-- $(date)\\033[34m ⭐ $(tr -s ' ' <<< "$*") ⭐ \\033[0m"
+    echo -e "-- \\033[34m ⭐ $* ⭐ \\033[0m"
     "$@"
 }
 
+on_exit() {
+    check exit
+}
+trap on_exit EXIT
+
+set -eo pipefail
+
+IFS='@:' read -r _ host _ <<< "$REMOTE_HOST"
+[ -z "$host" ] || REMOTE_HOST="$host"
+
 while sleep "$HEALTHD_INTERVAL"; do
+    check date
+    # tun device check
+    [ -z "$LOCAL_ADDR"      ] || check ping -q -c1 "$LOCAL_ADDR"
     # host check
     [ -z "$REMOTE_HOST"     ] || check ping -q -c3 "$REMOTE_HOST"
     # remote check
@@ -28,5 +38,5 @@ while sleep "$HEALTHD_INTERVAL"; do
     # dns2socks check
     [ -z "$DNS2SOCKS_PORT"  ] || check dig @127.0.0.1 -p "$DNS2SOCKS_PORT" "$HEADTHD_HOST"
     # dns check
-    [ -z "$DNSMASQ_PORT"    ] || check dig -p "$DNSMASQ_PORT" "$HEADTHD_HOST"
+    [ -z "$DNSMASQ_PORT"    ] || check dig @127.0.0.1 -p "$DNSMASQ_PORT" "$HEADTHD_HOST"
 done

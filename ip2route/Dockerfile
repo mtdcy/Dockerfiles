@@ -30,7 +30,8 @@ WORKDIR /config
 
 # dns
 EXPOSE 53/tcp 53/udp 
-
+# dhcp
+EXPOSE 67/udp
 # socks5
 EXPOSE 1070
 
