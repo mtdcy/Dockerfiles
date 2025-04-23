@@ -112,9 +112,6 @@ if [ -z "$*" ]; then
             tail "$DNS2SOCKS_LOGFILE"
             exit 1
         fi
-
-        # dns2socks as dnsmasq server
-        DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
     else
         unset SOCKS5_PORT DNS2SOCKS_PORT
     fi
@@ -129,8 +126,6 @@ if [ -z "$*" ]; then
             info "*** ip2route start failed"
             exit 1
         }
-    else
-        unset DNSMASQ_IPSET
     fi
 
     # fix NAT loopback in route mode
@@ -158,6 +153,10 @@ if [ -z "$*" ]; then
     fi
 
     info "*** init dnsmasq ***"
+
+    # dns2socks as dnsmasq server
+    [ "$MODE" = basic ] && DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT" || true
+    [ "$MODE" = route ] || unset DNSMASQ_IPSET
 
     export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET
     export DNSMASQ_LOGFILE=/config/dnsmasq.log
