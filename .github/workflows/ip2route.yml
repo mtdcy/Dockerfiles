@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - ip2route/Dockerfile
-      - ip2route/rootfs/**
+      - ip2route/scripts/**
       - ip2route/dns2socks/**
       - .github/workflows/ip2route.yml
 
@@ -17,6 +17,9 @@ on:
   workflow_call: null
 
   workflow_dispatch: null
+
+env:
+  version: 1.0.0
 
 jobs:
   build-ip2route:
@@ -98,5 +101,6 @@ jobs:
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
           tags: ${{ steps.inspect.outputs.tags }}
+          build-args: VERSION=${{ env.version }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/ip2route:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/ip2route:buildcache,mode=max

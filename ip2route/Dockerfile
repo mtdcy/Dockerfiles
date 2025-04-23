@@ -2,10 +2,10 @@
 
 FROM baseimage:latest
 
-ARG VERSION=0.1
+ARG VERSION=1.0.0
 
 # lables
-LABEL maintainer="mtdcy.chen@gmail.com"
+LABEL maintainer="mtdcy.chen@gmail.com" version="$VERSION"
 
 RUN <<-EOS
     set -ex
