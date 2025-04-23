@@ -137,8 +137,16 @@ cleanup() {
             echocmd iptables -t nat -I POSTROUTING -o "$tun0" -j MASQUERADE
         fi
 
-        # ICMP
+        # ICMP/ping
         echocmd iptables -I INPUT -i "$tun0" -p icmp -j ACCEPT
+        # IGMP
+        echocmd iptables -I INPUT -i "$tun0" -p igmp -j ACCEPT
+        # DNS/53
+        echocmd iptables -I INPUT -i "$tun0" -p tcp -m tcp --dport 53 -j ACCEPT
+        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 53 -j ACCEPT
+        # DHCP
+        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 67 -j ACCEPT
+        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 68 -j ACCEPT
 
         # enable TCPMSS
         tcpmss=( -p tcp -m tcp --tcp-flags "SYN,RST" SYN -j TCPMSS --clamp-mss-to-pmtu )
