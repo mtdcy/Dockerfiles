@@ -16,6 +16,8 @@
         SSH_OPTS="${SSH_OPTS:--v}" # user options
      SSH_LOGFILE="${SSH_LOGFILE:-/config/sshtunnel.log}"
 
+set +H 
+
 info() {
     echo -e "--\\033[32m $* \\033[0m"
 }
@@ -119,6 +121,9 @@ cleanup() {
             # enable FORWARD: tun0 => any
             echocmd iptables -I FORWARD -i "$tun0" -j ACCEPT
             echocmd iptables -I FORWARD -o "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
+
+            # enable MASQUERADE for incoming traffics
+            echocmd iptables -t nat -I POSTROUTING -s "${addr%.*}.0/24" ! -o "$tun0" -j MASQUERADE
         else
             # enable OUTPUT: any => tun0
             echocmd iptables -I OUTPUT -o "$tun0" -j ACCEPT
@@ -127,10 +132,10 @@ cleanup() {
             # enable FORWARD: any ==> tun0
             echocmd iptables -I FORWARD -o "$tun0" -j ACCEPT
             echocmd iptables -I FORWARD -i "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
-        fi
 
-        # enable MASQUERADE
-        echocmd iptables -t nat -I POSTROUTING -o "$tun0" -j MASQUERADE
+            # enable MASQUERADE
+            echocmd iptables -t nat -I POSTROUTING -o "$tun0" -j MASQUERADE
+        fi
 
         # ICMP
         echocmd iptables -I INPUT -i "$tun0" -p icmp -j ACCEPT
