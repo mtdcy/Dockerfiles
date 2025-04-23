@@ -61,6 +61,14 @@ if [ -z "$*" ]; then
 
     export LOCAL_ADDR REMOTE_ADDR MAX_TUN REMOTE_HOST
 
+    # host dns may not work when container is starting
+    if [ -n "$REMOTE_HOST" ]; then
+        IFS='@:' read -r user host port <<< "$REMOTE_HOST"
+        IFS=':'  read -r dns dns_port <<< "$DNSMASQ_SERVER"
+        host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)"
+        [ -z "$host" ] || export REMOTE_HOST="$user@$host:${port:-22}"
+    fi
+
     # mount ~/.ssh to /config/ssh => multiple id files exists
     SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
     [ -f "$SSH_IDENT" ] || SSH_IDENT="/config/ssh/id_rsa"
