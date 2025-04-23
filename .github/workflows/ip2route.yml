@@ -77,8 +77,7 @@ jobs:
 
           bash --version
           tags() {
-            IFS='=' read -r _ v <<< "$(grep 'VERSION=' $1/Dockerfile)"
-            IFS='.' read -r m n r <<< "$v"
+            IFS='.' read -r m n r <<< "${{ env.version }}"
             t=(
               ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
               ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m
