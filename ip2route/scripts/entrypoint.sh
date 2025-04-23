@@ -88,10 +88,10 @@ if [ -z "$*" ]; then
         # wait until connection is ready
         sleep 1
         for _ in {1..15}; do 
-            if ! pgrep -f ssh; then
+            if ! pgrep -f ssh &>/dev/null; then
                 info "*** ssh exited, abort ***"
                 break
-            elif curl --fail -sI -x "socks5h://127.0.0.1:$SOCKS5_PORT" https://google.com; then
+            elif ss -tunlp | grep -Fwq "$SOCKS5_PORT"; then
                 established=true
                 break
             fi
