@@ -7,9 +7,6 @@ env:
 on:
   push:
     paths:
-      - ip2route/Dockerfile
-      - ip2route/scripts/**
-      - ip2route/dns2socks/**
       - .github/workflows/ip2route.yml
 
 # workflows_run:
