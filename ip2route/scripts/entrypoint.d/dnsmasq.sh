@@ -30,7 +30,7 @@ args=()
 # basic settings
 [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="${DNSMASQ_SERVER//:/#}"  )
 [ -z "$DNSMASQ_PORT"        ] || args+=( --port="$DNSMASQ_PORT"             )
-[ -z "$DNSMASQ_INTERFACE"   ] || args+=( --bind-interfaces --interface="$DNSMASQ_INTERFACE" )
+[ -z "$DNSMASQ_INTERFACE"   ] || args+=( --interface="$DNSMASQ_INTERFACE"   )
 [ -z "$DNSMASQ_LOGFILE"     ] || args+=( --log-facility="$DNSMASQ_LOGFILE"  )
 
 # optimized settings
