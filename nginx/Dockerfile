@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM baseimage:latest AS builder
 
-ARG NGX_VER=1.27.5
+ARG NGX_VER=1.28.0
 ARG NGX_CONNECT_VER=0.0.7
 ARG NGX_GEOIP2_VER=3.4
 ARG NGX_FANCYINDEX_VER=0.5.2
