@@ -57,7 +57,7 @@ if [ -z "$*" ]; then
     # sanity check
     [ "$MODE" = basic ] && unset LOCAL_ADDR || true
     [ "$MODE" = route ] || unset REMOTE_ADDR
-    [ "$MODE" = serve ] && REMOTE_HOST= || MAX_TUN=1
+    [ "$MODE" = serve ] && unset REMOTE_HOST || MAX_TUN=1
 
     export LOCAL_ADDR REMOTE_ADDR MAX_TUN REMOTE_HOST
 
@@ -94,7 +94,7 @@ if [ -z "$*" ]; then
             fi
             # no curl test with socks here as dns server may not ready yet.
             if [ -n "$REMOTE_ADDR" ]; then
-                if traceroute -m 1 "$REMOTE_ADDR" | tail -1 | grep -Fwq "$REMOTE_ADDR"; then
+                if ping -c 1 "$REMOTE_ADDR"; then
                     established=true && break
                 fi
             else

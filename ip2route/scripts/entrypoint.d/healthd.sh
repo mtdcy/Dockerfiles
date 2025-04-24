@@ -12,7 +12,7 @@
         HEADTHD_HOST="${HEADTHD_HOST:-www.google.com}"
 
 check() {
-    echo -e "⭐\\033[33m $* \\033[0m⭐"
+    echo -e "⭐\\033[33m $* \\033[0m⭐" >&2
     "$@"
 }
 
@@ -31,11 +31,11 @@ IFS='@:' read -r _ host _ <<< "$REMOTE_HOST"
 while sleep "$HEALTHD_INTERVAL"; do
     check date
     # tun device check
-    [ -z "$LOCAL_ADDR"      ] || check ping -q -c1 "$LOCAL_ADDR"
-    # host check
-    [ -z "$REMOTE_HOST"     ] || check ping -q -c3 "$REMOTE_HOST"
+    [ -z "$LOCAL_ADDR"      ] || check ping -c 1 "$LOCAL_ADDR"
     # remote check
-    [ -z "$REMOTE_ADDR"     ] || check traceroute -m 1 "$DNS2SOCKS_SERVER"| tail -1 | grep -Fw "$REMOTE_ADDR"
+    [ -z "$REMOTE_ADDR"     ] || check ping -c 3 "$REMOTE_ADDR"
+    # host check
+    [ -z "$REMOTE_HOST"     ] || check ping -c 3 "$REMOTE_HOST"
     # socks5 check
     [ -z "$SOCKS5_PORT"     ] || check curl --fail -sI -x "socks5h://127.0.0.1:$SOCKS5_PORT" "https://$HEADTHD_HOST"
     # dns2socks check
