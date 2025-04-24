@@ -110,6 +110,7 @@ if [ -z "$*" ]; then
         # upstream dns server: use dnsmasq server in socks mode
         [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
 
+        export DNS2SOCKS_LOGFILE=/config/dns2socks.log
         export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
         echocmd /entrypoint.d/dns2socks.sh
 
