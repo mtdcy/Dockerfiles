@@ -90,10 +90,17 @@ if [ -z "$*" ]; then
         for _ in {1..15}; do 
             if ! pgrep -f ssh &>/dev/null; then
                 info "*** ssh exited, abort ***"
-                break
-            elif ss -tunlp | grep -Fwq "$SOCKS5_PORT"; then
-                established=true
-                break
+                exit
+            fi
+            # no curl test with socks here as dns server may not ready yet.
+            if [ -n "$REMOTE_ADDR" ]; then
+                if traceroute -m 1 "$REMOTE_ADDR" | tail -1 | grep -Fwq "$REMOTE_ADDR"; then
+                    established=true && break
+                fi
+            else
+                if ss -tunlp | grep -Fwq "$SOCKS5_PORT"; then
+                    established=true && break
+                fi
             fi
             info "***  wait for connection  ***"
             sleep 3
