@@ -24,6 +24,7 @@ export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-1053}"
 export    IP2ROUTE_TABLE="${IP2ROUTE_TABLE:-1}"
 export     IP2ROUTE_FILE="${IP2ROUTE_FILE:-/config/data/default.lst}"
 
+              DIG_DOMAIN="${DIG_DOMAIN:-www.baidu.com}"
 # Notes:
 #
 # - DNSMASQ_SERVER: it's for normal dns resolve, ip route get should return default.
@@ -67,7 +68,11 @@ if [ -z "$*" ]; then
     if [ -n "$REMOTE_HOST" ]; then
         IFS='@:' read -r user host port <<< "$REMOTE_HOST"
         IFS=':'  read -r dns dns_port <<< "$DNSMASQ_SERVER"
-        host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)"
+        # test dns first
+        echocmd dig "@$dns" -p "${dns_port:-53}" "$DIG_DOMAIN" &&
+        host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)" ||
+        host="$(dig "$host" +short)"
+
         [ -z "$host" ] || export REMOTE_HOST="$user@$host:${port:-22}"
     fi
 
@@ -125,7 +130,7 @@ if [ -z "$*" ]; then
 
         # test upstream dns and dns2socks
         sleep 1
-        if ! dig @127.0.0.1 -p "$DNS2SOCKS_PORT" www.google.com; then
+        if ! dig @127.0.0.1 -p "$DNS2SOCKS_PORT" "$DIG_DOMAIN" ; then
             info "*** dns2socks start failed ***"
             tail "$DNS2SOCKS_LOGFILE"
             exit 1
@@ -181,7 +186,7 @@ if [ -z "$*" ]; then
     /entrypoint.d/dnsmasq.sh
 
     sleep 1
-    if ! dig @127.0.0.1 www.google.com; then
+    if ! dig @127.0.0.1 "$DIG_DOMAIN"; then
         info "*** dnsmasq start failed ***"
         tail "$DNSMASQ_LOGFILE"
         exit 1
