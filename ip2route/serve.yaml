@@ -12,11 +12,14 @@ services:
       - NET_ADMIN
     environment:
       - MODE=serve
-      - LOCAL_ADDR=10.1.1.1
-      - LOCAL_TUN=1
-      - MAX_TUN=3
+      - SSH_ADDR=10.1.1.1
+      - SSH_TUN=tun1  # tun0 reserved
+      - SSH_COUNT=3
       - DNSMASQ_SERVER=8.8.8.8
+      # n2n
+      - REMOTE_HOST=n2n://b9ee86ef6b7592ee@127.0.0.1:6789
+      - N2N_ADDR=10.0.0.1
     volumes:
-      - ./serve0:/config
+      - ./serve:/config
     devices:
       - /dev/net/tun:/dev/net/tun

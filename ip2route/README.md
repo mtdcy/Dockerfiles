@@ -54,8 +54,8 @@ docker run -d                               \
          --cap-add NET_ADMIN                \
          --device /dev/net/tun              \
          -e MODE=serve                      \
-         -e LOCAL_ADDR=10.0.1.1             \
-         -e MAX_TUN=3                       \
+         -e SSH_ADDR=10.0.1.1               \
+         -e SSH_COUNT=3                     \
          -e DNSMASQ_SERVER=8.8.8.8          \
          -v .:/config                       \
          ghcr.io/mtdcy/ip2route:latest

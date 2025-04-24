@@ -16,6 +16,8 @@ echocmd() {
     "$@"
 }
 
+info "init dsmasq @$DNSMASQ_SERVER:$DNSMASQ_PORT"
+
 # be carefull with the arguments order
 args=()
 
@@ -25,25 +27,29 @@ args=()
 [ -f /config/dnsmasq.host   ] && args+=( --addn-hosts=/config/dnsmasq.host  ) || true
 
 # ipset settings, do not use '--ipset=...'
-[ -z "$DNSMASQ_IPSET"       ] || args+=( --conf-file="$DNSMASQ_IPSET"       )
+[ -f "$DNSMASQ_IPSET"       ] && args+=( --conf-file="$DNSMASQ_IPSET"       ) || true
 
 # basic settings
 [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="${DNSMASQ_SERVER//:/#}"  )
 [ -z "$DNSMASQ_PORT"        ] || args+=( --port="$DNSMASQ_PORT"             )
 [ -z "$DNSMASQ_INTERFACE"   ] || args+=( --interface="$DNSMASQ_INTERFACE"   )
-[ -z "$DNSMASQ_LOGFILE"     ] || args+=( --log-facility="$DNSMASQ_LOGFILE"  )
 
 # optimized settings
 # use servers strictly in the order by given
 args+=( --strict-order )
 # do not read resolv.conf
 args+=( --no-resolv )
-# logging settings
-args+=( --log-queries --log-dhcp )
+# logging to stdout
+args+=( --log-queries --log-dhcp --log-facility=- )
 
 dnsmasq=( /usr/sbin/dnsmasq "${args[@]}" )
 
 info "${dnsmasq[*]}"
-"${dnsmasq[@]}"
+"${dnsmasq[@]}" -k 2>&1 | ts "[%b %d %H:%M:%S]" | tee -a "$DNSMASQ_LOGFILE" & disown
 
-
+sleep 1
+if [ -z "$(dig @127.0.0.1 "${TEST_DOMAIN:-www.google.com}")" ]; then
+    info "dnsmasq start failed"
+    tail "$DNSMASQ_LOGFILE"
+    exit 1
+fi

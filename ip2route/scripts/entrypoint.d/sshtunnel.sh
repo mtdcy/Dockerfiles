@@ -4,19 +4,17 @@
             MODE="${MODE:-basic}" # basic,route,serve
      SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 
-      LOCAL_ADDR="${LOCAL_ADDR:-10.20.30.40}"
-       LOCAL_TUN="${LOCAL_TUN:-0}"
-         MAX_TUN="${MAX_TUN:-1}" # for serve mode
-
      REMOTE_HOST="${REMOTE_HOST:-}" # no def value
-     REMOTE_ADDR="${REMOTE_ADDR:-${LOCAL_ADDR%.*}.1}"
-      REMOTE_TUN="${REMOTE_TUN:-0}"
+        SSH_ADDR="${SSH_ADDR:-10.20.30.40}"
+      SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
+
+       SSH_COUNT="${SSH_COUNT:-1}" # for serve mode
+         SSH_TUN="${SSH_TUN:-tun}"
+  SSH_TUN_REMOTE="${SSH_TUN_REMOTE:-$SSH_TUN}"
 
        SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}"
-        SSH_OPTS="${SSH_OPTS:--v}" # user options
      SSH_LOGFILE="${SSH_LOGFILE:-/var/log/sshtunnel.log}"
-
-set +H 
+        SSH_OPTS="${SSH_OPTS:--v}" # user options
 
 info() {
     echo -e "🚀\\033[32m $* \\033[0m🚀"
@@ -46,7 +44,7 @@ options+=(
 [ "$MODE" = route ] && options+=(Tunnel=point-to-point) || true
 
 # sanity check
-[ "$MODE" = serve ] && REMOTE_ADDR= || MAX_TUN=1
+[ "$MODE" = serve ] && SSH_REMOTE= || SSH_COUNT=1
 
 # ssh keygen if not exists
 if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
@@ -54,31 +52,21 @@ if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
     echocmd ssh-keygen -f "$SSH_IDENT" -t ed25519 -q -N "sshtunnel"
 fi
 
-# flush <tun0> [-t table]
-flush() {
-    while read -r rule; do
-        [ -n "$rule" ] || continue
-        echocmd iptables "${@:2}" ${rule/-A/-D} || true
-    done < <(iptables -S "${@:2}" | grep -E -- "-i $1|-o $1")
-}
-
 cleanup() {
-    for (( i=0; i < "$MAX_TUN"; ++i )); do
-        tun0="tun$((LOCAL_TUN + i))"
+    for (( i=0; i < "$SSH_COUNT"; ++i )); do
+        tun="tun$((${SSH_TUN#tun} + i))"
+        info "clean ssh tunnel $tun"
 
-        IFS='./' read -r a b c d _ <<< "$LOCAL_ADDR"
+        IFS='./' read -r a b c d _ <<< "$SSH_ADDR"
         addr="$a.$b.$((c + i)).$d"
 
-        echocmd ip tuntap del "$tun0" mode tun || true
+        echocmd ip tuntap del "$tun" mode tun || true
 
         echocmd ip route del "${addr%.*}.0/24" || true
         
-        [ -z "$REMOTE_ADDR" ] || echocmd ip route del "$REMOTE_ADDR" || true
-        
-        # delete rules
-        flush "$tun0"
-        flush "$tun0" -t nat
-        flush "$tun0" -t mangle
+        [ -z "$SSH_REMOTE" ] || echocmd ip route del "$SSH_REMOTE" || true
+       
+        echocmd /entrypoint.d/iptables.sh flush "$tun" || true
     done
 }
 
@@ -92,65 +80,30 @@ cleanup() {
 } || true
 
 [ "$MODE" = basic ] || {
-    for (( i=0; i < "$MAX_TUN"; ++i )); do
+    for (( i=0; i < "$SSH_COUNT"; ++i )); do
         # setup tuntap device
-        tun0="tun$((LOCAL_TUN + i))"
+        tun="tun$((${SSH_TUN#tun} + i))"
 
         # choose subnet
-        IFS='./' read -r a b c d _ <<< "$LOCAL_ADDR"
+        IFS='./' read -r a b c d _ <<< "$SSH_ADDR"
         addr="$a.$b.$((c + i)).$d"
+        
+        info "init ssh tunnel @$tun - $addr"
 
-        # fails if "$tun0" is in use
-        echocmd ip tuntap add "$tun0" mode tun || true
-        echocmd ip addr add "$addr/24" brd + dev "$tun0" || true
-        echocmd ip link set "$tun0" up || true
+        # fails if "$tun" is in use
+        echocmd ip tuntap add "$tun" mode tun || true
+        echocmd ip addr add "$addr/24" brd + dev "$tun" || true
+        echocmd ip link set "$tun" up || true
 
         # 'RTNETLINK answers: File exists'
-        if [ -n "$REMOTE_ADDR" ]; then
-            echocmd ip route add "$REMOTE_ADDR" dev "$tun0"
-            echocmd ip route add "${addr%.*}.0/24" via "$REMOTE_ADDR" || true
+        if [ -n "$SSH_REMOTE" ]; then
+            echocmd ip route add "$SSH_REMOTE" dev "$tun"
+            echocmd ip route add "${addr%.*}.0/24" via "$SSH_REMOTE" || true
         else
-            echocmd ip route add "${addr%.*}.0/24" dev "$tun0" || true
+            echocmd ip route add "${addr%.*}.0/24" dev "$tun" || true
         fi
 
-        if [ "$MODE" = serve ]; then
-            # enable INPUT & OUTPUT
-            echocmd iptables -I OUTPUT -o "$tun0" -j ACCEPT
-            echocmd iptables -I INPUT -i "$tun0" -j ACCEPT
-
-            # enable FORWARD: tun0 => any
-            echocmd iptables -I FORWARD -i "$tun0" -j ACCEPT
-            echocmd iptables -I FORWARD -o "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-            # enable MASQUERADE for incoming traffics
-            echocmd iptables -t nat -I POSTROUTING -s "${addr%.*}.0/24" ! -o "$tun0" -j MASQUERADE
-        else
-            # enable OUTPUT: any => tun0
-            echocmd iptables -I OUTPUT -o "$tun0" -j ACCEPT
-            echocmd iptables -I INPUT -i "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-            # enable FORWARD: any ==> tun0
-            echocmd iptables -I FORWARD -o "$tun0" -j ACCEPT
-            echocmd iptables -I FORWARD -i "$tun0" -m state --state RELATED,ESTABLISHED -j ACCEPT
-
-            # enable MASQUERADE
-            echocmd iptables -t nat -I POSTROUTING -o "$tun0" -j MASQUERADE
-        fi
-
-        # ICMP/ping
-        echocmd iptables -I INPUT -i "$tun0" -p icmp -j ACCEPT
-        # IGMP
-        echocmd iptables -I INPUT -i "$tun0" -p igmp -j ACCEPT
-        # DNS/53
-        echocmd iptables -I INPUT -i "$tun0" -p tcp -m tcp --dport 53 -j ACCEPT
-        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 53 -j ACCEPT
-        # DHCP
-        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 67 -j ACCEPT
-        echocmd iptables -I INPUT -i "$tun0" -p udp -m udp --dport 68 -j ACCEPT
-
-        # enable TCPMSS
-        tcpmss=( -p tcp -m tcp --tcp-flags "SYN,RST" SYN -j TCPMSS --clamp-mss-to-pmtu )
-        echocmd iptables -t mangle -I FORWARD -o "$tun0" "${tcpmss[@]}"
+        echocmd /entrypoint.d/iptables.sh "$tun"
     done
 }
 
@@ -160,6 +113,8 @@ if [ "$MODE" = serve ]; then
     exit 0
 fi
 
+info "init ssh socks @$SSH_TUN"
+
 # no default config file
 args=(-F none)
 
@@ -168,14 +123,14 @@ for x in "${options[@]}"; do
     [ -z "$x" ] || args+=(-o "$x")
 done
 
-[ "$MODE" = route ] && args+=( -w "$LOCAL_TUN:${REMOTE_TUN:-0}" ) || true
+[ "$MODE" = route ] && args+=( -w "${SSH_TUN#tun}:${SSH_TUN_REMOTE#tun}" ) || true
 
 # apply user options
 [ -z "$*" ] || args+=("$@")
 [ -z "${SSH_OPTS[*]}" ] || args+=("${SSH_OPTS[@]}")
 
 # apply host settings
-IFS='@:' read -r REMOTE_USER REMOTE_HOST REMOTE_PORT <<< "$REMOTE_HOST"
+IFS='@:' read -r REMOTE_USER REMOTE_HOST REMOTE_PORT <<< "${REMOTE_HOST#*//}"
 [ -z "$REMOTE_PORT" ] || args+=( -p "$REMOTE_PORT" )
 
 sshc=( ssh -nN -D "0.0.0.0:$SOCKS5_PORT" "${args[@]}" "$REMOTE_USER@$REMOTE_HOST" )
@@ -183,3 +138,30 @@ sshc=( ssh -nN -D "0.0.0.0:$SOCKS5_PORT" "${args[@]}" "$REMOTE_USER@$REMOTE_HOST
 # do not block
 info "${sshc[*]}"
 "${sshc[@]}" 2>&1 | ts "[%b %d %H:%M:%S]" | tee -a "$SSH_LOGFILE" & disown
+        
+# wait until connection is ready
+sleep 1
+for _ in {1..15}; do 
+    if ! pgrep -f ssh &>/dev/null; then
+        info "ssh exited, abort"
+        exit
+    fi
+    # no curl test with socks here as dns server may not ready yet.
+    if [ "$MODE" = route ]; then
+        if ping -c 3 -O "$SSH_REMOTE"; then
+            established=true && break
+        fi
+    else
+        if ss -tunlp | grep -Fwq "$SOCKS5_PORT"; then
+            established=true && break
+        fi
+    fi
+    info "wait for connection"
+    sleep 3
+done
+
+if [ -z "$established" ]; then
+    info "ssh connection failed"
+    tail "$SSH_LOGFILE"
+    exit 1
+fi

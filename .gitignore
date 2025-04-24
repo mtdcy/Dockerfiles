@@ -1,7 +1,8 @@
 .*.swp
-ip2route/*.log
+*.log
 ip2route/dnsmasq.ipset
 ip2route/ssh/
-ip2route/basic0
-ip2route/serve0
+ip2route/basic
+ip2route/serve
 ip2route/logs
+ip2route/n2n
