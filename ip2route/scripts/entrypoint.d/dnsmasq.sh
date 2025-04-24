@@ -8,7 +8,7 @@
          DNSMASQ_LOGFILE="${DNSMASQ_LOGFILE:-/config/dnsmasq.log}"
 
 info() {
-    echo -e "--\\033[32m $* \\033[0m"
+    echo -e "🚀\\033[32m $* \\033[0m🚀"
 }
 
 echocmd() {
@@ -43,7 +43,7 @@ args+=( --log-queries --log-dhcp )
 
 dnsmasq=( /usr/sbin/dnsmasq "${args[@]}" )
 
-info "🚀 ${dnsmasq[*]} 🚀"
+info "${dnsmasq[*]}"
 "${dnsmasq[@]}"
 
 

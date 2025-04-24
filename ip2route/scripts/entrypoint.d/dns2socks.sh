@@ -6,7 +6,7 @@
        DNS2SOCKS_LOGFILE="${DNS2SOCKS_LOGFILE:-/config/dns2socks.log}"
 
 info() {
-    echo -e "--\\033[32m $* \\033[0m"
+    echo -e "🚀\\033[32m $* \\033[0m🚀"
 }
 
 echocmd() {
@@ -29,5 +29,5 @@ args+=( --timeout 1 )
 
 dns2socks=( /usr/bin/dns2socks "${args[@]}" )
 
-info "🚀 ${dns2socks[*]} 🚀"
-"${dns2socks[@]}" >> "$DNS2SOCKS_LOGFILE" 2>&1 & disown
+info "${dns2socks[*]}"
+"${dns2socks[@]}" 2>&1 | tee -a "$DNS2SOCKS_LOGFILE" & disown

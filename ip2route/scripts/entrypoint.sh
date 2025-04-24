@@ -29,7 +29,7 @@ export     IP2ROUTE_FILE="${IP2ROUTE_FILE:-/config/data/default.lst}"
 # - DNSMASQ_SERVER: it's for normal dns resolve, ip route get should return default.
 
 info () {
-    echo -e "🐳 [$(date '+%Y/%m/%d %H:%M:%S')]\\033[33m $* \\033[0m" >&2
+    echo -e "🐳\\033[33m $* \\033[0m🐳" >&2
 }
 
 echocmd() {
@@ -138,7 +138,7 @@ if [ -z "$*" ]; then
         export IP2ROUTE_DEVICE="tun$LOCAL_TUN"
         export IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 
-        echocmd /entrypoint.d/ip2route.sh | tee -a /config/ip2route.log 2>&1 || {
+        echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/ip2route.log || {
             info "*** ip2route start failed"
             exit 1
         }
@@ -199,7 +199,7 @@ dns:
   ${subnet%/*}:$DNSMASQ_PORT
 EOF
 
-    /entrypoint.d/healthd.sh >> /config/healthd.log 2>&1 &
+    /entrypoint.d/healthd.sh 2>&1 | tee /config/healthd.log 2>&1 &
     wait $!
 else
     exec "$@"

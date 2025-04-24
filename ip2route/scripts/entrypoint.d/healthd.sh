@@ -23,9 +23,7 @@ trap on_exit EXIT
 
 set -eo pipefail
     
-check date
 check ps aux
-check ss -tunlp
 
 IFS='@:' read -r _ host _ <<< "$REMOTE_HOST"
 [ -z "$host" ] || REMOTE_HOST="$host"

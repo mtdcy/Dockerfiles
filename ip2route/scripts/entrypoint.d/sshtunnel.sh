@@ -19,7 +19,7 @@
 set +H 
 
 info() {
-    echo -e "--\\033[32m $* \\033[0m"
+    echo -e "🚀\\033[32m $* \\033[0m🚀"
 }
 
 echocmd() {
@@ -28,12 +28,12 @@ echocmd() {
 }
 
 options+=(
-    CheckHostIP=no
-    Compression=yes
     IdentityFile="$SSH_IDENT"
-    BatchMode=yes
+    #BatchMode=yes
     LogLevel=VERBOSE
 
+    CheckHostIP=no                  #
+    Compression=yes                 # Compression
     TCPKeepAlive=yes                # spoofable
     ServerAliveInterval=15          # < 30s, send a null packet to server
     ServerAliveCountMax=3           # disconnect after max * interval
@@ -87,7 +87,7 @@ cleanup() {
 
 # cleanup explicitly
 [ "$1" = cleanup ] && {
-    info "🚀 ssh tunnel cleaned 🚀"
+    info "ssh tunnel cleaned"
     exit 
 } || true
 
@@ -181,5 +181,5 @@ IFS='@:' read -r REMOTE_USER REMOTE_HOST REMOTE_PORT <<< "$REMOTE_HOST"
 sshc=( ssh -nN -D "0.0.0.0:$SOCKS5_PORT" "${args[@]}" "$REMOTE_USER@$REMOTE_HOST" )
 
 # do not block
-info "🚀 ${sshc[*]} 🚀"
-"${sshc[@]}" >> "$SSH_LOGFILE" 2>&1 & disown
+info "${sshc[*]}"
+"${sshc[@]}" 2>&1 | ts "[%b %d %H:%M:%S]" | tee -a "$SSH_LOGFILE" & disown
