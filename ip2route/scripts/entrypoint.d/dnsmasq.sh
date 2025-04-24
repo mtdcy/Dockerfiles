@@ -5,7 +5,7 @@
        DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}"
           DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}"
            DNSMASQ_IPSET="${DNSMASQ_IPSET:-/config/dnsmasq.ipset}"
-         DNSMASQ_LOGFILE="${DNSMASQ_LOGFILE:-/config/dnsmasq.log}"
+         DNSMASQ_LOGFILE="${DNSMASQ_LOGFILE:-/var/log/dnsmasq.log}"
 
 info() {
     echo -e "🚀\\033[32m $* \\033[0m🚀"

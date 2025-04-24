@@ -3,7 +3,7 @@
 # options               =
           DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-5353}"
         DNS2SOCKS_SERVER="${DNS2SOCKS_SERVER:-8.8.8.8}"
-       DNS2SOCKS_LOGFILE="${DNS2SOCKS_LOGFILE:-/config/dns2socks.log}"
+       DNS2SOCKS_LOGFILE="${DNS2SOCKS_LOGFILE:-/var/log/dns2socks.log}"
 
 info() {
     echo -e "🚀\\033[32m $* \\033[0m🚀"

@@ -14,7 +14,7 @@
 
        SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}"
         SSH_OPTS="${SSH_OPTS:--v}" # user options
-     SSH_LOGFILE="${SSH_LOGFILE:-/config/sshtunnel.log}"
+     SSH_LOGFILE="${SSH_LOGFILE:-/var/log/sshtunnel.log}"
 
 set +H 
 

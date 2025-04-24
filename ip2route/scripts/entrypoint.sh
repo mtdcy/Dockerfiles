@@ -54,6 +54,8 @@ cleanup() {
 if [ -z "$*" ]; then
     trap cleanup EXIT
 
+    mkdir -p /config/{data,logs}
+
     # sanity check
     [ "$MODE" = basic ] && unset LOCAL_ADDR || true
     [ "$MODE" = route ] || unset REMOTE_ADDR
@@ -75,7 +77,7 @@ if [ -z "$*" ]; then
     [ -f "$SSH_IDENT" ] || SSH_IDENT="/config/ssh/id_ed25519"
 
     export SSH_IDENT
-    export SSH_LOGFILE=/config/sshtunnel.log
+    export SSH_LOGFILE=/config/logs/sshtunnel.log
 
     if [ -n "$REMOTE_HOST" ] || [ "$MODE" = serve ]; then
         info "*** init ssh tunnel ***"
@@ -117,7 +119,7 @@ if [ -z "$*" ]; then
         # upstream dns server: use dnsmasq server in socks mode
         [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
 
-        export DNS2SOCKS_LOGFILE=/config/dns2socks.log
+        export DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
         export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
         echocmd /entrypoint.d/dns2socks.sh
 
@@ -138,7 +140,7 @@ if [ -z "$*" ]; then
         export IP2ROUTE_DEVICE="tun$LOCAL_TUN"
         export IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 
-        echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/ip2route.log || {
+        echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/logs/ip2route.log || {
             info "*** ip2route start failed"
             exit 1
         }
@@ -175,7 +177,7 @@ if [ -z "$*" ]; then
     [ "$MODE" = route ] || unset DNSMASQ_IPSET
 
     export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET
-    export DNSMASQ_LOGFILE=/config/dnsmasq.log
+    export DNSMASQ_LOGFILE=/config/logs/dnsmasq.log
     /entrypoint.d/dnsmasq.sh
 
     sleep 1
@@ -199,7 +201,7 @@ dns:
   ${subnet%/*}:$DNSMASQ_PORT
 EOF
 
-    /entrypoint.d/healthd.sh 2>&1 | tee /config/healthd.log 2>&1 &
+    /entrypoint.d/healthd.sh 2>&1 | tee /config/logs/healthd.log 2>&1 &
     wait $!
 else
     exec "$@"
