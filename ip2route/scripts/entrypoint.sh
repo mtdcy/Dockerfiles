@@ -64,15 +64,18 @@ if [ -z "$*" ]; then
 
     export LOCAL_ADDR REMOTE_ADDR MAX_TUN REMOTE_HOST
 
+    # test dns server
+    IFS=':' read -r dns dns_port <<< "$DNSMASQ_SERVER"
+    echocmd dig "@$dns" -p "${dns_port:-53}" "$DIG_DOMAIN" || {
+        info "*** test $DNSMASQ_SERVER failed, fallback to 114 ***"
+        DNSMASQ_SERVER="114.114.114.114"
+    }
+
     # host dns may not work when container is starting
     if [ -n "$REMOTE_HOST" ]; then
         IFS='@:' read -r user host port <<< "$REMOTE_HOST"
         IFS=':'  read -r dns dns_port <<< "$DNSMASQ_SERVER"
-        # test dns first
-        echocmd dig "@$dns" -p "${dns_port:-53}" "$DIG_DOMAIN" &&
-        host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)" ||
-        host="$(dig "$host" +short)"
-
+        host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)"
         [ -z "$host" ] || export REMOTE_HOST="$user@$host:${port:-22}"
     fi
 
