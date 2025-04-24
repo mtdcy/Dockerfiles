@@ -87,5 +87,6 @@ EOF
 
 ## Releases
 
+- 1.0.2 bug fix
 - 1.0.1 fix resolve issues after setting host dns server
 - 1.0.0 first version
