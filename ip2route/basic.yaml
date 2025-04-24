@@ -2,7 +2,7 @@
 services:
   basic:
     image: ip2route:latest
-    container_name: ip2route-basic
+    container_name: ip2route
     restart: always
     build:
       context: .
