@@ -29,14 +29,10 @@ args=(
     -v # verbose
 )
 
-if [ "$1" = cleanup ]; then
+if [ "$1" = clean ]; then
     info "clean n2n tunnel $N2N_DEVICE"
 
-    echocmd ip route del "${N2N_ADDR%.*}.0/24" || true
-        
-    [ -z "$N2N_REMOTE" ] || echocmd ip route del "$N2N_REMOTE" || true
-
-    echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
+    echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE"
 
     exit
 fi
@@ -107,18 +103,7 @@ export N2N_COMMUNITY N2N_KEY
 info "${n2n[*]}"
 "${n2n[@]}" -f 2>&1 | tee -a "$N2N_LOGFILE" & disown
 
-# n2n does not set route properly
-echocmd ip route del "${N2N_ADDR%.*}.0/24" || true
-# 'RTNETLINK answers: File exists'
-if [ -n "$N2N_REMOTE" ]; then
-    echocmd ip route add "$N2N_REMOTE" dev "$N2N_DEVICE"
-    echocmd ip route add "${N2N_ADDR%.*}.0/24" via "$N2N_REMOTE" dev "$N2N_DEVICE" ||
-    echocmd ip route add "${N2N_ADDR%.*}.0/24" via "$N2N_REMOTE" || true
-else
-    echocmd ip route add "${N2N_ADDR%.*}.0/24" dev "$N2N_DEVICE" || true
-fi
-
-echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE"
+echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$N2N_REMOTE"
 
 if [ -n "$N2N_REMOTE" ]; then
     for _ in {1..9}; do

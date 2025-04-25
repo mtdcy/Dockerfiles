@@ -52,29 +52,22 @@ if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
     echocmd ssh-keygen -f "$SSH_IDENT" -t ed25519 -q -N "sshtunnel"
 fi
 
-cleanup() {
+clean() {
     for (( i=0; i < "$SSH_COUNT"; ++i )); do
         tun="tun$((${SSH_TUN#tun} + i))"
         info "clean ssh tunnel $tun"
 
-        IFS='./' read -r a b c d _ <<< "$SSH_ADDR"
-        addr="$a.$b.$((c + i)).$d"
+        echocmd /entrypoint.d/iptables.sh flush "$tun"
 
         echocmd ip tuntap del "$tun" mode tun || true
-
-        echocmd ip route del "${addr%.*}.0/24" || true
-        
-        [ -z "$SSH_REMOTE" ] || echocmd ip route del "$SSH_REMOTE" || true
-       
-        echocmd /entrypoint.d/iptables.sh flush "$tun" || true
     done
 }
 
-# always cleanup
-[ "$MODE" = basic ] || cleanup
+# always clean
+[ "$MODE" = basic ] || clean
 
-# cleanup explicitly
-[ "$1" = cleanup ] && {
+# clean explicitly
+[ "$1" = clean ] && {
     info "ssh tunnel cleaned"
     exit 
 } || true
@@ -92,18 +85,8 @@ cleanup() {
 
         # fails if "$tun" is in use
         echocmd ip tuntap add "$tun" mode tun || true
-        echocmd ip addr add "$addr/24" brd + dev "$tun" || true
-        echocmd ip link set "$tun" up || true
 
-        # 'RTNETLINK answers: File exists'
-        if [ -n "$SSH_REMOTE" ]; then
-            echocmd ip route add "$SSH_REMOTE" dev "$tun"
-            echocmd ip route add "${addr%.*}.0/24" via "$SSH_REMOTE" || true
-        else
-            echocmd ip route add "${addr%.*}.0/24" dev "$tun" || true
-        fi
-
-        echocmd /entrypoint.d/iptables.sh "$tun"
+        echocmd /entrypoint.d/iptables.sh "$tun" "$addr/24" "$SSH_REMOTE"
     done
 }
 

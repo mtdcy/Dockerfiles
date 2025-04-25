@@ -38,13 +38,13 @@ echocmd() {
     eval -- "$*"
 }
 
-cleanup() {
-    info "***** cleanup *****"
+clean() {
+    info "***** clean *****"
 
-    # cleanup explicitly
-    [ -z "$SSH_ADDR"    ] || /entrypoint.d/sshtunnel.sh cleanup || true
-    [ -z "$N2N_ADDR"    ] || /entrypoint.d/n2n.sh cleanup || true
-    [ "$MODE" = route   ] && /entrypoint.d/ip2route.sh cleanup || true
+    # clean explicitly
+    [ -z "$SSH_ADDR"    ] || /entrypoint.d/sshtunnel.sh clean || true
+    [ -z "$N2N_ADDR"    ] || /entrypoint.d/n2n.sh clean || true
+    [ "$MODE" = route   ] && /entrypoint.d/ip2route.sh clean || true
 
     pkill -INT  ssh || true
     pkill -INT  dns2socks || true
@@ -55,7 +55,7 @@ cleanup() {
 
 [ -z "$*" ] || exec "$@"
 
-trap cleanup EXIT
+trap clean EXIT
 
 set -eo pipefail
 

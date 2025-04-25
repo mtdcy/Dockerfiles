@@ -106,17 +106,19 @@ update_iplst() {
 
 iptrule=( -m set --match-set "$(basename "${IP2ROUTE_FILE%.*}")" dst -j MARK --set-mark "$IP2ROUTE_TABLE" )
 
-cleanup() {
+clean() {
+    info "clean table $IP2ROUTE_TABLE"
+
     echocmd ip route del default table "$IP2ROUTE_TABLE" || true
     echocmd ip rule flush table "$IP2ROUTE_TABLE" || true
     echocmd iptables -t mangle -D PREROUTING "${iptrule[@]}" 2>/dev/null || true
     echocmd iptables -t mangle -D OUTPUT "${iptrule[@]}" 2>/dev/null || true
 }
 
-# always cleanup first
-cleanup
+# always clean first
+clean
 
-[ "$1" = cleanup ] && {
+[ "$1" = clean ] && {
     echo -e "\n\n ==== $0 cleaned ===="
     exit
 } || true
