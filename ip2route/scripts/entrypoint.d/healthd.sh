@@ -37,8 +37,8 @@ IFS='@:' read -r _ host _ <<< "${REMOTE_HOST#*//}"
 while sleep "$HEALTHD_INTERVAL"; do
     check date
     # tun device check
-    [ -z "$SSH_ADDR"                ] || check ping -c 1 -O "$SSH_ADDR"
-    [ "$N2N_ADDR" = "$SSH_ADDR"     ] || check ping -c 1 -O "$N2N_ADDR"
+    [ -z "$SSH_ADDR"                ] || check ping -c 1 -O "${SSH_ADDR%/*}"
+    [ "$N2N_ADDR" = "$SSH_ADDR"     ] || check ping -c 1 -O "${N2N_ADDR%/*}"
     # remote check
     [ -z "$SSH_REMOTE"              ] || check ping -c 3 -O "$SSH_REMOTE"
     [ "$N2N_REMOTE" = "$SSH_REMOTE" ] || check ping -c 3 -O "$N2N_REMOTE"
