@@ -34,6 +34,9 @@ if [ "$1" = clean ]; then
 
     echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE"
 
+    pkill -f -INT supernode || true
+    pkill -f -INT edge || true
+
     exit
 fi
 
@@ -46,6 +49,11 @@ if [ -z "$N2N_KEY" ]; then
     N2N_KEY="$(openssl rand -hex 7)" # <= 19 chars
     info "*** generated N2N_KEY: $N2N_KEY ***"
 fi
+
+# generate fixed mac addr
+read -r -a seq <<< "$(od -A n -t x1 <<< "$(hostname)$N2N_ADDR")"
+mac="${seq[*]:0:5}"
+mac="${mac// /:}"
 
 if [ "$MODE" = serve ]; then
     info "init n2n network @127.0.0.1:$N2N_PORT"
@@ -61,6 +69,8 @@ if [ "$MODE" = serve ]; then
     n2n+=( -M )
     # listen port
     n2n+=( -p "$N2N_PORT" )
+    # mac
+    n2n+=( -m "AA:$mac" )
     # community file
     [ -f "$N2N_FILE" ] && n2n+=( -c "$N2N_FILE" ) || true
 
@@ -80,6 +90,8 @@ echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
 
 # client mode
 n2n=( /usr/sbin/edge "${args[@]}" )
+# multicast
+#n2n+=( -E )
 # head encrypt
 n2n+=( -H )
 # MTU & PMTU
@@ -90,6 +102,8 @@ n2n+=( -l "$host:$port" )
 n2n+=( -d "$N2N_DEVICE" )
 # ip addr
 n2n+=( -a "static:$N2N_ADDR" )
+# mac
+n2n+=( -m "EE:$mac" )
 # forwarding
 n2n+=( -r )
 # user opts
