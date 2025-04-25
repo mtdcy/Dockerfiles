@@ -13,6 +13,7 @@ services:
       - DNSMASQ_SERVER=8.8.8.8
     volumes:
       - ./basic:/config
+      - ./data:/config/data
       - ~/.ssh:/config/ssh
     ports:
       - 7070:1070
