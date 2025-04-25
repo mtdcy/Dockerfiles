@@ -59,6 +59,9 @@ fi
 
 [[ "$net" =~ / ]] || net="$net/24"
 
+# ip to net
+net="$(ipcalc-ng "$net" | grep -Fw 'Network:' | cut -f2)"
+
 # 'RTNETLINK answers: File exists'
 if [ -n "$ngw" ]; then
     # Error: Nexthop has invalid gateway.
