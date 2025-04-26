@@ -85,6 +85,9 @@ fi
 
 info "init n2n network @$N2N_DEVICE - $N2N_ADDR"
 
+# edge mac addr may changes, so flush arp first
+echocmd ip neighbor flush all
+
 echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
 
 # check net mask
@@ -119,11 +122,12 @@ export N2N_COMMUNITY N2N_KEY
 info "${n2n[*]}"
 "${n2n[@]}" -f 2>&1 | tee -a "$N2N_LOGFILE" & disown
 
+sleep 1
+
 # bugfix: mac addr
 echocmd ip link set dev "$N2N_DEVICE" addr "EE:$mac"
 echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$N2N_REMOTE"
 
-sleep 1
 if [ -n "$N2N_REMOTE" ]; then
     for _ in {1..9}; do
         if echocmd ping -c 3 -O "$N2N_REMOTE"; then

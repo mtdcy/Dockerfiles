@@ -128,11 +128,11 @@ clean
 }
 info "init ip table $IP2ROUTE_TABLE @$IP2ROUTE_DEVICE - $IP2ROUTE_SERVER"
 
-# device ip
-via="$(ip addr show "$IP2ROUTE_DEVICE" | grep -oP 'inet \K\S+')"
-
 # new table
-echocmd ip route add default via "${via%/*}" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
+[ -n "$IP2ROUTE_SERVER" ] &&
+echocmd ip route add default via "$IP2ROUTE_SERVER" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" onlink ||
+echocmd ip route add default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
+
 # create a new route rule
 echocmd ip rule add fwmark "$IP2ROUTE_TABLE" table "$IP2ROUTE_TABLE"
 

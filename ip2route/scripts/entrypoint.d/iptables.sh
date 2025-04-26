@@ -26,17 +26,13 @@ flush() {
     delete "$1" || true
     delete "$1" -t nat || true
     delete "$1" -t mangle || true
-    
-    while read -r line; do
-        IFS=' ' read -r _net _ <<< "$line"
-        echocmd ip route del "$_net"
-    done < <(ip route show dev "$1")
+   
+    echocmd ip route flush dev "$1" || true
 }
 
 case "$1" in
     flush)
-        shift
-        flush "$1"
+        flush "$2" || true
         exit
         ;;
 esac
@@ -63,9 +59,13 @@ net="$(ipcalc-ng "$net" | grep -Fw 'Network:' | cut -f2)"
 # 'RTNETLINK answers: File exists'
 if [ -n "$ngw" ]; then
     # Error: Nexthop has invalid gateway.
-    echocmd ip route add "$net" via "$ngw" dev "$dev" || {
+    echocmd ip route add "$net" via "$ngw" dev "$dev" || 
+    # RTNETLINK answers: File exists
+    echocmd ip route rep "$net" via "$ngw" dev "$dev" || {
         echocmd ip route add "$ngw" dev "$dev"
-        echocmd ip route add "$net" via "$ngw" || true
+        # RTNETLINK answers: File exists
+        echocmd ip route add "$net" via "$ngw" ||
+        echocmd ip route rep "$net" via "$ngw" || true
     }
 else
     echocmd ip route add "$net" dev "$dev" || true

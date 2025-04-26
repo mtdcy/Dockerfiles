@@ -92,9 +92,6 @@ export SSH_LOGFILE=/config/logs/sshtunnel.log
 
 info "***** prepare tunnel *****"
 
-# flush arp table first
-echocmd ip neigh flush all
-
 case "$MODE" in
     serve)
         # no remote addr in serve mode
