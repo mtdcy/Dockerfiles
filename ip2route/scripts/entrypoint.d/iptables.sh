@@ -30,9 +30,7 @@ flush() {
     while read -r line; do
         IFS=' ' read -r _net _ <<< "$line"
         echocmd ip route del "$_net"
-    done < <(ip route show | grep -Fw "dev $1")
-
-    echocmd ip addr flush dev "$1" || true
+    done < <(ip route show dev "$1")
 }
 
 case "$1" in
@@ -48,13 +46,13 @@ dev="$1"
 net="$2"
 ngw="$3"
 
+flush "$dev"
 if [ -z "$net" ]; then
     net="$(ip addr show "$dev" | grep -oP 'inet \K\S+')"
 else
-    flush "$dev"
-
-    echocmd ip addr add "$net" brd + dev "$dev" || true
-    echocmd ip link set "$dev" up || true
+    echocmd ip addr flush dev "$1" || true
+    echocmd ip addr add "$net" brd + dev "$dev"
+    echocmd ip link set "$dev" up
 fi
 
 [[ "$net" =~ / ]] || net="$net/24"
@@ -75,40 +73,37 @@ fi
 
 if [ "$MODE" = serve ]; then
     ## enable INPUT & OUTPUT
-    #echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
-    #echocmd iptables -I INPUT -i "$dev" -j ACCEPT
+    echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
+    echocmd iptables -I INPUT -i "$dev" -j ACCEPT
 
     # enable FORWARD: dev => any
     echocmd iptables -I FORWARD -i "$dev" -j ACCEPT
     echocmd iptables -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-    # enable MASQUERADE for incoming traffics
-    echocmd iptables -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 else
     ## enable OUTPUT: any => dev
-    #echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
-    #echocmd iptables -I INPUT -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
+    echocmd iptables -I INPUT -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
     # enable FORWARD: any ==> dev
     echocmd iptables -I FORWARD -o "$dev" -j ACCEPT
     echocmd iptables -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-    # enable MASQUERADE
-    echocmd iptables -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
 fi
+
+# enable MASQUERADE
+echocmd iptables -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
+echocmd iptables -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 
 # ICMP/ping
 echocmd iptables -I INPUT -i "$dev" -p icmp -j ACCEPT
-
-## IGMP
-#echocmd iptables -I INPUT -i "$dev" -p igmp -j ACCEPT
-## DNS/53
-#echocmd iptables -I INPUT -i "$dev" -p tcp -m tcp --dport 53 -j ACCEPT
-#echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 53 -j ACCEPT
+# IGMP
+echocmd iptables -I INPUT -i "$dev" -p igmp -j ACCEPT
+# DNS/53
+echocmd iptables -I INPUT -i "$dev" -p tcp -m tcp --dport 53 -j ACCEPT
+echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 53 -j ACCEPT
 ## DHCP
 #echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 67 -j ACCEPT
 #echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 68 -j ACCEPT
 
 # enable TCPMSS
-tcpmss=( -p tcp -m tcp --tcp-flags "SYN,RST" SYN -j TCPMSS --clamp-mss-to-pmtu )
+tcpmss=( -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu )
 echocmd iptables -t mangle -I FORWARD -o "$dev" "${tcpmss[@]}"
