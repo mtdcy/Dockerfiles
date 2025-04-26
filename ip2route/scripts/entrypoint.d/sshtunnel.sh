@@ -5,7 +5,7 @@
      SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 
      REMOTE_HOST="${REMOTE_HOST:-}" # no def value
-        SSH_ADDR="${SSH_ADDR:-10.20.30.40}"
+        SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
       SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
 
        SSH_COUNT="${SSH_COUNT:-1}" # for serve mode
@@ -73,6 +73,9 @@ clean() {
 } || true
 
 [ "$MODE" = basic ] || {
+    # check net mask
+    [[ "$SSH_ADDR" =~ / ]] || SSH_ADDR="$SSH_ADDR/24"
+
     for (( i=0; i < "$SSH_COUNT"; ++i )); do
         # setup tuntap device
         tun="tun$((${SSH_TUN#tun} + i))"

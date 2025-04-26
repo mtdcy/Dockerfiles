@@ -88,6 +88,9 @@ info "init n2n network @$N2N_DEVICE - $N2N_ADDR"
 
 echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
 
+# check net mask
+[[ "$N2N_ADDR" =~ / ]] || N2N_ADDR="$N2N_ADDR/24"
+
 # client mode
 n2n=( /usr/sbin/edge "${args[@]}" )
 # multicast
