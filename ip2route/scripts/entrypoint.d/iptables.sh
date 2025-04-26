@@ -59,16 +59,17 @@ net="$(ipcalc-ng "$net" | grep -Fw 'Network:' | cut -f2)"
 # 'RTNETLINK answers: File exists'
 if [ -n "$ngw" ]; then
     # Error: Nexthop has invalid gateway.
-    echocmd ip route add "$net" via "$ngw" dev "$dev" || 
+    echocmd ip route add "$net" via "$ngw" dev "$dev" proto static onlink || 
     # RTNETLINK answers: File exists
-    echocmd ip route rep "$net" via "$ngw" dev "$dev" || {
-        echocmd ip route add "$ngw" dev "$dev"
+    echocmd ip route rep "$net" via "$ngw" dev "$dev" proto static onlink || {
+        echocmd ip route add "$ngw" dev "$dev" proto static
         # RTNETLINK answers: File exists
-        echocmd ip route add "$net" via "$ngw" ||
-        echocmd ip route rep "$net" via "$ngw" || true
+        echocmd ip route add "$net" via "$ngw" proto static ||
+        echocmd ip route rep "$net" via "$ngw" proto static
     }
 else
-    echocmd ip route add "$net" dev "$dev" || true
+    echocmd ip route add "$net" dev "$dev" proto static ||
+    echocmd ip route rep "$net" dev "$dev" proto static
 fi
 
 if [ "$MODE" = serve ]; then

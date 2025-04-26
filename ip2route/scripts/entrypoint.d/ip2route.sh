@@ -129,9 +129,13 @@ clean
 info "init ip table $IP2ROUTE_TABLE @$IP2ROUTE_DEVICE - $IP2ROUTE_SERVER"
 
 # new table
-[ -n "$IP2ROUTE_SERVER" ] &&
-echocmd ip route add default via "$IP2ROUTE_SERVER" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" onlink ||
-echocmd ip route add default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
+if [ -n "$IP2ROUTE_SERVER" ]; then
+    echocmd ip route add default via "$IP2ROUTE_SERVER" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" proto static onlink ||
+    echocmd ip route rep default via "$IP2ROUTE_SERVER" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" proto static onlink
+else
+    echocmd ip route add default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" proto static ||
+    echocmd ip route rep default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE" proto static
+fi
 
 # create a new route rule
 echocmd ip rule add fwmark "$IP2ROUTE_TABLE" table "$IP2ROUTE_TABLE"
