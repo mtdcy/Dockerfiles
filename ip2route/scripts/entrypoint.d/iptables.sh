@@ -80,6 +80,9 @@ if [ "$MODE" = serve ]; then
     # enable FORWARD: dev => any
     echocmd iptables -I FORWARD -i "$dev" -j ACCEPT
     echocmd iptables -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+   
+    # enable input MASQUERADE
+    echocmd iptables -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 else
     ## enable OUTPUT: any => dev
     echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
@@ -88,11 +91,11 @@ else
     # enable FORWARD: any ==> dev
     echocmd iptables -I FORWARD -o "$dev" -j ACCEPT
     echocmd iptables -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-fi
+    echocmd iptables -I FORWARD -i "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
 
-# enable MASQUERADE
-echocmd iptables -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
-echocmd iptables -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
+    # enable output MASQUERADE
+    echocmd iptables -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
+fi
 
 # ICMP/ping
 echocmd iptables -I INPUT -i "$dev" -p icmp -j ACCEPT

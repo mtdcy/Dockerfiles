@@ -2,6 +2,7 @@
 
 #       options         =
 export              MODE="${MODE:-basic}" # basic,route,serve
+export            ROUTES="${ROUTES:-}" # route mode only
 
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 1000))}"
@@ -166,6 +167,14 @@ case "$MODE" in
         ;;
 esac
 
+if [ -n "$ROUTES" ]; then
+    IFS=',' read -r -a _nets <<< "$ROUTES"
+    for x in ${_nets[@]}; do
+        IFS='@' read -r _net _gw <<< "$x"
+        echocmd ip route add "$_net" via "$_gw" proto static ||
+        echocmd ip route rep "$_net" via "$_gw" proto static
+    done
+fi
 
 if [ -n "$DNS2SOCKS_PORT" ]; then
     info "***** prepare socks5 server *****"
