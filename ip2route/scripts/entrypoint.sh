@@ -4,10 +4,14 @@
 export              MODE="${MODE:-basic}" # basic,route,serve
 
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
-export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-1053}"
+export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 1000))}"
+
 export      DNSMASQ_PORT="${DNSMASQ_PORT:-53}"
+export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-$((DNSMASQ_PORT + 1000))}"
 
 export       REMOTE_HOST="${REMOTE_HOST:-}" # no def value
+
+# preferred tunnel/ssh
 export          SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
 export        SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
 export           SSH_TUN="${SSH_TUN:-tun0}"
@@ -16,10 +20,12 @@ export         SSH_COUNT="${SSH_COUNT:-1}" # serve mode
 export         SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
 export          SSH_OPTS="${SSH_OPTS:-}"
 
+# n2n tunnel
 export          N2N_PORT="${N2N_PORT:-}"
 export          N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
 export        N2N_REMOTE="${N2N_REMOTE:-${N2N_ADDR%.*}.1}"
 
+# dns server
 export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
 export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # upstream dns server
 
@@ -106,7 +112,7 @@ case "$MODE" in
     *)
         case "$REMOTE_HOST" in
             n2n://*) # 1:N tunnel
-                unset -v SSH_ADDR SSH_REMOTE SOCKS5_PORT DNS2SOCKS_PORT
+                unset -v SSH_ADDR SSH_REMOTE SSHSOCKS_PORT
 
                 N2N_LOGFILE=/config/logs/n2n.log
                 N2N_DEVICE="n2n$(openssl rand -hex 3)"
@@ -116,6 +122,7 @@ case "$MODE" in
 
                 IP2ROUTE_DEVICE="$N2N_DEVICE"
                 IP2ROUTE_SERVER="$N2N_REMOTE"
+                DNS2SOCKS_SERVER="$N2N_REMOTE"
                 ;;
             ssh://*|*) # 1:1 tunnel
                 unset -v N2N_ADDR N2N_REMOTE
@@ -124,15 +131,7 @@ case "$MODE" in
 
                 echocmd /entrypoint.d/sshtunnel.sh
 
-                DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
-                # upstream dns server: use dnsmasq server in socks mode
-                [ "$MODE" = route ] && DNS2SOCKS_SERVER="$SSH_REMOTE" || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
-
-                export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
-                echocmd /entrypoint.d/dns2socks.sh
-
-                IP2ROUTE_DEVICE="$SSH_TUN"
-                IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+                DNS2SOCKS_SERVER="$SSH_REMOTE"
                 ;;
         esac
         ;;
@@ -166,6 +165,29 @@ case "$MODE" in
         echocmd iptables -t nat -I POSTROUTING -o "$lan" -j MASQUERADE
         ;;
 esac
+
+
+if [ -n "$DNS2SOCKS_PORT" ]; then
+    info "***** prepare socks5 server *****"
+
+    SOCKS5_LOGFILE=/config/logs/socks.log
+    [ -z "$SSHSOCKS_PORT" ] || SOCKS5_FORWARD="socks5://127.0.0.1:$SSHSOCKS_PORT"
+
+    export SOCKS5_PORT SOCKS5_FORWARD SOCKS5_LOGFILE
+    echocmd /entrypoint.d/socks5.sh
+
+    info "***** prepare dns2socks *****"
+
+    DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
+    # upstream dns server: use dnsmasq server in socks mode
+    [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
+
+    export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
+    echocmd /entrypoint.d/dns2socks.sh
+
+    IP2ROUTE_DEVICE="$SSH_TUN"
+    IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+fi
 
 info "***** prepare dns server *****"
 

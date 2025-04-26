@@ -47,6 +47,16 @@ COPY dns2socks/$TARGETPLATFORM/ /
 
 COPY --from=builder /rootfs/ /
 
+# https://github.com/ginuerzh/gost
+ARG GOST_VERSION=2.12.0
+SHELL ["/bin/bash", "-c"]
+RUN <<-EOS
+    set -ex
+    curl -sL https://github.com/ginuerzh/gost/releases/download/v$GOST_VERSION/gost_${GOST_VERSION}_${TARGETPLATFORM//\//_}.tar.gz | tar -C /usr/bin/ -xz gost
+EOS
+
+RUN ldconfig
+
 VOLUME /config
 
 WORKDIR /config

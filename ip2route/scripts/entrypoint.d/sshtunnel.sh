@@ -2,7 +2,7 @@
 # 
 # options       =
             MODE="${MODE:-basic}" # basic,route,serve
-     SOCKS5_PORT="${SOCKS5_PORT:-1070}"
+   SSHSOCKS_PORT="${SSHSOCKS_PORT:-1070}"
 
      REMOTE_HOST="${REMOTE_HOST:-}" # no def value
         SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
@@ -119,7 +119,7 @@ done
 IFS='@:' read -r REMOTE_USER REMOTE_HOST REMOTE_PORT <<< "${REMOTE_HOST#*//}"
 [ -z "$REMOTE_PORT" ] || args+=( -p "$REMOTE_PORT" )
 
-sshc=( ssh -nN -D "0.0.0.0:$SOCKS5_PORT" "${args[@]}" "$REMOTE_USER@$REMOTE_HOST" )
+sshc=( ssh -nN -D "0.0.0.0:$SSHSOCKS_PORT" "${args[@]}" "$REMOTE_USER@$REMOTE_HOST" )
 
 # do not block
 info "${sshc[*]}"
@@ -137,10 +137,9 @@ for _ in {1..15}; do
         if ping -c 3 -O "$SSH_REMOTE"; then
             established=true && break
         fi
-    else
-        if ss -tunlp | grep -Fwq "$SOCKS5_PORT"; then
-            established=true && break
-        fi
+    fi
+    if ss -tunlp | grep -Fwq "$SSHSOCKS_PORT"; then
+        established=true && break
     fi
     info "wait for connection"
     sleep 3
