@@ -43,7 +43,7 @@ update_dnsmasq() {
 
 # update_ipset path/to/some.ip [list]
 update_ipset() {
-    local name="$(basename "${1%.ip}")"
+    local name="$(basename "${1%.*}")"
     local list="${2:-}"
     local cidr=0
 
@@ -93,7 +93,7 @@ update_ipset() {
 
 # update_iplst path/to/some.lst [list]
 update_iplst() {
-    name="$(basename "${1%.lst}")"
+    name="$(basename "${1%.*}")"
     ipset flush "$name" &>/dev/null || true
     echocmd ipset -exist create "$name" list:set
     while read -r ips; do
@@ -106,37 +106,40 @@ update_iplst() {
     #ipset list $name
 }
 
-iptrule=( -m set --match-set "$(basename "${IP2ROUTE_FILE%.*}")" dst -j MARK --set-mark "$IP2ROUTE_TABLE" )
-
 clean() {
-    info "clean table $IP2ROUTE_TABLE"
+    info "clean ip table $IP2ROUTE_TABLE @$IP2ROUTE_DEVICE"
+
+    while read -r line; do
+        echocmd iptables -t mangle ${line/-A/-D} || true
+    done < <(iptables -t mangle -S | grep -Fw -- "--set-xmark 0x$(printf "%x" "$IP2ROUTE_TABLE")")
 
     echocmd ip route del default table "$IP2ROUTE_TABLE" || true
     echocmd ip rule flush table "$IP2ROUTE_TABLE" || true
-    echocmd iptables -t mangle -D PREROUTING "${iptrule[@]}" 2>/dev/null || true
-    echocmd iptables -t mangle -D OUTPUT "${iptrule[@]}" 2>/dev/null || true
 }
 
 # always clean first
 clean
 
-[ "$1" = clean ] && {
-    echo -e "\n\n ==== $0 cleaned ===="
-    exit
-} || true
+[ "$1" = clean ] && exit 0
 
 [ -f "$IP2ROUTE_FILE" ] || {
     info "$IP2ROUTE_FILE not exists"
     exit 1
 }
-info "init ip2route @$IP2ROUTE_DEVICE - $IP2ROUTE_SERVER"
+info "init ip table $IP2ROUTE_TABLE @$IP2ROUTE_DEVICE - $IP2ROUTE_SERVER"
+
+# device ip
+via="$(ip addr show "$IP2ROUTE_DEVICE" | grep -oP 'inet \K\S+')"
 
 # new table
-echocmd ip route add default dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
+echocmd ip route add default via "${via%/*}" dev "$IP2ROUTE_DEVICE" table "$IP2ROUTE_TABLE"
 # create a new route rule
 echocmd ip rule add fwmark "$IP2ROUTE_TABLE" table "$IP2ROUTE_TABLE"
+
 # create ipset
-update_iplst "$IP2ROUTE_FILE"
+[[ "$IP2ROUTE_FILE" =~ .lst$ ]] && update_iplst "$IP2ROUTE_FILE" || update_ipset "$IP2ROUTE_FILE"
+
+iptrule=( -m set --match-set "$(basename "${IP2ROUTE_FILE%.*}")" dst -j MARK --set-mark "$IP2ROUTE_TABLE" )
 # route FORWARD
 echocmd iptables -t mangle -I PREROUTING "${iptrule[@]}"
 # route OUTPUT
