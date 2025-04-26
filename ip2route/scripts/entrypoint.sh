@@ -25,6 +25,7 @@ export           N2N_KEY="${N2N_KEY:-}"
 export          N2N_PORT="${N2N_PORT:-}"
 export          N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
 export        N2N_REMOTE="${N2N_REMOTE:-${N2N_ADDR%.*}.1}"
+export        N2N_DEVICE="${N2N_DEVICE:-n2n0}"
 
 # dns server
 export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
@@ -104,8 +105,6 @@ case "$MODE" in
         case "$REMOTE_HOST" in
             n2n://*)
                 N2N_LOGFILE=/config/logs/n2n.log
-                N2N_DEVICE="n2n$(openssl rand -hex 3)"
-
                 export N2N_KEY N2N_DEVICE N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
                 ;;
@@ -119,8 +118,6 @@ case "$MODE" in
                 unset -v SSH_ADDR SSH_REMOTE SSHSOCKS_PORT
 
                 N2N_LOGFILE=/config/logs/n2n.log
-                N2N_DEVICE="n2n$(openssl rand -hex 3)"
-
                 export N2N_KEY N2N_DEVICE N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
 
