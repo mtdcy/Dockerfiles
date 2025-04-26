@@ -8,7 +8,7 @@ export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-1053}"
 export      DNSMASQ_PORT="${DNSMASQ_PORT:-53}"
 
 export       REMOTE_HOST="${REMOTE_HOST:-}" # no def value
-export          SSH_ADDR="${SSH_ADDR:-10.20.30.40}"
+export          SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
 export        SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
 export           SSH_TUN="${SSH_TUN:-tun0}"
 export    SSH_TUN_REMOTE="${SSH_TUN_REMOTE:-$SSH_TUN}"
@@ -16,12 +16,12 @@ export         SSH_COUNT="${SSH_COUNT:-1}" # serve mode
 export         SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
 export          SSH_OPTS="${SSH_OPTS:-}"
 
-export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
-export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-$SSH_REMOTE}" # upstream dns server
-
 export          N2N_PORT="${N2N_PORT:-}"
 export          N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
 export        N2N_REMOTE="${N2N_REMOTE:-${N2N_ADDR%.*}.1}"
+
+export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
+export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # upstream dns server
 
 export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
 
@@ -76,6 +76,9 @@ if [ -n "$REMOTE_HOST" ]; then
     host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)"
     [ -z "$host" ] || export REMOTE_HOST="${REMOTE_HOST%//*}//$user@$host:${port:-22}"
 fi
+
+lan="$(ip route get "${DNSMASQ_SERVER%:*}" | grep -oP 'dev \K\S+')"
+net="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
 
 export SSH_LOGFILE=/config/logs/sshtunnel.log
 
@@ -134,9 +137,6 @@ case "$MODE" in
         esac
         ;;
 esac
-
-lan="$(ip route get "${DNSMASQ_SERVER%:*}" | grep -oP 'dev \K\S+')"
-net="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
 
 info "***** prepare iptables *****"
 
