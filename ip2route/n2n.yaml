@@ -12,10 +12,10 @@ services:
       - NET_ADMIN
     environment:
       - MODE=route
-      - REMOTE_HOST=n2n://b9ee86ef6b7592ee@ecs.mtdcy.top:6789
+      - REMOTE_HOST=n2n://community@example.org:7654
       - N2N_ADDR=10.0.0.110/24
       - N2N_REMOTE=10.0.0.1
-      - N2N_OPTS=-S2
+      - N2N_KEY=encryptme
     volumes:
       - ./n2n:/config
       - ./data:/config/data

@@ -44,9 +44,8 @@ IFS='@:' read -r user host port <<< "${REMOTE_HOST#*//}"
 N2N_COMMUNITY="$user"
 
 # simplify configurations
-[ -n "$N2N_KEY" ] || N2N_KEY="$user"
 if [ -z "$N2N_KEY" ]; then
-    N2N_KEY="$(openssl rand -hex 7)" # <= 19 chars
+    N2N_KEY="$(openssl rand -base64 12)" # <= 19 chars
     info "*** generated N2N_KEY: $N2N_KEY ***"
 fi
 
@@ -65,12 +64,12 @@ if [ "$MODE" = serve ]; then
     grep -q "^$N2N_COMMUNITY" "$N2N_FILE" || echo "$N2N_COMMUNITY" >> "$N2N_FILE"
 
     n2n=( /usr/sbin/supernode "${args[@]}" )
-    # disable mac spoof
-    n2n+=( -M )
     # listen port
     n2n+=( -p "$N2N_PORT" )
+    # disable mac spoof
+    n2n+=( -M )
     # mac
-    n2n+=( -m "AA:$mac" )
+    #n2n+=( -m "AA:$mac" )
     # community file
     [ -f "$N2N_FILE" ] && n2n+=( -c "$N2N_FILE" ) || true
 
@@ -94,7 +93,7 @@ echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
 # client mode
 n2n=( /usr/sbin/edge "${args[@]}" )
 # multicast
-#n2n+=( -E )
+n2n+=( -E )
 # head encrypt
 n2n+=( -H )
 # MTU & PMTU
@@ -120,8 +119,11 @@ export N2N_COMMUNITY N2N_KEY
 info "${n2n[*]}"
 "${n2n[@]}" -f 2>&1 | tee -a "$N2N_LOGFILE" & disown
 
+# bugfix: mac addr
+echocmd ip link set dev "$N2N_DEVICE" addr "EE:$mac"
 echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$N2N_REMOTE"
 
+sleep 1
 if [ -n "$N2N_REMOTE" ]; then
     for _ in {1..9}; do
         if echocmd ping -c 3 -O "$N2N_REMOTE"; then

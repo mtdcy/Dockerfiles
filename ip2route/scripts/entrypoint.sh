@@ -21,6 +21,7 @@ export         SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
 export          SSH_OPTS="${SSH_OPTS:-}"
 
 # n2n tunnel
+export           N2N_KEY="${N2N_KEY:-}"
 export          N2N_PORT="${N2N_PORT:-}"
 export          N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
 export        N2N_REMOTE="${N2N_REMOTE:-${N2N_ADDR%.*}.1}"
@@ -90,6 +91,9 @@ export SSH_LOGFILE=/config/logs/sshtunnel.log
 
 info "***** prepare tunnel *****"
 
+# flush arp table first
+echocmd ip neigh flush all
+
 case "$MODE" in
     serve)
         # no remote addr in serve mode
@@ -102,7 +106,7 @@ case "$MODE" in
                 N2N_LOGFILE=/config/logs/n2n.log
                 N2N_DEVICE="n2n$(openssl rand -hex 3)"
 
-                export N2N_DEVICE N2N_LOGFILE
+                export N2N_KEY N2N_DEVICE N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
                 ;;
         esac
@@ -117,7 +121,7 @@ case "$MODE" in
                 N2N_LOGFILE=/config/logs/n2n.log
                 N2N_DEVICE="n2n$(openssl rand -hex 3)"
 
-                export N2N_DEVICE N2N_LOGFILE
+                export N2N_KEY N2N_DEVICE N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
 
                 IP2ROUTE_DEVICE="$N2N_DEVICE"
