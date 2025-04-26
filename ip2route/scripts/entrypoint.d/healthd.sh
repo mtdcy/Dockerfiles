@@ -17,7 +17,7 @@
          TEST_DOMAIN="${TEST_DOMAIN:-www.google.com}"
 
 check() {
-    echo -e "⭐\\033[33m healthd:$* \\033[0m⭐" >&2
+    echo -e "⭐\\033[33m healthd: $* \\033[0m⭐" >&2
     "$@"
 }
 
@@ -37,15 +37,15 @@ IFS='@:' read -r _ host _ <<< "${REMOTE_HOST#*//}"
 while sleep "$HEALTHD_INTERVAL"; do
     check date
     # tun device check
-    [ -z "$SSH_ADDR"                ] || check ping -c 1 -O "${SSH_ADDR%/*}"
-    [ "$N2N_ADDR" = "$SSH_ADDR"     ] || check ping -c 1 -O "${N2N_ADDR%/*}"
+    [ -z "$SSH_ADDR"        ] || check ping -c 1 -q "${SSH_ADDR%/*}"
+    [ -z "$N2N_ADDR"        ] || check ping -c 1 -q "${N2N_ADDR%/*}"
     # remote check
-    [ -z "$SSH_REMOTE"              ] || check ping -c 3 -O "$SSH_REMOTE"
-    [ "$N2N_REMOTE" = "$SSH_REMOTE" ] || check ping -c 3 -O "$N2N_REMOTE"
+    [ -z "$SSH_REMOTE"      ] || check ping -c 3 -q "$SSH_REMOTE"
+    [ -z "$N2N_REMOTE"      ] || check ping -c 3 -q "$N2N_REMOTE"
     # host check
-    [ -z "$REMOTE_HOST"     ] || check ping -c 3 -O "$REMOTE_HOST"
+    [ -z "$REMOTE_HOST"     ] || check ping -c 3 -q "$REMOTE_HOST"
     # socks5 check
-    [ -z "$SOCKS5_PORT"     ] || check curl --fail -sI -x "socks5h://127.0.0.1:$SOCKS5_PORT" "https://$TEST_DOMAIN"
+    [ -z "$SOCKS5_PORT"     ] || check curl --fail -I -x "socks5h://127.0.0.1:$SOCKS5_PORT" "https://$TEST_DOMAIN"
     # dns2socks check
     [ -z "$DNS2SOCKS_PORT"  ] || check dig @127.0.0.1 -p "$DNS2SOCKS_PORT" "$TEST_DOMAIN"
     # dns check
