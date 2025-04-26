@@ -129,6 +129,8 @@ case "$MODE" in
 
                 echocmd /entrypoint.d/sshtunnel.sh
 
+                IP2ROUTE_DEVICE="$SSH_TUN"
+                IP2ROUTE_SERVER="$SSH_REMOTE"
                 DNS2SOCKS_SERVER="$SSH_REMOTE"
                 ;;
         esac
