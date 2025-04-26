@@ -87,6 +87,7 @@ EOF
 
 ## Releases
 
+- 1.0.4 add n2n tunnel
 - 1.0.3 fix socks mode
 - 1.0.2 bug fix
 - 1.0.1 fix resolve issues after setting host dns server
