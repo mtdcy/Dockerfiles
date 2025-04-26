@@ -134,7 +134,7 @@ for _ in {1..15}; do
     fi
     # no curl test with socks here as dns server may not ready yet.
     if [ "$MODE" = route ]; then
-        if ping -c 3 -O "$SSH_REMOTE"; then
+        if echocmd ping -c 1 -q "$SSH_REMOTE"; then
             established=true && break
         fi
     fi

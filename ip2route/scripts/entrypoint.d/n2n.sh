@@ -130,7 +130,7 @@ echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$N2N_REMOTE"
 
 if [ -n "$N2N_REMOTE" ]; then
     for _ in {1..9}; do
-        if echocmd ping -c 3 -O "$N2N_REMOTE"; then
+        if echocmd ping -c 1 -q "$N2N_REMOTE"; then
             connected=true && break
         fi
         info "wait for n2n connection"
