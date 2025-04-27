@@ -112,13 +112,6 @@ case "$MODE" in
                 unset -v SSHSOCKS_PORT
 
                 echocmd /entrypoint.d/n2n.sh
-
-                # hack: n2n gateway mode
-                [ -n "$REMOTE_ADDR" ] || {
-                    info "n2n gateway is ready"
-                    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
-                    exit
-                }
                 ;;
             ssh://*|*) # 1:1 tunnel
                 # sanity check
@@ -129,6 +122,36 @@ case "$MODE" in
         esac
         ;;
 esac
+
+info "***** prepare routes *****"
+
+# no routes in basic mode
+[ "$MODE" = route ] || unset -v ROUTES
+
+if [ -n "$ROUTES" ]; then
+    IFS=',' read -r -a _nets <<< "$ROUTES"
+    for x in ${_nets[@]}; do
+        IFS='@' read -r _net _gw <<< "$x"
+        [ -n "$_gw" ] || _gw="$REMOTE_ADDR"
+        [ -n "$_gw" ] || _gw="${LOCAL_ADDR%/*}"
+
+        info "***** add route $_net @$_gw *****"
+        echocmd ip route add "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
+        echocmd ip route rep "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
+        # Error: Nexthop has invalid gateway.
+        echocmd ip route add "$_net" via "$_gw" proto static ||
+        echocmd ip route rep "$_net" via "$_gw" proto static ||
+        info "***** add route $_net failed *****"
+    done
+fi
+
+# hack: n2n gateway mode
+if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
+    info "***** no socks or dns server for n2n gateway *****"
+    info "*****  ** no gateway, access restricted. **  *****"
+    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
+    exit
+fi
 
 info "***** prepare iptables *****"
 
@@ -160,23 +183,6 @@ case "$MODE" in
         echocmd "$iptables" -t nat -I POSTROUTING -o "$lan" -j MASQUERADE
         ;;
 esac
-
-info "***** prepare routes *****"
-
-# no routes in basic mode
-[ "$MODE" = basic ] && unset -v ROUTES || true
-
-if [ -n "$ROUTES" ]; then
-    IFS=',' read -r -a _nets <<< "$ROUTES"
-    for x in ${_nets[@]}; do
-        IFS='@' read -r _net _gw <<< "$x"
-        [ -n "$_gw" ] || _gw="$REMOTE_ADDR"
-
-        info "***** enable route $_net @$_gw *****"
-        echocmd ip route add "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
-        echocmd ip route rep "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink
-    done
-fi
 
 info "***** prepare socks5 server *****"
 
