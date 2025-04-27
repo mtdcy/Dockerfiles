@@ -43,7 +43,7 @@ while sleep "$HEALTHD_INTERVAL"; do
     # host check
     [ -z "$REMOTE_HOST"     ] || check ping -c 3 -q "$REMOTE_HOST"
     # socks5 check
-    [ -z "$SOCKS5_PORT"     ] || check curl --fail -I -x "socks5h://127.0.0.1:$SOCKS5_PORT" "https://$TEST_DOMAIN"
+    [ -z "$SOCKS5_PORT"     ] || check curl --fail -sI -x "socks5h://127.0.0.1:$SOCKS5_PORT" "https://$TEST_DOMAIN"
     # dns2socks check
     [ -z "$DNS2SOCKS_PORT"  ] || check dig @127.0.0.1 -p "$DNS2SOCKS_PORT" "$TEST_DOMAIN"
     # dns check

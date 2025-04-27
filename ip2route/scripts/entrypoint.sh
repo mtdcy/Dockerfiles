@@ -20,7 +20,7 @@ export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
 export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # upstream dns server
 
 # extra options
-export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 10000))}"
+export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 1000))}"
 export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-$((DNSMASQ_PORT + 1000))}"
 
 export          SSH_OPTS="${SSH_OPTS:-}"
@@ -59,17 +59,11 @@ clean() {
 
     # clean explicitly
     case "$REMOTE_HOST" in
-        n2n://*)
-            /entrypoint.d/n2n.sh clean || true
-            ;;
-        *)
-            /entrypoint.d/sshtunnel.sh clean || true
-            ;;
+        n2n://*)    /entrypoint.d/n2n.sh clean          || true ;;
+        *)          /entrypoint.d/sshtunnel.sh clean    || true ;;
     esac
 
     [ "$MODE" = route ] && /entrypoint.d/ip2route.sh clean || true
-
-    sleep 1
 }
 
 [ -z "$*" ] || exec "$@"
@@ -99,10 +93,10 @@ fi
 lan="$(ip route get "${DNSMASQ_SERVER%:*}" | grep -oP 'dev \K\S+')"
 net="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
 
-export SSH_LOGFILE=/config/logs/sshtunnel.log
-
 info "***** prepare tunnel *****"
 
+export SSH_LOGFILE=/config/logs/sshtunnel.log
+export N2N_LOGFILE=/config/logs/n2n.log
 case "$MODE" in
     serve)
         # no remote addr in serve mode
@@ -110,8 +104,6 @@ case "$MODE" in
 
         echocmd /entrypoint.d/sshtunnel.sh
 
-        N2N_LOGFILE=/config/logs/n2n.log
-        export N2N_LOGFILE
         echocmd /entrypoint.d/n2n.sh
         ;;
     *)
@@ -119,11 +111,9 @@ case "$MODE" in
             n2n://*) # 1:N tunnel
                 unset -v SSHSOCKS_PORT
 
-                N2N_LOGFILE=/config/logs/n2n.log
-                export N2N_KEY N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
 
-                # n2n gateway mode ?
+                # hack: n2n gateway mode
                 [ -n "$REMOTE_ADDR" ] || {
                     info "n2n gateway is ready"
                     while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
@@ -154,12 +144,7 @@ case "$MODE" in
         echocmd "$iptables" -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
 
         if lsmod | grep -Fw xt_set; then
-            IP2ROUTE_DEVICE="$LOCAL_DEVICE"
-            IP2ROUTE_SERVER="$REMOTE_ADDR"
-            DNSMASQ_IPSET="/config/dnsmasq.ipset"
-            export IP2ROUTE_SERVER IP2ROUTE_DEVICE DNSMASQ_IPSET
-
-            echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/logs/ip2route.log || {
+            echocmd /entrypoint.d/ip2route.sh || {
                 info "***** ip2route start failed *****"
                 exit 1
             }
@@ -176,13 +161,18 @@ case "$MODE" in
         ;;
 esac
 
+info "***** prepare routes *****"
+
+# no routes in basic mode
+[ "$MODE" = basic ] && unset -v ROUTES || true
+
 if [ -n "$ROUTES" ]; then
     IFS=',' read -r -a _nets <<< "$ROUTES"
     for x in ${_nets[@]}; do
         IFS='@' read -r _net _gw <<< "$x"
-        [ -z "$_gw" ] || _gw="$REMOTE_ADDR"
+        [ -n "$_gw" ] || _gw="$REMOTE_ADDR"
 
-        info "***** enable route $_net - $_gw *****"
+        info "***** enable route $_net @$_gw *****"
         echocmd ip route add "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
         echocmd ip route rep "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink
     done
@@ -194,34 +184,38 @@ info "***** prepare socks5 server *****"
 
 SOCKS5_LOGFILE=/config/logs/socks.log
 export SOCKS5_PORT SOCKS5_FORWARD SOCKS5_LOGFILE
+
 echocmd /entrypoint.d/socks5.sh
 
-if [ "$MODE" = basic ]; then
-    info "***** prepare dns2socks *****"
+case "$MODE" in
+    basic)
+        info "***** prepare dns2socks *****"
 
-    DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
-    DNS2SOCKS_SERVER="$REMOTE_ADDR"
-    # upstream dns server: use dnsmasq server in socks mode
-    [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
+        DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
+        # upstream dns server: use dnsmasq server in basic mode
+        DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
+        export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
 
-    export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
-    echocmd /entrypoint.d/dns2socks.sh
-else
-    unset -v DNS2SOCKS_PORT
-fi
+        echocmd /entrypoint.d/dns2socks.sh
+
+        # dns2socks as dnsmasq upstream server
+        DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+        ;;
+    *)
+        unset -v DNS2SOCKS_PORT
+        ;;
+esac
 
 info "***** prepare dns server *****"
 
-# dns2socks as dnsmasq server
-[ -z "$DNS2SOCKS_PORT" ] || DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 # no ipset if not in route mode
 [ "$MODE" = route ] || unset -v DNSMASQ_IPSET
 
 DNSMASQ_LOGFILE=/config/logs/dnsmasq.log
 export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET DNSMASQ_LOGFILE
+
 /entrypoint.d/dnsmasq.sh
 
 info "***** system ready *****"
 
-export TEST_DOMAIN="www.google.com"
 su nobody -s /bin/bash -c /entrypoint.d/healthd.sh 2>&1 | tee -a /config/logs/healthd.log & wait $!
