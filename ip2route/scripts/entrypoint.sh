@@ -168,15 +168,10 @@ case "$MODE" in
         echocmd "$iptables" -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
         echocmd "$iptables" -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
 
-        if lsmod | grep -Fw xt_set; then
-            echocmd /entrypoint.d/ip2route.sh || {
-                info "***** ip2route start failed *****"
-                exit 1
-            }
-        else
-            # just give a warning
-            info "***** no xt_set module, skip ip2route *****"
-        fi
+        echocmd /entrypoint.d/ip2route.sh || {
+            info "***** ip2route start failed *****"
+            exit 1
+        }
         ;;
     serve)
         info "***** enable MASQUERADE @$lan *****"
