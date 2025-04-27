@@ -86,7 +86,7 @@ echocmd dig "@$dns" -p "${dns_port:-53}" "$TEST_DOMAIN"
 # host dns may not work when container is starting
 if [ -n "$REMOTE_HOST" ]; then
     IFS='@:' read -r user host port <<< "${REMOTE_HOST#*//}"
-    host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short)"
+    host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short | tail -1)"
     [ -z "$host" ] || export REMOTE_HOST="${REMOTE_HOST%//*}//$user@$host:${port:-22}"
 fi
 
