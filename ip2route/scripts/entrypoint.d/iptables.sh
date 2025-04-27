@@ -3,9 +3,6 @@
 # iptables.sh tun0 [gw]
 # iptables.sh flush tun0
 
-# options   = 
-        MODE="${MODE:-}"
-
 set +H # for !
 
 iptables="${iptables:-$(which iptables)}"
@@ -69,23 +66,7 @@ if [ -n "$ngw" ]; then
         echocmd ip route add "$net" via "$ngw" proto static ||
         echocmd ip route rep "$net" via "$ngw" proto static
     }
-else
-    echocmd ip route add "$net" dev "$dev" proto static ||
-    echocmd ip route rep "$net" dev "$dev" proto static
-fi
-
-if [ "$MODE" = serve ]; then
-    ## enable INPUT & OUTPUT
-    echocmd "$iptables" -I OUTPUT -o "$dev" -j ACCEPT
-    echocmd "$iptables" -I INPUT -i "$dev" -j ACCEPT
-
-    # enable FORWARD: dev => any
-    echocmd "$iptables" -I FORWARD -i "$dev" -j ACCEPT
-    echocmd "$iptables" -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-   
-    # enable input MASQUERADE
-    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
-else
+    
     ## enable OUTPUT: any => dev
     echocmd "$iptables" -I OUTPUT -o "$dev" -j ACCEPT
     echocmd "$iptables" -I INPUT -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
@@ -97,6 +78,26 @@ else
 
     # enable output MASQUERADE
     echocmd "$iptables" -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
+    
+    # enable input MASQUERADE
+    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
+else
+    echocmd ip route add "$net" dev "$dev" proto static ||
+    echocmd ip route rep "$net" dev "$dev" proto static
+    
+    ## enable INPUT & OUTPUT
+    echocmd "$iptables" -I OUTPUT -o "$dev" -j ACCEPT
+    echocmd "$iptables" -I INPUT -i "$dev" -j ACCEPT
+
+    # enable FORWARD: dev => any
+    echocmd "$iptables" -I FORWARD -i "$dev" -j ACCEPT
+    echocmd "$iptables" -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    echocmd "$iptables" -I FORWARD -o "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
+  
+    # no output MASQUERADE: keep visit ip
+    
+    # enable input MASQUERADE
+    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 fi
 
 # ICMP/ping
