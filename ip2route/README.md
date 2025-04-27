@@ -87,6 +87,10 @@ EOF
 
   kernel mode `xt_set` is needed by ipset by ip2route.
 
+### n2n edge/gateway cann't ping internal IPs
+
+  `sudo sysctl -w net.ipv4.conf.n2n0.proxy_arp=1`
+
 ## Releases
 
 - 1.0.4 add n2n tunnel

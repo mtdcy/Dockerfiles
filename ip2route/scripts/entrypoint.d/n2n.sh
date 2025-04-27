@@ -71,7 +71,7 @@ N2N_COMMUNITY="$user"
 [ -n "$N2N_KEY" ] || N2N_KEY="$N2N_COMMUNITY"
 
 # edge mac addr may changes, so flush arp first
-echocmd ip neighbor flush all
+echocmd ip neigh flush all
 
 echocmd /entrypoint.d/iptables.sh flush "$LOCAL_DEVICE" || true
 
@@ -111,6 +111,9 @@ sleep 1
 
 # bugfix: mac addr
 echocmd ip link set dev "$LOCAL_DEVICE" addr "EE:$mac"
+# bugfix: arp issue when routing
+echocmd sysctl -w "net.ipv4.conf.$LOCAL_DEVICE.proxy_arp=1" || true
+# apply iptables rules
 echocmd /entrypoint.d/iptables.sh "$LOCAL_DEVICE" "$LOCAL_ADDR" "$REMOTE_ADDR"
 
 if [ -n "$REMOTE_ADDR" ]; then

@@ -93,6 +93,9 @@ clean
         # fails if "$tun" is in use
         echocmd ip tuntap add "$tun" mode tun || true
 
+        # bugfix: arp issue when routing
+        echocmd sysctl -w "net.ipv4.conf.$tun.proxy_arp=1" || true
+        # apply iptables rules
         echocmd /entrypoint.d/iptables.sh "$tun" "$addr/24" "$REMOTE_ADDR"
     done
 }

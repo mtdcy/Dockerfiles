@@ -95,6 +95,8 @@ net="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
 
 info "***** prepare tunnel *****"
 
+echocmd sysctl -w net.ipv4.ip_forward=1 || true
+
 export SSH_LOGFILE=/config/logs/sshtunnel.log
 export N2N_LOGFILE=/config/logs/n2n.log
 case "$MODE" in
