@@ -8,6 +8,8 @@
 
 set +H # for !
 
+iptables="${iptables:-$(which iptables)}"
+
 echocmd() {
     echo -e "--\\033[34m $* \\033[0m" >&2
     "$@"
@@ -17,8 +19,8 @@ echocmd() {
 delete() {
     while read -r rule; do
         [ -n "$rule" ] || continue
-        echocmd iptables "${@:2}" ${rule/-A/-D} || true
-    done < <(iptables -S "${@:2}" | grep -E -- "-i $1|-o $1")
+        echocmd "$iptables" "${@:2}" ${rule/-A/-D} || true
+    done < <("$iptables" -S "${@:2}" | grep -E -- "-i $1|-o $1")
 }
 
 # flush <dev>
@@ -74,40 +76,40 @@ fi
 
 if [ "$MODE" = serve ]; then
     ## enable INPUT & OUTPUT
-    echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
-    echocmd iptables -I INPUT -i "$dev" -j ACCEPT
+    echocmd "$iptables" -I OUTPUT -o "$dev" -j ACCEPT
+    echocmd "$iptables" -I INPUT -i "$dev" -j ACCEPT
 
     # enable FORWARD: dev => any
-    echocmd iptables -I FORWARD -i "$dev" -j ACCEPT
-    echocmd iptables -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    echocmd "$iptables" -I FORWARD -i "$dev" -j ACCEPT
+    echocmd "$iptables" -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
    
     # enable input MASQUERADE
-    echocmd iptables -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
+    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 else
     ## enable OUTPUT: any => dev
-    echocmd iptables -I OUTPUT -o "$dev" -j ACCEPT
-    echocmd iptables -I INPUT -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    echocmd "$iptables" -I OUTPUT -o "$dev" -j ACCEPT
+    echocmd "$iptables" -I INPUT -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
     # enable FORWARD: any ==> dev
-    echocmd iptables -I FORWARD -o "$dev" -j ACCEPT
-    echocmd iptables -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-    echocmd iptables -I FORWARD -i "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
+    echocmd "$iptables" -I FORWARD -o "$dev" -j ACCEPT
+    echocmd "$iptables" -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+    echocmd "$iptables" -I FORWARD -i "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
 
     # enable output MASQUERADE
-    echocmd iptables -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
+    echocmd "$iptables" -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
 fi
 
 # ICMP/ping
-echocmd iptables -I INPUT -i "$dev" -p icmp -j ACCEPT
+echocmd "$iptables" -I INPUT -i "$dev" -p icmp -j ACCEPT
 # IGMP
-echocmd iptables -I INPUT -i "$dev" -p igmp -j ACCEPT
+echocmd "$iptables" -I INPUT -i "$dev" -p igmp -j ACCEPT
 # DNS/53
-echocmd iptables -I INPUT -i "$dev" -p tcp -m tcp --dport 53 -j ACCEPT
-echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 53 -j ACCEPT
+echocmd "$iptables" -I INPUT -i "$dev" -p tcp -m tcp --dport 53 -j ACCEPT
+echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 53 -j ACCEPT
 ## DHCP
-#echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 67 -j ACCEPT
-#echocmd iptables -I INPUT -i "$dev" -p udp -m udp --dport 68 -j ACCEPT
+#echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 67 -j ACCEPT
+#echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 68 -j ACCEPT
 
 # enable TCPMSS
 tcpmss=( -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu )
-echocmd iptables -t mangle -I FORWARD -o "$dev" "${tcpmss[@]}"
+echocmd "$iptables" -t mangle -I FORWARD -o "$dev" "${tcpmss[@]}"

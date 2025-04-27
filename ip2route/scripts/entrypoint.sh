@@ -33,6 +33,12 @@ export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
 #
 # - DNSMASQ_SERVER: it's for normal dns resolve, ip route get should return default.
 
+iptables="${iptables:-$(which iptables)}"
+if "$iptables" -S 2>&1 | grep -Fw "Invalid argument"; then
+    iptables="$(which iptables-legacy)"
+fi
+export iptables
+
 info () {
     echo -e "🐳\\033[33m $* \\033[0m🐳" >&2
 }
@@ -140,12 +146,12 @@ case "$MODE" in
     route)
         info "***** fix NAT loopback @$lan *****"
         # FORWARD: lan => lan
-        echocmd iptables -C FORWARD -i "$lan" -o "$lan" -j ACCEPT ||
-        echocmd iptables -I FORWARD -i "$lan" -o "$lan" -j ACCEPT
+        echocmd "$iptables" -C FORWARD -i "$lan" -o "$lan" -j ACCEPT ||
+        echocmd "$iptables" -I FORWARD -i "$lan" -o "$lan" -j ACCEPT
 
         # MASQUERADE: tun0 => lan
-        echocmd iptables -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
-        echocmd iptables -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
+        echocmd "$iptables" -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
+        echocmd "$iptables" -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
 
         IP2ROUTE_DEVICE="$LOCAL_DEVICE"
         IP2ROUTE_SERVER="$REMOTE_ADDR"
@@ -160,8 +166,8 @@ case "$MODE" in
     serve)
         info "***** enable MASQUERADE @$lan *****"
         # MASQUERADE: any => lan
-        echocmd iptables -t nat -C POSTROUTING -o "$lan" -j MASQUERADE ||
-        echocmd iptables -t nat -I POSTROUTING -o "$lan" -j MASQUERADE
+        echocmd "$iptables" -t nat -C POSTROUTING -o "$lan" -j MASQUERADE ||
+        echocmd "$iptables" -t nat -I POSTROUTING -o "$lan" -j MASQUERADE
         ;;
 esac
 
