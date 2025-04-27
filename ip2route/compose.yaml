@@ -13,10 +13,11 @@ services:
     environment:
       - MODE=route
       - REMOTE_HOST=user@remote:22
-      - SSH_ADDR=10.1.1.110
-      - SSH_TUN_REMOTE=tun1
+      - LOCAL_ADDR=10.1.1.110/24
+      - REMOTE_ADDR=10.1.1.1
+      - REMOTE_DEVICE=tun1
       #- DNSMASQ_INTERFACE=br0
-      - DNSMASQ_SERVER=10.10.10.1
+      - DNSMASQ_SERVER=10.10.10.10
     volumes:
       - .:/config
       - ~/.ssh:/config/ssh

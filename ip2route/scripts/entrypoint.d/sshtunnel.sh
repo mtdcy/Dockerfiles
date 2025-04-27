@@ -5,12 +5,12 @@
    SSHSOCKS_PORT="${SSHSOCKS_PORT:-1070}"
 
      REMOTE_HOST="${REMOTE_HOST:-}" # no def value
-        SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
-      SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
+      LOCAL_ADDR="${LOCAL_ADDR:-10.20.30.40/24}"
+     REMOTE_ADDR="${REMOTE_ADDR:-${LOCAL_ADDR%.*}.1}"
 
-       SSH_COUNT="${SSH_COUNT:-1}" # for serve mode
-         SSH_TUN="${SSH_TUN:-tun}"
-  SSH_TUN_REMOTE="${SSH_TUN_REMOTE:-$SSH_TUN}"
+    DEVICE_COUNT="${DEVICE_COUNT:-1}" # for serve mode
+    LOCAL_DEVICE="${LOCAL_DEVICE:-tun}"
+   REMOTE_DEVICE="${REMOTE_DEVICE:-$LOCAL_DEVICE}"
 
        SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}"
      SSH_LOGFILE="${SSH_LOGFILE:-/var/log/sshtunnel.log}"
@@ -44,7 +44,7 @@ options+=(
 [ "$MODE" = route ] && options+=(Tunnel=point-to-point) || true
 
 # sanity check
-[ "$MODE" = serve ] && SSH_REMOTE= || SSH_COUNT=1
+[ "$MODE" = serve ] && REMOTE_ADDR= || DEVICE_COUNT=1
 
 # ssh keygen if not exists
 if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
@@ -53,8 +53,12 @@ if [ -n "$REMOTE_HOST" ] && [ ! -f "$SSH_IDENT" ]; then
 fi
 
 clean() {
-    for (( i=0; i < "$SSH_COUNT"; ++i )); do
-        tun="tun$((${SSH_TUN#tun} + i))"
+    [ "$MODE" = basic ] && return
+
+    [ "$MODE" = serve ] || pkill -f -TERM "ssh -nN" || true
+
+    for (( i=0; i < "$DEVICE_COUNT"; ++i )); do
+        tun="tun$((${LOCAL_DEVICE#tun} + i))"
         info "clean ssh tunnel $tun"
 
         echocmd /entrypoint.d/iptables.sh flush "$tun"
@@ -64,7 +68,7 @@ clean() {
 }
 
 # always clean
-[ "$MODE" = basic ] || clean
+clean
 
 # clean explicitly
 [ "$1" = clean ] && {
@@ -74,14 +78,14 @@ clean() {
 
 [ "$MODE" = basic ] || {
     # check net mask
-    [[ "$SSH_ADDR" =~ / ]] || SSH_ADDR="$SSH_ADDR/24"
+    [[ "$LOCAL_ADDR" =~ / ]] || LOCAL_ADDR="$LOCAL_ADDR/24"
 
-    for (( i=0; i < "$SSH_COUNT"; ++i )); do
+    for (( i=0; i < "$DEVICE_COUNT"; ++i )); do
         # setup tuntap device
-        tun="tun$((${SSH_TUN#tun} + i))"
+        tun="tun$((${LOCAL_DEVICE#tun} + i))"
 
         # choose subnet
-        IFS='./' read -r a b c d _ <<< "$SSH_ADDR"
+        IFS='./' read -r a b c d _ <<< "$LOCAL_ADDR"
         addr="$a.$b.$((c + i)).$d"
         
         info "init ssh tunnel @$tun - $addr"
@@ -89,7 +93,7 @@ clean() {
         # fails if "$tun" is in use
         echocmd ip tuntap add "$tun" mode tun || true
 
-        echocmd /entrypoint.d/iptables.sh "$tun" "$addr/24" "$SSH_REMOTE"
+        echocmd /entrypoint.d/iptables.sh "$tun" "$addr/24" "$REMOTE_ADDR"
     done
 }
 
@@ -99,7 +103,7 @@ if [ "$MODE" = serve ]; then
     exit 0
 fi
 
-info "init ssh socks @$SSH_TUN"
+info "init ssh tunnel @$LOCAL_DEVICE - $LOCAL_ADDR - $REMOTE_ADDR"
 
 # no default config file
 args=(-F none)
@@ -109,7 +113,7 @@ for x in "${options[@]}"; do
     [ -z "$x" ] || args+=(-o "$x")
 done
 
-[ "$MODE" = route ] && args+=( -w "${SSH_TUN#tun}:${SSH_TUN_REMOTE#tun}" ) || true
+[ "$MODE" = route ] && args+=( -w "${LOCAL_DEVICE#tun}:${REMOTE_DEVICE#tun}" ) || true
 
 # apply user options
 [ -z "$*" ] || args+=("$@")
@@ -128,13 +132,13 @@ info "${sshc[*]}"
 # wait until connection is ready
 sleep 1
 for _ in {1..15}; do 
-    if ! pgrep -f ssh &>/dev/null; then
+    if ! pgrep -f "${sshc[*]}"; then
         info "ssh exited, abort"
-        exit
+        exit 1
     fi
     # no curl test with socks here as dns server may not ready yet.
     if [ "$MODE" = route ]; then
-        if echocmd ping -c 1 -q "$SSH_REMOTE"; then
+        if echocmd ping -c 1 -q "$REMOTE_ADDR"; then
             established=true && break
         fi
     fi

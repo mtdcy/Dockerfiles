@@ -32,6 +32,8 @@ docker run -d                               \
          --device /dev/net/tun              \
          -e MODE=route                      \
          -e REMOTE_HOST=user@example.org:22 \
+         -e LOCAL_ADDR=10.0.0.10/24         \
+         -e REMOTE_ADDR=10.0.0.1            \
          -v .:/config                       \
          -v ~/.ssh:/config/ssh              \
          ghcr.io/mtdcy/ip2route:latest
@@ -54,8 +56,8 @@ docker run -d                               \
          --cap-add NET_ADMIN                \
          --device /dev/net/tun              \
          -e MODE=serve                      \
-         -e SSH_ADDR=10.0.1.1               \
-         -e SSH_COUNT=3                     \
+         -e LOCAL_ADDR=10.0.0.1/24          \
+         -e DEVICE_COUNT=3                  \
          -e DNSMASQ_SERVER=8.8.8.8          \
          -v .:/config                       \
          ghcr.io/mtdcy/ip2route:latest

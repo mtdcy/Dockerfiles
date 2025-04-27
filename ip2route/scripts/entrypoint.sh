@@ -5,32 +5,27 @@ export              MODE="${MODE:-basic}" # basic,route,serve
 export            ROUTES="${ROUTES:-}" # route mode only
 
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
-export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 1000))}"
-
 export      DNSMASQ_PORT="${DNSMASQ_PORT:-53}"
-export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-$((DNSMASQ_PORT + 1000))}"
 
 export       REMOTE_HOST="${REMOTE_HOST:-}" # no def value
 
-# preferred tunnel/ssh
-export          SSH_ADDR="${SSH_ADDR:-10.20.30.40/24}"
-export        SSH_REMOTE="${SSH_REMOTE:-${SSH_ADDR%.*}.1}"
-export           SSH_TUN="${SSH_TUN:-tun0}"
-export    SSH_TUN_REMOTE="${SSH_TUN_REMOTE:-$SSH_TUN}"
-export         SSH_COUNT="${SSH_COUNT:-1}" # serve mode
-export         SSH_IDENT="${SSH_IDENT:-/config/ssh/id_ed25519}" # perfer ed25519
-export          SSH_OPTS="${SSH_OPTS:-}"
-
-# n2n tunnel
-export           N2N_KEY="${N2N_KEY:-}"
-export          N2N_PORT="${N2N_PORT:-}"
-export          N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
-export        N2N_REMOTE="${N2N_REMOTE:-${N2N_ADDR%.*}.1}"
-export        N2N_DEVICE="${N2N_DEVICE:-n2n0}"
+export        LOCAL_ADDR="${LOCAL_ADDR:-10.0.0.1/24}"
+export       REMOTE_ADDR="${REMOTE_ADDR:-}"
+export      LOCAL_DEVICE="${LOCAL_DEVICE:-tun0}"
+export     REMOTE_DEVICE="${REMOTE_DEVICE:-$LOCAL_DEVICE}"
+export      DEVICE_COUNT="${DEVICE_COUNT:-1}" # ssh serve mode only
 
 # dns server
 export DNSMASQ_INTERFACE="${DNSMASQ_INTERFACE:-}" # no def value
 export    DNSMASQ_SERVER="${DNSMASQ_SERVER:-114.114.114.114}" # upstream dns server
+
+# extra options
+export     SSHSOCKS_PORT="${SSHSOCKS_PORT:-$((SOCKS5_PORT + 10000))}"
+export    DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-$((DNSMASQ_PORT + 1000))}"
+
+export          SSH_OPTS="${SSH_OPTS:-}"
+export           N2N_KEY="${N2N_KEY:-}"
+export          N2N_OPTS="${N2N_OPTS:-}"
 
 export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
 
@@ -50,14 +45,23 @@ echocmd() {
 clean() {
     info "***** clean *****"
 
-    # clean explicitly
-    [ -z "$SSH_ADDR"    ] || /entrypoint.d/sshtunnel.sh clean || true
-    [ -z "$N2N_ADDR"    ] || /entrypoint.d/n2n.sh clean || true
-    [ "$MODE" = route   ] && /entrypoint.d/ip2route.sh clean || true
-
-    pkill -INT  ssh || true
+    pkill -INT  gost || true
     pkill -INT  dns2socks || true
     pkill -USR1 dnsmasq || true
+
+    sleep 1
+
+    # clean explicitly
+    case "$REMOTE_HOST" in
+        n2n://*)
+            /entrypoint.d/n2n.sh clean || true
+            ;;
+        *)
+            /entrypoint.d/sshtunnel.sh clean || true
+            ;;
+    esac
+
+    [ "$MODE" = route ] && /entrypoint.d/ip2route.sh clean || true
 
     sleep 1
 }
@@ -96,43 +100,35 @@ info "***** prepare tunnel *****"
 case "$MODE" in
     serve)
         # no remote addr in serve mode
-        unset -v SSH_REMOTE N2N_REMOTE
+        unset -v REMOTE_ADDR SSHSOCKS_PORT
 
         echocmd /entrypoint.d/sshtunnel.sh
 
-        case "$REMOTE_HOST" in
-            n2n://*)
-                N2N_LOGFILE=/config/logs/n2n.log
-                export N2N_KEY N2N_DEVICE N2N_LOGFILE
-                echocmd /entrypoint.d/n2n.sh
-                ;;
-        esac
-
-        unset -v SOCKS5_PORT DNS2SOCKS_PORT
+        N2N_LOGFILE=/config/logs/n2n.log
+        export N2N_LOGFILE
+        echocmd /entrypoint.d/n2n.sh
         ;;
     *)
         case "$REMOTE_HOST" in
             n2n://*) # 1:N tunnel
-                unset -v SSH_ADDR SSH_REMOTE SSHSOCKS_PORT
+                unset -v SSHSOCKS_PORT
 
                 N2N_LOGFILE=/config/logs/n2n.log
-                export N2N_KEY N2N_DEVICE N2N_LOGFILE
+                export N2N_KEY N2N_LOGFILE
                 echocmd /entrypoint.d/n2n.sh
 
-                IP2ROUTE_DEVICE="$N2N_DEVICE"
-                IP2ROUTE_SERVER="$N2N_REMOTE"
-                DNS2SOCKS_SERVER="$N2N_REMOTE"
+                # n2n gateway mode ?
+                [ -n "$REMOTE_ADDR" ] || {
+                    info "n2n gateway is ready"
+                    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
+                    exit
+                }
                 ;;
             ssh://*|*) # 1:1 tunnel
-                unset -v N2N_ADDR N2N_REMOTE
                 # sanity check
-                [ "$MODE" = route ] || unset -v SSH_ADDR SSH_REMOTE
+                [ "$MODE" = route ] || unset -v LOCAL_ADDR REMOTE_ADDR
 
                 echocmd /entrypoint.d/sshtunnel.sh
-
-                IP2ROUTE_DEVICE="$SSH_TUN"
-                IP2ROUTE_SERVER="$SSH_REMOTE"
-                DNS2SOCKS_SERVER="$SSH_REMOTE"
                 ;;
         esac
         ;;
@@ -151,6 +147,8 @@ case "$MODE" in
         echocmd iptables -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
         echocmd iptables -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
 
+        IP2ROUTE_DEVICE="$LOCAL_DEVICE"
+        IP2ROUTE_SERVER="$REMOTE_ADDR"
         DNSMASQ_IPSET="/config/dnsmasq.ipset"
         export IP2ROUTE_SERVER IP2ROUTE_DEVICE DNSMASQ_IPSET
 
@@ -171,37 +169,38 @@ if [ -n "$ROUTES" ]; then
     IFS=',' read -r -a _nets <<< "$ROUTES"
     for x in ${_nets[@]}; do
         IFS='@' read -r _net _gw <<< "$x"
-        echocmd ip route add "$_net" via "$_gw" proto static ||
-        echocmd ip route rep "$_net" via "$_gw" proto static
+        info "***** enable route $_net@$_gw *****"
+        echocmd ip route add "$_net" via "$_gw" proto static onlink ||
+        echocmd ip route rep "$_net" via "$_gw" proto static onlink
     done
 fi
 
-if [ -n "$DNS2SOCKS_PORT" ]; then
-    info "***** prepare socks5 server *****"
+info "***** prepare socks5 server *****"
 
-    SOCKS5_LOGFILE=/config/logs/socks.log
-    [ -z "$SSHSOCKS_PORT" ] || SOCKS5_FORWARD="socks5://127.0.0.1:$SSHSOCKS_PORT"
+[ -z "$SSHSOCKS_PORT" ] || SOCKS5_FORWARD="socks5://127.0.0.1:$SSHSOCKS_PORT"
 
-    export SOCKS5_PORT SOCKS5_FORWARD SOCKS5_LOGFILE
-    echocmd /entrypoint.d/socks5.sh
+SOCKS5_LOGFILE=/config/logs/socks.log
+export SOCKS5_PORT SOCKS5_FORWARD SOCKS5_LOGFILE
+echocmd /entrypoint.d/socks5.sh
 
+if [ "$MODE" = basic ]; then
     info "***** prepare dns2socks *****"
 
     DNS2SOCKS_LOGFILE=/config/logs/dns2socks.log
+    DNS2SOCKS_SERVER="$REMOTE_ADDR"
     # upstream dns server: use dnsmasq server in socks mode
     [ "$MODE" = route ] || DNS2SOCKS_SERVER="$DNSMASQ_SERVER"
 
     export DNS2SOCKS_SERVER DNS2SOCKS_PORT DNS2SOCKS_LOGFILE
     echocmd /entrypoint.d/dns2socks.sh
-
-    IP2ROUTE_DEVICE="$SSH_TUN"
-    IP2ROUTE_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
+else
+    unset -v DNS2SOCKS_PORT
 fi
 
 info "***** prepare dns server *****"
 
 # dns2socks as dnsmasq server
-[ "$MODE" = basic ] && DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT" || true
+[ -z "$DNS2SOCKS_PORT" ] || DNSMASQ_SERVER="127.0.0.1:$DNS2SOCKS_PORT"
 # no ipset if not in route mode
 [ "$MODE" = route ] || unset -v DNSMASQ_IPSET
 

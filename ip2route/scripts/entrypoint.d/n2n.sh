@@ -4,14 +4,12 @@
                 MODE="${MODE:-serve}" # route,serve
             
          REMOTE_HOST="${REMOTE_HOST:-n2n://test@127.0.0.1:7654}" # -l, route mode
-            N2N_PORT="${N2N_PORT:-${REMOTE_HOST##*:}}" # -p, serve mode
 
-          N2N_DEVICE="${N2N_DEVICE:-n2n0}" # -d
-            N2N_ADDR="${N2N_ADDR:-10.0.0.1/24}"
-          N2N_REMOTE="${N2N_REMOTE:-}"
+        LOCAL_DEVICE="${LOCAL_DEVICE:-n2n0}" # -d
+          LOCAL_ADDR="${LOCAL_ADDR:-10.0.0.1/24}"
+         REMOTE_ADDR="${REMOTE_ADDR:-}"
 
              N2N_KEY="${N2N_KEY:-}"
-
             N2N_FILE="${N2N_FILE:-/config/n2n.comm}" # -c, serve mode
          N2N_LOGFILE="${N2N_LOGFILE:-/var/log/n2n.log}"
             N2N_OPTS="${N2N_OPTS:-}" # route mode
@@ -30,68 +28,55 @@ args=(
 )
 
 if [ "$1" = clean ]; then
-    info "clean n2n tunnel $N2N_DEVICE"
-
-    echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE"
+    info "clean n2n tunnel $LOCAL_DEVICE"
 
     pkill -f -INT supernode || true
     pkill -f -INT edge || true
 
+    echocmd /entrypoint.d/iptables.sh flush "$LOCAL_DEVICE"
+
     exit
 fi
 
-IFS='@:' read -r user host port <<< "${REMOTE_HOST#*//}"
-N2N_COMMUNITY="$user"
-
-# simplify configurations
-if [ -z "$N2N_KEY" ]; then
-    N2N_KEY="$(openssl rand -base64 12)" # <= 19 chars
-    info "*** generated N2N_KEY: $N2N_KEY ***"
-fi
-
 # generate fixed mac addr
-read -r -a seq <<< "$(od -A n -t x1 <<< "$(hostname)$N2N_ADDR")"
+read -r -a seq <<< "$(od -A n -t x1 <<< "$(hostname)$LOCAL_ADDR")"
 mac="${seq[*]:0:5}"
 mac="${mac// /:}"
 
 if [ "$MODE" = serve ]; then
-    info "init n2n network @127.0.0.1:$N2N_PORT"
-
-    # init community file
-    [ -f "$N2N_FILE" ] || echo "$N2N_COMMUNITY" > "$N2N_FILE"
-
-    # append community
-    grep -q "^$N2N_COMMUNITY" "$N2N_FILE" || echo "$N2N_COMMUNITY" >> "$N2N_FILE"
+    info "init n2n network"
 
     n2n=( /usr/sbin/supernode "${args[@]}" )
-    # listen port
-    n2n+=( -p "$N2N_PORT" )
     # disable mac spoof
     n2n+=( -M )
     # mac
     #n2n+=( -m "AA:$mac" )
     # community file
     [ -f "$N2N_FILE" ] && n2n+=( -c "$N2N_FILE" ) || true
+    # user opts
+    [ -z "${N2N_OPTS[*]}" ] || n2n+=( "${N2N_OPTS[@]}" )
 
     info "${n2n[*]}"
     "${n2n[@]}" -f 2>&1 | tee -a "$N2N_LOGFILE" & disown
 
-    sleep 1
-    [ -n "$REMOTE_HOST" ] || {
-        info "*** no remote host, skip client setup ***"
-        exit 0
-    }
+    exit 0
 fi
 
-info "init n2n network @$N2N_DEVICE - $N2N_ADDR"
+info "init n2n network @$LOCAL_DEVICE - $LOCAL_ADDR - $REMOTE_ADDR"
+
+IFS='@:' read -r user host port <<< "${REMOTE_HOST#*//}"
+N2N_COMMUNITY="$user"
+
+# simplify configurations
+[ -n "$N2N_KEY" ] || N2N_KEY="$N2N_COMMUNITY"
 
 # edge mac addr may changes, so flush arp first
 echocmd ip neighbor flush all
 
-echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
+echocmd /entrypoint.d/iptables.sh flush "$LOCAL_DEVICE" || true
 
 # check net mask
-[[ "$N2N_ADDR" =~ / ]] || N2N_ADDR="$N2N_ADDR/24"
+[[ "$LOCAL_ADDR" =~ / ]] || LOCAL_ADDR="$LOCAL_ADDR/24"
 
 # client mode
 n2n=( /usr/sbin/edge "${args[@]}" )
@@ -104,9 +89,9 @@ n2n+=( -M 1248 -D )
 # remote
 n2n+=( -l "$host:$port" )
 # tap 
-n2n+=( -d "$N2N_DEVICE" )
+n2n+=( -d "$LOCAL_DEVICE" )
 # ip addr
-n2n+=( -a "static:$N2N_ADDR" )
+n2n+=( -a "static:$LOCAL_ADDR" )
 # mac
 n2n+=( -m "EE:$mac" )
 # forwarding
@@ -125,12 +110,12 @@ info "${n2n[*]}"
 sleep 1
 
 # bugfix: mac addr
-echocmd ip link set dev "$N2N_DEVICE" addr "EE:$mac"
-echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$N2N_REMOTE"
+echocmd ip link set dev "$LOCAL_DEVICE" addr "EE:$mac"
+echocmd /entrypoint.d/iptables.sh "$LOCAL_DEVICE" "$LOCAL_ADDR" "$REMOTE_ADDR"
 
-if [ -n "$N2N_REMOTE" ]; then
+if [ -n "$REMOTE_ADDR" ]; then
     for _ in {1..9}; do
-        if echocmd ping -c 1 -q "$N2N_REMOTE"; then
+        if echocmd ping -c 1 -q "$REMOTE_ADDR"; then
             connected=true && break
         fi
         info "wait for n2n connection"

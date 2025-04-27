@@ -7,11 +7,11 @@
       DNS2SOCKS_PORT="${DNS2SOCKS_PORT:-}"
         DNSMASQ_PORT="${DNSMASQ_PORT:-}"
 
-            SSH_ADDR="${SSH_ADDR:-}"
-          SSH_REMOTE="${SSH_REMOTE:-}"
+            LOCAL_ADDR="${LOCAL_ADDR:-}"
+          REMOTE_ADDR="${REMOTE_ADDR:-}"
 
-            N2N_ADDR="${N2N_ADDR:-$SSH_ADDR}"
-          N2N_REMOTE="${N2N_REMOTE:-$SSH_REMOTE}"
+            LOCAL_ADDR="${LOCAL_ADDR:-$LOCAL_ADDR}"
+          REMOTE_ADDR="${REMOTE_ADDR:-$REMOTE_ADDR}"
 
     HEALTHD_INTERVAL="${HEALTHD_INTERVAL:-60}"
          TEST_DOMAIN="${TEST_DOMAIN:-www.google.com}"
@@ -37,11 +37,9 @@ IFS='@:' read -r _ host _ <<< "${REMOTE_HOST#*//}"
 while sleep "$HEALTHD_INTERVAL"; do
     check date
     # tun device check
-    [ -z "$SSH_ADDR"        ] || check ping -c 1 -q "${SSH_ADDR%/*}"
-    [ -z "$N2N_ADDR"        ] || check ping -c 1 -q "${N2N_ADDR%/*}"
+    [ -z "$LOCAL_ADDR"      ] || check ping -c 1 -q "${LOCAL_ADDR%/*}"
     # remote check
-    [ -z "$SSH_REMOTE"      ] || check ping -c 3 -q "$SSH_REMOTE"
-    [ -z "$N2N_REMOTE"      ] || check ping -c 3 -q "$N2N_REMOTE"
+    [ -z "$REMOTE_ADDR"     ] || check ping -c 3 -q "$REMOTE_ADDR"
     # host check
     [ -z "$REMOTE_HOST"     ] || check ping -c 3 -q "$REMOTE_HOST"
     # socks5 check

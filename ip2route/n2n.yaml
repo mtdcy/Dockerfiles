@@ -13,9 +13,9 @@ services:
     environment:
       - MODE=route
       - REMOTE_HOST=n2n://community@example.org:7654
-      - N2N_ADDR=10.0.0.110/24
-      - N2N_REMOTE=10.0.0.1
-      - N2N_KEY=encryptme
+      - LOCAL_ADDR=10.0.0.110/24
+      - REMOTE_ADDR=10.0.0.1
+      - LOCAL_DEVICE=n2n0
     volumes:
       - ./n2n:/config
       - ./data:/config/data
