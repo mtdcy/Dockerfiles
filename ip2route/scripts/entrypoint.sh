@@ -153,15 +153,20 @@ case "$MODE" in
         echocmd "$iptables" -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
         echocmd "$iptables" -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
 
-        IP2ROUTE_DEVICE="$LOCAL_DEVICE"
-        IP2ROUTE_SERVER="$REMOTE_ADDR"
-        DNSMASQ_IPSET="/config/dnsmasq.ipset"
-        export IP2ROUTE_SERVER IP2ROUTE_DEVICE DNSMASQ_IPSET
+        if lsmod | grep -Fw xt_set; then
+            IP2ROUTE_DEVICE="$LOCAL_DEVICE"
+            IP2ROUTE_SERVER="$REMOTE_ADDR"
+            DNSMASQ_IPSET="/config/dnsmasq.ipset"
+            export IP2ROUTE_SERVER IP2ROUTE_DEVICE DNSMASQ_IPSET
 
-        echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/logs/ip2route.log || {
-            info "***** ip2route start failed *****"
-            exit 1
-        }
+            echocmd /entrypoint.d/ip2route.sh 2>&1 | tee -a /config/logs/ip2route.log || {
+                info "***** ip2route start failed *****"
+                exit 1
+            }
+        else
+            # just give a warning
+            info "***** no xt_set module, skip ip2route *****"
+        fi
         ;;
     serve)
         info "***** enable MASQUERADE @$lan *****"
@@ -175,9 +180,11 @@ if [ -n "$ROUTES" ]; then
     IFS=',' read -r -a _nets <<< "$ROUTES"
     for x in ${_nets[@]}; do
         IFS='@' read -r _net _gw <<< "$x"
-        info "***** enable route $_net@$_gw *****"
-        echocmd ip route add "$_net" via "$_gw" proto static onlink ||
-        echocmd ip route rep "$_net" via "$_gw" proto static onlink
+        [ -z "$_gw" ] || _gw="$REMOTE_ADDR"
+
+        info "***** enable route $_net - $_gw *****"
+        echocmd ip route add "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
+        echocmd ip route rep "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink
     done
 fi
 
