@@ -59,6 +59,8 @@ if [ "$MODE" = serve ]; then
     info "${n2n[*]}"
     "${n2n[@]}" -f 2>&1 | tee -a "$N2N_LOGFILE" & disown
 
+    echo | nc -w1 -u 127.0.0.1 5645
+
     exit 0
 fi
 
@@ -129,3 +131,5 @@ if [ -n "$REMOTE_ADDR" ]; then
         exit 1
     fi
 fi
+
+echo | nc -w1 -u 127.0.0.1 5644

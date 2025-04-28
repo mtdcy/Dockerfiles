@@ -38,7 +38,7 @@ RUN <<-EOS
         iproute2 traceroute           \
         openssh-client openssh-server \
         dnsmasq moreutils ipcalc-ng   \
-        iperf3 conntrack
+        iperf3 conntrack netcat-openbsd
 EOS
 
 COPY scripts/ /
