@@ -93,6 +93,7 @@ EOF
 
 ## Releases
 
+- 1.0.6 add sysctl/afw/conntrack/iperf3
 - 1.0.5 add net route support
 - 1.0.4 add n2n tunnel
 - 1.0.3 fix socks mode
