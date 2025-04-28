@@ -221,11 +221,10 @@ export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET DNSMASQ_LOGFI
 
 /entrypoint.d/dnsmasq.sh
 
+info "***** prepare afw firewall *****"
+
 export RULES_FILE=/config/afw.rules
-if [ -f "$RULES_FILE" ]; then
-    info "***** prepare afw firewall *****"
-    /entrypoint.d/afw.sh
-fi
+/entrypoint.d/afw.sh
 
 if ss -tunlp | grep -Fwq 5201; then
     info "***** skip iperf3 as 5201 already in use *****"
