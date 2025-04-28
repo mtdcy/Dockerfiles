@@ -30,7 +30,7 @@ set -e
           TCPMSS="TCPMSS --set-mss" # suffix with mss value
 
             IPFT="-t nat"
-             ipt="iptables" # IPtable Filter Table
+        iptables="${iptables:-$(which iptables)}"
 
 usage() {
     cat <<EOF
@@ -86,8 +86,8 @@ IPTtmj() {
     [ -z "$3" ]     || rule="$rule -j $3"
     [ -z "${*:4}" ] || rule="$rule -m comment --comment \"${*:4}\""
 
-    eval -- "$ipt -C $rule" 2>/dev/null ||
-    echocmd "$ipt -A $rule"
+    eval -- "$iptables -C $rule" 2>/dev/null ||
+    echocmd "$iptables -A $rule"
 }
 
 # IPTp2m tcp|udp[:dports] [sports] => match-rule
@@ -222,28 +222,28 @@ IPLOG() {
 
 info "init AFW-IPF"
 while read -r line; do
-    echocmd "$ipt $IPFT ${line/-A/-D}"
-done < <($ipt $IPFT -S PREROUTING | grep -Fw -- "-i $WAN")
-echocmd "$ipt $IPFT -N AFW-IPF" ||
-echocmd "$ipt $IPFT -F AFW-IPF"
-echocmd "$ipt $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW-IPF"
+    echocmd "$iptables $IPFT ${line/-A/-D}"
+done < <($iptables $IPFT -S PREROUTING | grep -Fw -- "-i $WAN")
+echocmd "$iptables $IPFT -N AFW-IPF" ||
+echocmd "$iptables $IPFT -F AFW-IPF"
+echocmd "$iptables $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW-IPF"
 
 info "init AFW-LOG"
-echocmd "$ipt $IPFT -N AFW-LOG" ||
-echocmd "$ipt $IPFT -F AFW-LOG"
-echocmd "$ipt $IPFT -I PREROUTING -i $WAN -j AFW-LOG"
+echocmd "$iptables $IPFT -N AFW-LOG" ||
+echocmd "$iptables $IPFT -F AFW-LOG"
+echocmd "$iptables $IPFT -I PREROUTING -i $WAN -j AFW-LOG"
 
 info "init AFW-DROP"
-echocmd "$ipt $IPFT -N AFW-DROP" ||
-echocmd "$ipt $IPFT -F AFW-DROP"
-echocmd "$ipt $IPFT -A AFW-DROP -j DNAT --to-destination 0.0.0.1"
+echocmd "$iptables $IPFT -N AFW-DROP" ||
+echocmd "$iptables $IPFT -F AFW-DROP"
+echocmd "$iptables $IPFT -A AFW-DROP -j DNAT --to-destination 0.0.0.1"
 
-[ -z "$VERBOSE" ] || echocmd "$ipt $IPFT -I AFW-DROP -j LOG --log-prefix 'DROP => '"
+[ -z "$VERBOSE" ] || echocmd "$iptables $IPFT -I AFW-DROP -j LOG --log-prefix 'DROP => '"
 
 while read -r line; do
-    echocmd "$ipt ${line/-A/-D}"
-done < <($ipt -S FORWARD | grep -Fw -- "-d 0.0.0.1")
-echocmd "$ipt -I FORWARD -d 0.0.0.1/32 -j DROP -m comment --comment 'Black Hole'"
+    echocmd "$iptables ${line/-A/-D}"
+done < <($iptables -S FORWARD | grep -Fw -- "-d 0.0.0.1")
+echocmd "$iptables -I FORWARD -d 0.0.0.1/32 -j DROP -m comment --comment 'Black Hole'"
 
 [ -f "$RULES_FILE" ] || {
     info "no afw rules, exit"
@@ -252,7 +252,7 @@ echocmd "$ipt -I FORWARD -d 0.0.0.1/32 -j DROP -m comment --comment 'Black Hole'
 
 source "$RULES_FILE"
 
-echocmd "$ipt -t nat -vnL PREROUTING"
-echocmd "$ipt -t nat -vnL AFW-LOG"
-echocmd "$ipt -t nat -vnL AFW-IPF"
-echocmd "$ipt -t nat -vnL AFW-DROP"
+echocmd "$iptables -t nat -vnL PREROUTING"
+echocmd "$iptables -t nat -vnL AFW-LOG"
+echocmd "$iptables -t nat -vnL AFW-IPF"
+echocmd "$iptables -t nat -vnL AFW-DROP"
