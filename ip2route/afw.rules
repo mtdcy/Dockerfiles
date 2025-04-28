@@ -1,0 +1,34 @@
+# ==============================================================================
+# ================================== IPLOG =====================================
+#IPLOG  #source         #dest           #tcp|udp:dports     #match      #label
+IPLOG   47.75.191.66    any             all                 ""          "N2N"
+IPLOG   any             47.75.191.66    all                 ""          "N2N"
+
+# ==============================================================================
+
+# ==============================================================================
+# =================================== DNAT =====================================
+#       #source         #tcp+udp[:dports]       #destination        #comments
+
+#DNAT    any             tcp:80,443,8443         10.10.10.200        "NAS/http"
+
+# ==============================================================================
+
+# ==============================================================================
+# ================================= Allow/Block ================================
+#A/B    #source         #tcp|udp[:dports]       #match              #comments
+
+ALLOW   any             all                     "$TRACKED"          "ALLOW/Tracked" # Allow Tracked Connections
+ALLOW   $NET            all                     ""                  "ALLOW/Local"   # Allow All Local Traffics
+
+ALLOW   any             icmp                    ""                  "ALLOW/ICMP"
+ALLOW   any             igmp                    ""                  "ALLOW/IGMP"
+ALLOW   any             udp:53                  ""                  "ALLOW/DNS"
+ALLOW   any             udp:67,68               ""                  "ALLOW/DHCP"
+ALLOW   any             tcp:80,443,8443         ""                  "ALLOW/http"
+ALLOW   any             tcp+udp:1070            ""                  "ALLOW/sockss"
+ALLOW   any             udp:6677                ""                  "ALLOW/N2N"
+
+BLOCK   any             all                     ""                  "BLOCK/ALL" # FINAL: Block All
+# ==============================================================================
+

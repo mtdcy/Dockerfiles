@@ -27,6 +27,9 @@ export          SSH_OPTS="${SSH_OPTS:-}"
 export           N2N_KEY="${N2N_KEY:-}"
 export          N2N_OPTS="${N2N_OPTS:-}"
 
+export               WAN="${WAN:-$(ip route show default | head -n1 | grep -oP 'dev \K\S+')}"
+export               NET="${NET:-$(ip addr show "$WAN" | grep -oP 'inet \K\S+')}"
+
 export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
 
 # Notes:
@@ -89,9 +92,6 @@ if [ -n "$REMOTE_HOST" ]; then
     host="$(dig "@$dns" -p "${dns_port:-53}" "$host" +short | tail -1)"
     [ -z "$host" ] || export REMOTE_HOST="${REMOTE_HOST%//*}//$user@$host:${port:-22}"
 fi
-
-lan="$(ip route get "${DNSMASQ_SERVER%:*}" | grep -oP 'dev \K\S+')"
-net="$(ip addr show "$lan" | grep -oP 'inet \K\S+')"
 
 info "***** prepare tunnel *****"
 
@@ -159,14 +159,14 @@ info "***** prepare iptables *****"
 
 case "$MODE" in
     route)
-        info "***** fix NAT loopback @$lan *****"
+        info "***** fix NAT loopback @$WAN *****"
         # FORWARD: lan => lan
-        echocmd "$iptables" -C FORWARD -i "$lan" -o "$lan" -j ACCEPT ||
-        echocmd "$iptables" -I FORWARD -i "$lan" -o "$lan" -j ACCEPT
+        echocmd "$iptables" -C FORWARD -i "$WAN" -o "$WAN" -j ACCEPT ||
+        echocmd "$iptables" -I FORWARD -i "$WAN" -o "$WAN" -j ACCEPT
 
         # MASQUERADE: tun0 => lan
-        echocmd "$iptables" -t nat -C POSTROUTING -s "$net" -o "$lan" -j MASQUERADE ||
-        echocmd "$iptables" -t nat -I POSTROUTING -s "$net" -o "$lan" -j MASQUERADE
+        echocmd "$iptables" -t nat -C POSTROUTING -s "$NET" -o "$WAN" -j MASQUERADE ||
+        echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -j MASQUERADE
 
         echocmd /entrypoint.d/ip2route.sh || {
             info "***** ip2route start failed *****"
@@ -174,10 +174,10 @@ case "$MODE" in
         }
         ;;
     serve)
-        info "***** enable MASQUERADE @$lan *****"
+        info "***** enable MASQUERADE @$WAN *****"
         # MASQUERADE: any => lan
-        echocmd "$iptables" -t nat -C POSTROUTING -o "$lan" -j MASQUERADE ||
-        echocmd "$iptables" -t nat -I POSTROUTING -o "$lan" -j MASQUERADE
+        echocmd "$iptables" -t nat -C POSTROUTING -o "$WAN" -j MASQUERADE ||
+        echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
         ;;
 esac
 
@@ -218,6 +218,12 @@ DNSMASQ_LOGFILE=/config/logs/dnsmasq.log
 export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET DNSMASQ_LOGFILE
 
 /entrypoint.d/dnsmasq.sh
+
+export RULES_FILE=/config/afw.rules
+if [ -f "$RULES_FILE" ]; then
+    info "***** prepare afw firewall *****"
+    /entrypoint.d/afw.sh
+fi
 
 info "***** system ready *****"
 
