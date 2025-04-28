@@ -93,9 +93,11 @@ if [ -n "$REMOTE_HOST" ]; then
     [ -z "$host" ] || export REMOTE_HOST="${REMOTE_HOST%//*}//$user@$host:${port:-22}"
 fi
 
-info "***** prepare tunnel *****"
+info "***** prepare sysctl *****"
 
-echocmd sysctl -w net.ipv4.ip_forward=1 || true
+echocmd /entrypoint.d/sysctl.sh
+
+info "***** prepare tunnel *****"
 
 export SSH_LOGFILE=/config/logs/sshtunnel.log
 export N2N_LOGFILE=/config/logs/n2n.log
