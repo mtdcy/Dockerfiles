@@ -38,7 +38,7 @@ RUN <<-EOS
         iproute2 traceroute           \
         openssh-client openssh-server \
         dnsmasq moreutils ipcalc-ng   \
-        iperf3
+        iperf3 conntrack
 EOS
 
 COPY scripts/ /
@@ -57,6 +57,8 @@ RUN <<-EOS
 EOS
 
 RUN ldconfig
+
+ENV PATH=/entrypoint.d:$PATH
 
 VOLUME /config
 
