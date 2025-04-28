@@ -37,7 +37,8 @@ RUN <<-EOS
         kmod iptables ipset           \
         iproute2 traceroute           \
         openssh-client openssh-server \
-        dnsmasq moreutils ipcalc-ng
+        dnsmasq moreutils ipcalc-ng   \
+        iperf3
 EOS
 
 COPY scripts/ /
