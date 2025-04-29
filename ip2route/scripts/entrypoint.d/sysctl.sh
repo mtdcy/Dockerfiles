@@ -20,6 +20,9 @@ fi
 
 echocmd sysctl -w net.ipv4.ip_forward=1
 
+# TFO: tcp fast open
+echocmd sysctl -w net.ipv4.tcp_fastopen=3
+
 # tcp timeout
 echocmd sysctl -w net.ipv4.tcp_keepalive_time=600 # 10 min
 echocmd sysctl -w net.ipv4.tcp_keepalive_intvl=45 # 45 sec
