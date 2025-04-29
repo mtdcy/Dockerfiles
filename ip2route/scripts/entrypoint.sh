@@ -97,6 +97,11 @@ info "***** prepare sysctl *****"
 
 echocmd /entrypoint.d/sysctl.sh
 
+info "***** prepare afw firewall *****"
+
+export RULES_FILE=/config/afw.rules
+/entrypoint.d/afw.sh
+
 info "***** prepare tunnel *****"
 
 export SSH_LOGFILE=/config/logs/sshtunnel.log
@@ -220,11 +225,6 @@ DNSMASQ_LOGFILE=/config/logs/dnsmasq.log
 export DNSMASQ_INTERFACE DNSMASQ_PORT DNSMASQ_SERVER DNSMASQ_IPSET DNSMASQ_LOGFILE
 
 /entrypoint.d/dnsmasq.sh
-
-info "***** prepare afw firewall *****"
-
-export RULES_FILE=/config/afw.rules
-/entrypoint.d/afw.sh
 
 if ss -tunlp | grep -Fwq 5201; then
     info "***** skip iperf3 as 5201 already in use *****"
