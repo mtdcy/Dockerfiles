@@ -47,8 +47,7 @@ Commands:
     IPLOG   source destination tcp|udp[:dports] "match" [label]
 
 Targets:
-    AFW-IPF     : Input filter target hook PREROUTING and INPUT chain
-    AFW-DROP    : LOG and DROP target in 'filter' and 'nat' tables
+    AFW     : Input filter target hook PREROUTING and INPUT chain
 
 Constants:
     LOCAL       : match connections to local, "$LOCAL"
@@ -86,7 +85,6 @@ IPTtmj() {
     [ -z "$3" ]     || rule="$rule -j $3"
     [ -z "${*:4}" ] || rule="$rule -m comment --comment \"${*:4}\""
 
-    eval -- "$iptables -C $rule" 2>/dev/null ||
     echocmd "$iptables -A $rule"
 }
 
@@ -144,8 +142,8 @@ IPFsmj() {
     local match="$(IPTs2m "$1")"
     [ -z "$2" ] || match="$match $2"
     case "$3" in
-        DNAT*)  IPTtmj "AFW-IPF -t nat" "${match# }" "$3" "${@:4}" ;;
-        *)      IPTtmj "AFW-IPF $IPFT"  "${match# }" "$3" "${@:4}" ;;
+        DNAT*)  IPTtmj "AFW -t nat" "${match# }" "$3" "${@:4}" ;;
+        *)      IPTtmj "AFW $IPFT"  "${match# }" "$3" "${@:4}" ;;
     esac
 }
 
@@ -162,8 +160,8 @@ IPFspmj() {
 # BLOCK source tcp|udp[:dports] "match" [comments]
 BLOCK() {
     case "$3" in
-        *-j*)   IPFspmj "$1" "$2" "$3" ""       "${@:4}" ;;
-        *)      IPFspmj "$1" "$2" "$3" AFW-DROP "${@:4}" ;;
+        *-j*)   IPFspmj "$1" "$2" "$3" ""    "${@:4}" ;;
+        *)      IPFspmj "$1" "$2" "$3" BLOCK "${@:4}" ;;
     esac
 }
 
@@ -201,24 +199,37 @@ DNAT() {
     esac
 }
 
-# IPLtml target tcp|udp[:dports] "match" "label"
-IPLtpm() {
-    while read -r match; do
-        [ -z "$3" ] || match="$match $3"
-        IPTtmj "$1" "$match" "LOG --log-prefix \"$4: \"" "$4"
-    done <<< "$(IPTp2m $2)"
-}
-
 # ==============================================================================
 # IPtable Logger
+# IPLtmj target "match" "prefix"
+IPLtmj() {
+    local rule=("$1")
+
+    [ -z "$2" ] || rule+=("$2")
+                   rule+=("-j LOG")
+    [ -z "$3" ] || rule+=("--log-prefix 'LOG:$3 => '")
+
+    # always insert
+    echocmd "$iptables -I ${rule[*]}"
+}
+
 # IPLOG source destination tcp|udp[:dports] "match" [label]
 IPLOG() {
-    local match="$(IPTs2m $1) $(IPTd2m $2) $4"
-    [ -z "$4" ] || match="$match $4"
-
-    while read -r m; do
-        IPTtmj "AFW-LOG $IPFT" "$match $m" "LOG --log-prefix 'LOG:$5 => '"
-    done <<< "$(IPTp2m $3)"
+    local match=("$(IPTs2m $1)")
+    [ -z "$4" ] || match+=("$4")
+    case "$2" in 
+        any|"")
+            while read -r m; do
+                IPLtmj "AFW $IPFT" "${match[*]} $m" "$5"
+            done <<< "$(IPTp2m $3)"
+            ;;
+        *)
+            match+=("$(IPTd2m $2)")
+            while read -r m; do
+                IPLtmj AFW "${match[*]} $m" "$5"
+            done <<< "$(IPTp2m $3)"
+            ;;
+    esac
 }
 
 [ "$1" = "help" ] && usage && exit
@@ -238,39 +249,41 @@ while read -r line; do
     echocmd "$iptables ${line/-A/-D}"
 done < <($iptables -S | grep -Ew -- "-i $WAN|-o $WAN")
 
-# FORWARD: any to wan
-echocmd "$iptables -I FORWARD -o $WAN -j ACCEPT"
-echocmd "$iptables -I FORWARD -i $WAN -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
+info "insert AFW to PREROUTING"
+$iptables $IPFT -N AFW 2>/dev/null || $iptables $IPFT -F AFW
+echocmd "$iptables $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW"
 
-info "init AFW-IPF"
-$iptables $IPFT -N AFW-IPF 2>/dev/null || $iptables $IPFT -F AFW-IPF
-echocmd "$iptables $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW-IPF"
+info "add BLOCK to PREROUTING"
+$iptables $IPFT -N BLOCK 2>/dev/null || $iptables $IPFT -F BLOCK
+echocmd "$iptables $IPFT -A BLOCK -j DNAT --to-destination 0.0.0.1"
 
-info "init AFW-DROP"
-$iptables $IPFT -N AFW-DROP 2>/dev/null || $iptables $IPFT -F AFW-DROP
-echocmd "$iptables $IPFT -A AFW-DROP -j DNAT --to-destination 0.0.0.1"
+[ -z "$VERBOSE" ] || echocmd "$iptables $IPFT -I BLOCK -j LOG --log-prefix 'BLOCK => '"
 
-[ -z "$VERBOSE" ] || echocmd "$iptables $IPFT -I AFW-DROP -j LOG --log-prefix 'DROP => '"
-
-$iptables -N AFW-DROP 2>/dev/null || $iptables -F AFW-DROP
+info "insert AFW to FORWARD"
+$iptables -N AFW 2>/dev/null || $iptables -F AFW
 
 # https://serverfault.com/questions/157375/reject-vs-drop-when-using-iptables
-echocmd "$iptables -A AFW-DROP -p tcp -j REJECT --reject-with tcp-reset"
-#echocmd "$iptables -A AFW-DROP -p udp -j REJECT --reject-with icmp-port-unreachable"
-echocmd "$iptables -A AFW-DROP -j DROP"
+echocmd "$iptables -A AFW -d 0.0.0.1/32 -p tcp -j REJECT --reject-with tcp-reset"
+#echocmd "$iptables -A AFW -d 0.0.0.1/32 -p udp -j REJECT --reject-with icmp-port-unreachable"
+echocmd "$iptables -A AFW -d 0.0.0.1/32 -j DROP"
+echocmd "$iptables -A AFW -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
+echocmd "$iptables -A AFW -s $NET -j ACCEPT"
+echocmd "$iptables -A AFW -j RETURN"
 
-echocmd "$iptables -I FORWARD -i $WAN -d 0.0.0.1/32 -j AFW-DROP -m comment --comment 'Black Hole'"
+echocmd "$iptables -I FORWARD -o $WAN -j ACCEPT"
+echocmd "$iptables -I FORWARD -i $WAN -j AFW"
 
-info "init AFW-LOG"
-$iptables $IPFT -N AFW-LOG 2>/dev/null || $iptables $IPFT -F AFW-LOG
-echocmd "$iptables $IPFT -I PREROUTING -i $WAN -j AFW-LOG"
+info "enable MASQUERADE to $WAN"
+echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
 
-[ -f "$RULES_FILE" ] || {
+if [ -f "$RULES_FILE" ]; then
+    source "$RULES_FILE"
+else
+    echocmd "iptables $IPFT -A AFW -j RETURN"
     info "no afw rules, exit"
     exit
-}
+fi
 
-source "$RULES_FILE"
 
 echocmd $iptables -t nat -vnL PREROUTING
-echocmd $iptables -t nat -vnL AFW-IPF
+echocmd $iptables -t nat -vnL AFW

@@ -78,9 +78,6 @@ if [ -n "$ngw" ]; then
 
     # enable output MASQUERADE
     echocmd "$iptables" -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
-    
-    # enable input MASQUERADE
-    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 else
     echocmd ip route add "$net" dev "$dev" proto static ||
     echocmd ip route rep "$net" dev "$dev" proto static
@@ -95,21 +92,10 @@ else
     echocmd "$iptables" -I FORWARD -o "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
   
     # no output MASQUERADE: keep visit ip
-    
-    # enable input MASQUERADE
-    echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 fi
 
-# ICMP/ping
-echocmd "$iptables" -I INPUT -i "$dev" -p icmp -j ACCEPT
-# IGMP
-echocmd "$iptables" -I INPUT -i "$dev" -p igmp -j ACCEPT
-# DNS/53
-echocmd "$iptables" -I INPUT -i "$dev" -p tcp -m tcp --dport 53 -j ACCEPT
-echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 53 -j ACCEPT
-## DHCP
-#echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 67 -j ACCEPT
-#echocmd "$iptables" -I INPUT -i "$dev" -p udp -m udp --dport 68 -j ACCEPT
+# enable input MASQUERADE
+echocmd "$iptables" -t nat -I POSTROUTING -s "$net" ! -o "$dev" -j MASQUERADE
 
 # enable TCPMSS
 tcpmss=( -p tcp -m tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu )

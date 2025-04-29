@@ -162,28 +162,23 @@ if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
     exit
 fi
 
-case "$MODE" in
-    route)
-        info "***** prepare ip2route *****"
+if [ "$MODE" = route ]; then
+    info "***** prepare ip2route *****"
 
-        echocmd /entrypoint.d/ip2route.sh || {
-            info "***** ip2route start failed *****"
-            exit 1
-        }
+    echocmd /entrypoint.d/ip2route.sh || {
+        info "***** ip2route start failed *****"
+        exit 1
+    }
 
-        info "***** fix NAT loopback on $WAN *****"
+    info "***** fix NAT loopback on $WAN *****"
 
-        # MASQUERADE: tun0 => lan
-        echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -m addrtype ! --src-type LOCAL -j MASQUERADE
-        ;;
-    serve)
-        info "***** enable MASQUERADE to $WAN *****"
-
-        # MASQUERADE: any => wan
-        echocmd "$iptables" -t nat -C POSTROUTING -o "$WAN" -j MASQUERADE ||
-        echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
-        ;;
-esac
+    # MASQUERADE: lan => lan
+    while read -r line; do
+        # shellcheck disable=SC2086
+        echocmd "$iptables" -t nat ${line/-A/-D}
+    done < <("$iptables" -t nat -S POSTROUTING | grep -Fw -- "-o $WAN")
+    echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -m addrtype ! --src-type LOCAL -j MASQUERADE
+fi
 
 info "***** prepare socks5 server *****"
 
