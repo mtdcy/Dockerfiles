@@ -230,7 +230,7 @@ if ss -tunlp | grep -Fwq 5201; then
     info "***** skip iperf3 as 5201 already in use *****"
 else
     info "***** prepare iperf3 @5201 *****"
-    /usr/bin/iperf3 -s > /config/iperf3.log 2>&1 & disown
+    /usr/bin/iperf3 -s | tee -a /config/iperf3.log 2>&1 & disown
 fi
 
 info "***** system ready *****"
