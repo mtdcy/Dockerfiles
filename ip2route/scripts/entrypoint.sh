@@ -162,27 +162,24 @@ if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
     exit
 fi
 
-info "***** prepare iptables *****"
-
 case "$MODE" in
     route)
-        info "***** fix NAT loopback @$WAN *****"
-        # FORWARD: lan => lan
-        echocmd "$iptables" -C FORWARD -i "$WAN" -o "$WAN" -j ACCEPT ||
-        echocmd "$iptables" -I FORWARD -i "$WAN" -o "$WAN" -j ACCEPT
-
-        # MASQUERADE: tun0 => lan
-        echocmd "$iptables" -t nat -C POSTROUTING -s "$NET" -o "$WAN" -j MASQUERADE ||
-        echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -j MASQUERADE
+        info "***** prepare ip2route *****"
 
         echocmd /entrypoint.d/ip2route.sh || {
             info "***** ip2route start failed *****"
             exit 1
         }
+
+        info "***** fix NAT loopback on $WAN *****"
+
+        # MASQUERADE: tun0 => lan
+        echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -m addrtype ! --src-type LOCAL -j MASQUERADE
         ;;
     serve)
-        info "***** enable MASQUERADE @$WAN *****"
-        # MASQUERADE: any => lan
+        info "***** enable MASQUERADE to $WAN *****"
+
+        # MASQUERADE: any => wan
         echocmd "$iptables" -t nat -C POSTROUTING -o "$WAN" -j MASQUERADE ||
         echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
         ;;

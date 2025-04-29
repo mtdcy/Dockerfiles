@@ -232,26 +232,27 @@ IPLOG() {
 # cleanup
 while read -r line; do
     echocmd "$iptables $IPFT ${line/-A/-D}"
-done < <($iptables $IPFT -S PREROUTING | grep -Fw -- "-i $WAN")
+done < <($iptables $IPFT -S | grep -Ew -- "-i $WAN|-o $WAN")
 
 while read -r line; do
     echocmd "$iptables ${line/-A/-D}"
-done < <($iptables -S FORWARD | grep -Fw -- "-i $WAN")
+done < <($iptables -S | grep -Ew -- "-i $WAN|-o $WAN")
+
+# FORWARD: any to wan
+echocmd "$iptables -I FORWARD -o $WAN -j ACCEPT"
+echocmd "$iptables -I FORWARD -i $WAN -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
 
 info "init AFW-IPF"
-echocmd "$iptables $IPFT -N AFW-IPF" ||
-echocmd "$iptables $IPFT -F AFW-IPF"
+$iptables $IPFT -N AFW-IPF 2>/dev/null || $iptables $IPFT -F AFW-IPF
 echocmd "$iptables $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW-IPF"
 
 info "init AFW-DROP"
-echocmd "$iptables $IPFT -N AFW-DROP" ||
-echocmd "$iptables $IPFT -F AFW-DROP"
+$iptables $IPFT -N AFW-DROP 2>/dev/null || $iptables $IPFT -F AFW-DROP
 echocmd "$iptables $IPFT -A AFW-DROP -j DNAT --to-destination 0.0.0.1"
 
 [ -z "$VERBOSE" ] || echocmd "$iptables $IPFT -I AFW-DROP -j LOG --log-prefix 'DROP => '"
 
-echocmd "$iptables -N AFW-DROP" ||
-echocmd "$iptables -F AFW-DROP"
+$iptables -N AFW-DROP 2>/dev/null || $iptables -F AFW-DROP
 
 # https://serverfault.com/questions/157375/reject-vs-drop-when-using-iptables
 echocmd "$iptables -A AFW-DROP -p tcp -j REJECT --reject-with tcp-reset"
@@ -261,9 +262,7 @@ echocmd "$iptables -A AFW-DROP -j DROP"
 echocmd "$iptables -I FORWARD -i $WAN -d 0.0.0.1/32 -j AFW-DROP -m comment --comment 'Black Hole'"
 
 info "init AFW-LOG"
-echocmd "$iptables $IPFT -N AFW-LOG" ||
-echocmd "$iptables $IPFT -F AFW-LOG"
-
+$iptables $IPFT -N AFW-LOG 2>/dev/null || $iptables $IPFT -F AFW-LOG
 echocmd "$iptables $IPFT -I PREROUTING -i $WAN -j AFW-LOG"
 
 [ -f "$RULES_FILE" ] || {
@@ -273,5 +272,5 @@ echocmd "$iptables $IPFT -I PREROUTING -i $WAN -j AFW-LOG"
 
 source "$RULES_FILE"
 
-echocmd "$iptables -t nat -vnL PREROUTING"
-echocmd "$iptables -t nat -vnL AFW-IPF"
+echocmd $iptables -t nat -vnL PREROUTING
+echocmd $iptables -t nat -vnL AFW-IPF
