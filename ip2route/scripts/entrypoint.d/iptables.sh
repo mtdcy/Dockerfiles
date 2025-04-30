@@ -73,8 +73,8 @@ if [ -n "$ngw" ]; then
 
     # enable FORWARD: any ==> dev
     echocmd "$iptables" -I FORWARD -o "$dev" -j ACCEPT
-    echocmd "$iptables" -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     echocmd "$iptables" -I FORWARD -i "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
+    echocmd "$iptables" -I FORWARD -i "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
     # enable output MASQUERADE
     echocmd "$iptables" -t nat -I POSTROUTING -o "$dev" -j MASQUERADE
@@ -88,8 +88,8 @@ else
 
     # enable FORWARD: dev => any
     echocmd "$iptables" -I FORWARD -i "$dev" -j ACCEPT
-    echocmd "$iptables" -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
     echocmd "$iptables" -I FORWARD -o "$dev" -s "$net" -j ACCEPT # allow traffics from other edge
+    echocmd "$iptables" -I FORWARD -o "$dev" -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
   
     # no output MASQUERADE: keep visit ip
 fi
