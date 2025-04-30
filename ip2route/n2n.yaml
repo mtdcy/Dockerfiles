@@ -15,7 +15,9 @@ services:
       - LOCAL_ADDR=10.0.0.110/24
       - REMOTE_ADDR=10.0.0.1
       - LOCAL_DEVICE=n2n0
-      - ROUTE_FILE=/config/route.ip
+      - DNSMASQ_SERVER=10.10.10.10
+      - N2N_KEY=encryptkey
+      - N2N_OPTS=-p 7788
     volumes:
       - ./n2n:/config
       - ./route:/config/route

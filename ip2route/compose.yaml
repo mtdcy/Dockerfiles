@@ -16,9 +16,12 @@ services:
       - REMOTE_ADDR=10.1.1.1
       - REMOTE_DEVICE=tun1
       #- DNSMASQ_INTERFACE=br0
-      - DNSMASQ_SERVER=10.10.10.10
+      - DNSMASQ_SERVER=10.10.10.1
     volumes:
       - .:/config
       - ~/.ssh:/config/ssh
+      # develop
+      - ./scripts/entrypoint.sh:/entrypoint.sh
+      - ./scripts/entrypoint.d:/entrypoint.d
     devices:
       - /dev/net/tun:/dev/net/tun

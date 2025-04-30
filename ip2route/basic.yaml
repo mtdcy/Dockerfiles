@@ -16,6 +16,6 @@ services:
       - ./data:/config/data
       - ~/.ssh:/config/ssh
     ports:
-      - 7070:1070
-      - 5353:53/tcp
-      - 5353:53/udp
+      - 1070:1070
+      - 53:53/tcp
+      - 53:53/udp

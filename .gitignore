@@ -6,3 +6,4 @@ ip2route/basic
 ip2route/serve
 ip2route/logs
 ip2route/n2n
+ip2route/dnsmasq.conf
