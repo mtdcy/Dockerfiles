@@ -113,8 +113,8 @@ clean() {
     info "clean ip table $ROUTE_ID @$ROUTE_DEVICE"
 
     while read -r line; do
-        echocmd iptables -t mangle ${line/-A/-D} || true
-    done < <(iptables -t mangle -S | grep -Fw -- "--set-xmark 0x$(printf "%x" "$ROUTE_ID")")
+        echocmd "$iptables" -t mangle ${line/-A/-D} || true
+    done < <("$iptables" -t mangle -S | grep -Fw -- "--set-xmark 0x$(printf "%x" "$ROUTE_ID")")
 
     echocmd ip route del default table "$ROUTE_ID" || true
     echocmd ip rule flush table "$ROUTE_ID" || true
@@ -149,10 +149,14 @@ echocmd ip rule add fwmark "$ROUTE_ID" table "$ROUTE_ID"
 iptrule=( -m set --match-set "$(basename "${ROUTE_FILE%.*}")" dst -j MARK --set-mark "$ROUTE_ID" )
 
 # route OUTPUT
-echocmd iptables -t mangle -I OUTPUT "${iptrule[@]}"
+echocmd "$iptables" -t mangle -I OUTPUT "${iptrule[@]}"
 
 # exclude route device
 iptrule+=( ! -i "$ROUTE_DEVICE" )
 
 # route FORWARD
-echocmd iptables -t mangle -I PREROUTING "${iptrule[@]}"
+echocmd "$iptables" -t mangle -I PREROUTING "${iptrule[@]}"
+
+# iptables mark will always use default device ip, so MASQUERADE is neccesary
+echocmd "$iptables" -t nat -C POSTROUTING -o "$ROUTE_DEVICE" -j MASQUERADE ||
+echocmd "$iptables" -t nat -A POSTROUTING -o "$ROUTE_DEVICE" -j MASQUERADE
