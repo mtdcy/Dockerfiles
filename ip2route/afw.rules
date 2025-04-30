@@ -19,15 +19,19 @@ DNAT    any             tcp:6015                10.10.10.200:22     "NAS/SSH"
 # ================================= Allow/Block ================================
 #A/B    #source         #tcp|udp[:dports]       #match              #comments
 
+DOCKER  $NET            tcp:9001                ""                  "Docker/agent"
+
 ALLOW   $NET            all                     ""                  "ALLOW/Local"   # Allow All Local Traffics
 
 ALLOW   any             icmp                    ""                  "ALLOW/ICMP"
 ALLOW   any             igmp                    ""                  "ALLOW/IGMP"
-ALLOW   any             udp:53                  ""                  "ALLOW/DNS"
-ALLOW   any             udp:67,68               ""                  "ALLOW/DHCP"
-ALLOW   any             tcp:80,443,8443         ""                  "ALLOW/http"
-ALLOW   any             tcp+udp:1070            ""                  "ALLOW/sockss"
-ALLOW   any             udp:6677                ""                  "ALLOW/N2N"
+
+ALLOW   $NET            tcp:22                  ""                  "ALLOW/SSH"
+ALLOW   $NET            udp:53                  ""                  "ALLOW/DNS"
+ALLOW   $NET            udp:67,68               ""                  "ALLOW/DHCP"
+ALLOW   $NET            tcp:80,443,8443         ""                  "ALLOW/http"
+ALLOW   $NET            tcp+udp:1070            ""                  "ALLOW/sockss"
+ALLOW   $NET            udp:6677                ""                  "ALLOW/N2N"
 
 BLOCK   any             all                     ""                  "BLOCK/ALL" # FINAL: Block All
 # ==============================================================================

@@ -165,15 +165,6 @@ BLOCK() {
     esac
 }
 
-# REJECT Input Traffics
-# REJECT source tcp|udp[:dports] "match" [comments]
-REJECT() {
-    case "$2" in
-        tcp*) ;;
-        udp*) ;;
-    esac
-}
-
 # ALLOW Input Traffics
 # ALLOW source tcp|udp[:dports] "match" [comments]
 ALLOW() {
@@ -183,11 +174,12 @@ ALLOW() {
     esac
 }
 
-# RETURN source tcp|udp[:dports] "match" [comments]
-RETURN() {
+# Docker compatible
+# DOCKER source tcp|udp[:dports] "match" [comments]
+DOCKER() {
     case "$3" in
         *-j*)   IPFspmj "$1" "$2" "$3" ""     "${@:4}" ;;
-        *)      IPFspmj "$1" "$2" "$3" RETURN "${@:4}" ;;
+        *)      IPFspmj "$1" "$2" "$3" DOCKER "${@:4}" ;;
     esac
 }
 
@@ -275,6 +267,10 @@ echocmd "$iptables -I FORWARD -i $WAN -j AFW"
 
 info "enable MASQUERADE to $WAN"
 echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
+
+# for docker and others compatible
+info "patch DOCKER"
+echocmd "$iptables $IPFT -A DOCKER -i $WAN -j ACCEPT"
 
 if [ -f "$RULES_FILE" ]; then
     source "$RULES_FILE"
