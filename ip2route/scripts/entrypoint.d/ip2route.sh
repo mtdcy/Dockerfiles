@@ -147,7 +147,12 @@ echocmd ip rule add fwmark "$ROUTE_ID" table "$ROUTE_ID"
 [[ "$ROUTE_FILE" =~ .lst$ ]] && update_iplst "$ROUTE_FILE" || update_ipset "$ROUTE_FILE"
 
 iptrule=( -m set --match-set "$(basename "${ROUTE_FILE%.*}")" dst -j MARK --set-mark "$ROUTE_ID" )
-# route FORWARD
-echocmd iptables -t mangle -I PREROUTING "${iptrule[@]}"
+
 # route OUTPUT
 echocmd iptables -t mangle -I OUTPUT "${iptrule[@]}"
+
+# exclude route device
+iptrule+=( ! -i "$ROUTE_DEVICE" )
+
+# route FORWARD
+echocmd iptables -t mangle -I PREROUTING "${iptrule[@]}"
