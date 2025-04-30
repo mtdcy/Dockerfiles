@@ -57,8 +57,7 @@ update_ipset() {
 
     #echo "cidr: $cidr"
     # destroy will fail if ipset is in use.
-    ipset destroy "$name" &>/dev/null ||
-    ipset flush "$name" &>/dev/null || true
+    ipset -q destroy "$name" || ipset -q flush "$name" || true
 
     # create an ipset
     if [ "$cidr" -eq 0 ]; then
@@ -97,7 +96,8 @@ update_ipset() {
 # update_iplst path/to/some.lst [list]
 update_iplst() {
     name="$(basename "${1%.*}")"
-    ipset flush "$name" &>/dev/null || true
+
+    ipset destroy -q "$name" || ipset -q flush "$name" || true
     echocmd ipset -exist create "$name" list:set
     while read -r ips; do
         [[ $ips =~ '#' ]] && continue # ignore comments
