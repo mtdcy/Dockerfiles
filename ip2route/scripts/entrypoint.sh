@@ -98,11 +98,6 @@ info "***** prepare sysctl *****"
 
 echocmd /entrypoint.d/sysctl.sh
 
-info "***** prepare afw firewall *****"
-
-export RULES_FILE=/config/afw.rules
-/entrypoint.d/afw.sh
-
 info "***** prepare tunnel *****"
 
 export SSH_LOGFILE=/config/logs/sshtunnel.log
@@ -133,8 +128,14 @@ case "$MODE" in
         ;;
 esac
 
-[ "$MODE" = route ] || unset -v ROUTE_FILE
+export RULES_FILE=/config/afw.rules
+if [ -f "$RULES_FILE" ]; then
+    info "***** prepare afw firewall *****"
 
+    /entrypoint.d/afw.sh
+fi
+
+[ "$MODE" = route ] || unset -v ROUTE_FILE
 if [ -f "$ROUTE_FILE" ]; then
     info "***** prepare ip2route *****"
 
