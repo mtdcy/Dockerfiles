@@ -2,7 +2,6 @@
 
 #       options         =
 export              MODE="${MODE:-basic}" # basic,route,serve
-export            ROUTES="${ROUTES:-}" # route mode only
 
 export       SOCKS5_PORT="${SOCKS5_PORT:-1070}"
 export      DNSMASQ_PORT="${DNSMASQ_PORT:-53}"
@@ -29,6 +28,8 @@ export          N2N_OPTS="${N2N_OPTS:-}"
 
 export               WAN="${WAN:-$(ip route show default | head -n1 | grep -oP 'dev \K\S+')}"
 export               NET="${NET:-$(ip addr show "$WAN" | grep -oP 'inet \K\S+')}"
+
+export        ROUTE_FILE="${ROUTE_FILE:-/config/route/route.lst}"
 
 export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
 
@@ -132,28 +133,6 @@ case "$MODE" in
         ;;
 esac
 
-info "***** prepare routes *****"
-
-# no routes in basic mode
-[ "$MODE" = route ] || unset -v ROUTES
-
-if [ -n "$ROUTES" ]; then
-    IFS=',' read -r -a _nets <<< "$ROUTES"
-    for x in ${_nets[@]}; do
-        IFS='@' read -r _net _gw <<< "$x"
-        [ -n "$_gw" ] || _gw="$REMOTE_ADDR"
-        [ -n "$_gw" ] || _gw="${LOCAL_ADDR%/*}"
-
-        info "***** add route $_net @$_gw *****"
-        echocmd ip route add "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
-        echocmd ip route rep "$_net" via "$_gw" dev "$LOCAL_DEVICE" proto static onlink ||
-        # Error: Nexthop has invalid gateway.
-        echocmd ip route add "$_net" via "$_gw" proto static ||
-        echocmd ip route rep "$_net" via "$_gw" proto static ||
-        info "***** add route $_net failed *****"
-    done
-fi
-
 # hack: n2n gateway mode
 if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
     info "***** no socks or dns server for n2n gateway *****"
@@ -162,14 +141,22 @@ if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
     exit
 fi
 
-if [ "$MODE" = route ]; then
+[ "$MODE" = route ] || unset -v ROUTE_FILE
+
+if [ -f "$ROUTE_FILE" ]; then
     info "***** prepare ip2route *****"
+
+    ROUTE_DEVICE="$LOCAL_DEVICE"
+    ROUTE_ADDR="$REMOTE_ADDR"
+    export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE
 
     echocmd /entrypoint.d/ip2route.sh || {
         info "***** ip2route start failed *****"
         exit 1
     }
+fi
 
+if [ "$MODE" = route ]; then
     info "***** fix NAT loopback on $WAN *****"
 
     # MASQUERADE: lan => lan

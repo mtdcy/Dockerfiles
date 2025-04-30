@@ -15,8 +15,9 @@ services:
       - LOCAL_ADDR=10.0.0.110/24
       - REMOTE_ADDR=10.0.0.1
       - LOCAL_DEVICE=n2n0
+      - ROUTE_FILE=/config/route.ip
     volumes:
       - ./n2n:/config
-      - ./data:/config/data
+      - ./route:/config/route
     devices:
       - /dev/net/tun:/dev/net/tun
