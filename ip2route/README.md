@@ -103,6 +103,7 @@ EOF
 
 ## Releases
 
+- 1.0.8 update afw
 - 1.0.7 update afw rules
 - 1.0.6 add sysctl/afw/conntrack/iperf3
 - 1.0.5 add net route support
