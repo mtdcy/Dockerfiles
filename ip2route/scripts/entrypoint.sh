@@ -133,14 +133,6 @@ case "$MODE" in
         ;;
 esac
 
-# hack: n2n gateway mode
-if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
-    info "***** no socks or dns server for n2n gateway *****"
-    info "*****  ** no gateway, access restricted. **  *****"
-    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
-    exit
-fi
-
 [ "$MODE" = route ] || unset -v ROUTE_FILE
 
 if [ -f "$ROUTE_FILE" ]; then
@@ -154,6 +146,14 @@ if [ -f "$ROUTE_FILE" ]; then
         info "***** ip2route start failed *****"
         exit 1
     }
+fi
+
+# hack: n2n gateway mode
+if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
+    info "***** no socks or dns server for n2n gateway *****"
+    info "*****  ** no gateway, access restricted. **  *****"
+    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
+    exit
 fi
 
 if [ "$MODE" = route ]; then
