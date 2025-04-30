@@ -75,15 +75,18 @@ jobs:
           bash --version
           tags() {
             IFS='.' read -r m n r <<< "${{ env.version }}"
-            t=(
-              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
+            tags=(
               ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m
               ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n
             )
-            [ -n "$r" ] && t+=(
+            [ -n "$r" ] && tags+=(
               ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n.$r
             )
-            echo "tags=$(tr ' ' ',' <<< "${t[*]}")" | tee -a $GITHUB_OUTPUT
+            # working directory clean
+            [ -z "$(git status --porcelain)" ] && tags+=(
+              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
+            )
+            echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
           }
 
           tags ip2route
