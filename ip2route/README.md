@@ -2,6 +2,16 @@
 
 A ip routing container based on ssh tunnel, including basic|route|serve modes.
 
+```
+       | gw in route mode |            | host in serve mode |
+ pc --- lan ------> wan ---> internet
+            \             | ssh tunnel |
+             \----> tun0 <--------------> tun0 --------> wan ---> internet
+            ^
+            |
+         ip2route
+```
+
 ## Features
 
 - route based on ipset [files](data/dns.ip). (route mode only)
