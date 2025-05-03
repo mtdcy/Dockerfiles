@@ -131,8 +131,13 @@ IPTd2m() {
         *)          dest="-o $dest" ;;
     esac
 
-    [ -z "$dp" ]    || dest="$dest -m multiport --dports $dp"
-    echo "$not$dest"
+    if [ -z "$dp" ]; then
+        echo "$not$dest"
+    else
+        while read -r match; do
+            echo "$not$dest $match"
+        done < <( IPTp2m "tcp+udp:$dp" )
+    fi
 }
 
 # ==============================================================================
@@ -174,6 +179,17 @@ ALLOW() {
     esac
 }
 
+# REJECT Forward Traffics
+# REJECT source destination[:dports] "match" [comments]
+REJECT() {
+    while read -r match; do
+        case "$3" in
+            *-j*)   IPFsmj "$1" "$match $3" ""    "${@:4}" ;;
+            *)      IPFsmj "$1" "$match $3" BLOCK "${@:4}" ;;
+        esac
+    done < <( IPTd2m "$2" )
+}
+
 # Docker compatible
 # DOCKER source tcp|udp[:dports] "match" [comments]
 DOCKER() {
@@ -209,19 +225,12 @@ IPLtmj() {
 IPLOG() {
     local match=("$(IPTs2m $1)")
     [ -z "$4" ] || match+=("$4")
-    case "$2" in 
-        any|"")
-            while read -r m; do
-                IPLtmj "AFW $IPFT" "${match[*]} $m" "$5"
-            done <<< "$(IPTp2m $3)"
-            ;;
-        *)
-            match+=("$(IPTd2m $2)")
-            while read -r m; do
-                IPLtmj AFW "${match[*]} $m" "$5"
-            done <<< "$(IPTp2m $3)"
-            ;;
-    esac
+    while read -r m; do
+        match+=("$m")
+        while read -r m; do
+            IPLtmj AFW "${match[*]} $m" "$5"
+        done < <( IPTp2m "$3" )
+    done < <( IPTd2m "$2" )
 }
 
 [ "$1" = "help" ] && usage && exit
