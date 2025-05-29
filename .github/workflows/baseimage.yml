@@ -91,6 +91,22 @@ jobs:
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache,mode=max
 
+      - name: Build and Push (ubuntu-22.04)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: baseimage
+          file: baseimage/Dockerfile
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            ubuntu:latest=docker-image://ubuntu:22.04
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
+          build-args: |
+            MIRROR=${{ vars.MIRRORS }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu2204-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu2204-buildcache,mode=max
+
       - name: Build and Push (alpine-latest)
         uses: docker/build-push-action@v6
         with:
