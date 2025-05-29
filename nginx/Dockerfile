@@ -145,7 +145,7 @@ COPY --from=builder /rootfs/ /
 COPY rootfs/ /
 
 # prepare plugins
-ARG NGX_UI_VER=2.0.0-rc.5
+ARG NGX_UI_VER=2.0.2
 
 ARG TARGETPLATFORM
 
