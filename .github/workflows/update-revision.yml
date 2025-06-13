@@ -37,9 +37,9 @@ jobs:
           if curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$n.$((r+1)).tar.gz; then
             r=$((r+1))
           # update minor
-          elif curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$((n+1)).0.tar.gz; then
-            n=$((n+1))
-            r=0
+          # elif curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$((n+1)).0.tar.gz; then
+          #  n=$((n+1))
+          #  r=0
           else
             exit 0
           fi
