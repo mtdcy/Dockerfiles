@@ -207,6 +207,18 @@ DNAT() {
     esac
 }
 
+# SNAT destination tcp|udp:dports "ip|TARGET" [comments]
+SNAT() {
+    while read -r match; do
+        match="$(IPTd2m $1) $match"
+        case "$3" in
+            ^*.*.*.*)   IPTtmj "NAT -t nat" "${match# }" "SNAT --to $3" "${@:4}" ;;
+            "")         IPTtmj "NAT -t nat" "${match# }" "MASQUERADE"   "${@:4}" ;;
+            *)          IPTtmj "NAT -t nat" "${match# }" "$4"           "${@:4}" ;;
+        esac
+    done < <(IPTp2m $2)
+}
+
 # ==============================================================================
 # IPtable Logger
 # IPLtmj target "match" "prefix"
@@ -276,6 +288,10 @@ echocmd "$iptables -I FORWARD -i $WAN -j AFW"
 
 info "enable MASQUERADE to $WAN"
 echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
+
+info "insert NAT to POSTROUTING"
+$iptables -t nat -N NAT 2>/dev/null || $iptables -t nat -F NAT
+echocmd "$iptables -t nat -I POSTROUTING -j NAT"
 
 # for docker and others compatible
 info "patch DOCKER"
