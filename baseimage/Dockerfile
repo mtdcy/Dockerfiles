@@ -39,7 +39,7 @@ RUN <<-EOS
         apt-get install -y \
             bash locales tzdata \
             wget curl \
-            tar xz-utils zstd lzip \
+            tar xz-utils zstd lzip unzip \
             procps \
             iputils-ping \
             bind9-dnsutils \
@@ -55,7 +55,7 @@ RUN <<-EOS
             bash shadow \
             musl-locales tzdata \
             wget curl \
-            tar xz zstd lzip \
+            tar xz zstd lzip unzip \
             procps \
             iputils \
             bind-tools \
