@@ -2,7 +2,7 @@
 
 # options           =
          SOCKS5_PORT="${SOCKS5_PORT:-1070}"
-      SOCKS5_FORWARD="${SOCKS5_FORWARD:-}"
+      SOCKS5_FORWARD="${SOCKS5_FORWARD:-}" # no default forward
       SOCKS5_LOGFILE="${SOCKS5_LOGFILE:-/var/log/socks.log}"
 
 info() {
@@ -14,9 +14,9 @@ echocmd() {
     "$@"
 }
 
-info "init socks5 server 0.0.0.0:$SOCKS5_PORT@${SOCKS5_FORWARD:-localhost}"
+info "init socks5 server 0.0.0.0:$SOCKS5_PORT@$SOCKS5_FORWARD"
 
-socks=( /usr/bin/gost "-L=:$SOCKS5_PORT" )
+socks=( /usr/bin/gost "-L=socks5://:$SOCKS5_PORT" )
 
 [ -z "$SOCKS5_FORWARD" ] || socks+=( "-F=$SOCKS5_FORWARD" )
 

@@ -2,7 +2,8 @@
 name: Build ip2route
 
 env:
-  version: 1.0.8
+  version: 1.0.9
+  platforms: linux/amd64,linux/arm64
 
 on:
   push:
@@ -97,6 +98,7 @@ jobs:
           push: ${{ vars.PUSH_REGISTRY }}
           context: ip2route
           file: ip2route/Dockerfile
+          platforms: ${{ env.platforms }}
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
           tags: ${{ steps.inspect.outputs.tags }}

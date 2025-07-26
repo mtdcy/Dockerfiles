@@ -43,17 +43,30 @@ EOS
 
 COPY scripts/ /
 
-ARG TARGETPLATFORM
-COPY dns2socks/$TARGETPLATFORM/ /
-
 COPY --from=builder /rootfs/ /
 
+ARG TARGETPLATFORM
 # https://github.com/ginuerzh/gost
 ARG GOST_VERSION=2.12.0
+ARG DNS2SOCKS_VERSION=0.2.0
 SHELL ["/bin/bash", "-c"]
 RUN <<-EOS
     set -ex
+    
+    echo "**** install gost ****"
     curl -sL https://github.com/ginuerzh/gost/releases/download/v$GOST_VERSION/gost_${GOST_VERSION}_${TARGETPLATFORM//\//_}.tar.gz | tar -C /usr/bin/ -xz gost
+    
+    echo "**** install dns2socks ****"
+    DNS2SOCKS="https://github.com/tun2proxy/dns2socks/releases/download/v$DNS2SOCKS_VERSION/"
+    case "$TARGETPLATFORM" in 
+        linux/amd64)    DNS2SOCKS+="dns2socks-x86_64-unknown-linux-gnu.zip"     ;;
+        linux/arm64)    DNS2SOCKS+="dns2socks-aarch64-unknown-linux-gnu.zip"    ;;
+    esac
+
+    wget "$DNS2SOCKS"
+    DNS2SOCKS="$(basename "$DNS2SOCKS")"
+    unzip "$DNS2SOCKS" dns2socks -d /usr/bin/
+    rm -f "$DNS2SOCKS"
 EOS
 
 RUN ldconfig
