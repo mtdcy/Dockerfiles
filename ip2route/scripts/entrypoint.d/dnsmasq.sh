@@ -16,7 +16,7 @@ echocmd() {
     "$@"
 }
 
-info "init dsmasq @$DNSMASQ_SERVER:$DNSMASQ_PORT"
+info "init dnsmasq @localhost:$DNSMASQ_PORT => $DNSMASQ_SERVER"
 
 # be carefull with the arguments order
 args=()
@@ -32,7 +32,7 @@ args=()
 # basic settings
 [ -z "$DNSMASQ_SERVER"      ] || args+=( --server="${DNSMASQ_SERVER//:/#}"  )
 [ -z "$DNSMASQ_PORT"        ] || args+=( --port="$DNSMASQ_PORT"             )
-[ -z "$DNSMASQ_INTERFACE"   ] || args+=( --interface="$DNSMASQ_INTERFACE"   )
+[ -z "$DNSMASQ_INTERFACE"   ] || args+=( --bind-interfaces --interface="$DNSMASQ_INTERFACE"   )
 
 # optimized settings
 # use servers strictly in the order by given
