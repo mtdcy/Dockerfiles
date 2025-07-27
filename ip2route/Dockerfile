@@ -41,8 +41,6 @@ RUN <<-EOS
         iperf3 conntrack netcat-openbsd
 EOS
 
-COPY scripts/ /
-
 COPY --from=builder /rootfs/ /
 
 ARG TARGETPLATFORM
@@ -70,6 +68,8 @@ RUN <<-EOS
 EOS
 
 RUN ldconfig
+
+COPY scripts/ /
 
 ENV PATH=/entrypoint.d:$PATH
 
