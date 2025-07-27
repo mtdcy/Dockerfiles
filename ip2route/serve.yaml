@@ -13,8 +13,13 @@ services:
       - MODE=serve
       - LOCAL_ADDR=10.1.1.1/24
       - LOCAL_DEVICE=tun1  # tun0 reserved
-      - DEVICE_COUNT=3
+      # dns server
+      - DNSMASQ_PORT=1053
+      - DNSMASQ_INTERFACE=tun1
       - DNSMASQ_SERVER=8.8.8.8
+      # n2n server
+      - N2N_DEVICE=n2n0
+      - N2N_ADDR=10.1.0.1/24
     volumes:
       - ./serve:/config
     devices:

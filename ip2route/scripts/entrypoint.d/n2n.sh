@@ -5,8 +5,8 @@
             
          REMOTE_HOST="${REMOTE_HOST:-n2n://test@127.0.0.1:7654}" # -l, route mode
 
-        LOCAL_DEVICE="${LOCAL_DEVICE:-n2n0}" # -d
-          LOCAL_ADDR="${LOCAL_ADDR:-10.0.0.1/24}"
+          N2N_DEVICE="${N2N_DEVICE:-n2n0}" # -d
+            N2N_ADDR="${N2N_ADDR:-10.0.0.1/24}"
          REMOTE_ADDR="${REMOTE_ADDR:-}"
 
              N2N_KEY="${N2N_KEY:-}"
@@ -28,18 +28,18 @@ args=(
 )
 
 if [ "$1" = clean ]; then
-    info "clean n2n tunnel $LOCAL_DEVICE"
+    info "clean n2n tunnel $N2N_DEVICE"
 
     pkill -f -INT supernode || true
     pkill -f -INT edge || true
 
-    echocmd /entrypoint.d/iptables.sh flush "$LOCAL_DEVICE"
+    echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE"
 
     exit
 fi
 
 # generate fixed mac addr
-read -r -a seq <<< "$(od -A n -t x1 <<< "$(hostname)$LOCAL_ADDR")"
+read -r -a seq <<< "$(od -A n -t x1 <<< "$(hostname)$N2N_ADDR")"
 mac="${seq[*]:0:5}"
 mac="${mac// /:}"
 
@@ -64,7 +64,7 @@ if [ "$MODE" = serve ]; then
     exit 0
 fi
 
-info "init n2n network @$LOCAL_DEVICE - $LOCAL_ADDR - $REMOTE_ADDR"
+info "init n2n network @$N2N_ADDR($N2N_DEVICE) => $REMOTE_ADDR"
 
 IFS='@:' read -r user host port <<< "${REMOTE_HOST#*//}"
 N2N_COMMUNITY="$user"
@@ -75,10 +75,10 @@ N2N_COMMUNITY="$user"
 # edge mac addr may changes, so flush arp first
 echocmd ip neigh flush all
 
-echocmd /entrypoint.d/iptables.sh flush "$LOCAL_DEVICE" || true
+echocmd /entrypoint.d/iptables.sh flush "$N2N_DEVICE" || true
 
 # check net mask
-[[ "$LOCAL_ADDR" =~ / ]] || LOCAL_ADDR="$LOCAL_ADDR/24"
+[[ "$N2N_ADDR" =~ / ]] || N2N_ADDR="$N2N_ADDR/24"
 
 # client mode
 n2n=( /usr/sbin/edge "${args[@]}" )
@@ -91,9 +91,9 @@ n2n+=( -M 1248 -D )
 # remote
 n2n+=( -l "$host:$port" )
 # tap 
-n2n+=( -d "$LOCAL_DEVICE" )
+n2n+=( -d "$N2N_DEVICE" )
 # ip addr
-n2n+=( -a "static:$LOCAL_ADDR" )
+n2n+=( -a "static:$N2N_ADDR" )
 # mac
 n2n+=( -m "EE:$mac" )
 # forwarding
@@ -112,11 +112,11 @@ info "${n2n[*]}"
 sleep 1
 
 # bugfix: mac addr
-echocmd ip link set dev "$LOCAL_DEVICE" addr "EE:$mac"
+echocmd ip link set dev "$N2N_DEVICE" addr "EE:$mac"
 # bugfix: arp issue when routing
-echocmd sysctl -w "net.ipv4.conf.$LOCAL_DEVICE.proxy_arp=1" || true
+echocmd sysctl -w "net.ipv4.conf.$N2N_DEVICE.proxy_arp=1" || true
 # apply iptables rules
-echocmd /entrypoint.d/iptables.sh "$LOCAL_DEVICE" "$LOCAL_ADDR" "$REMOTE_ADDR"
+echocmd /entrypoint.d/iptables.sh "$N2N_DEVICE" "$N2N_ADDR" "$REMOTE_ADDR"
 
 if [ -n "$REMOTE_ADDR" ]; then
     for _ in {1..9}; do
