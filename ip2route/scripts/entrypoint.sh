@@ -77,7 +77,7 @@ set -eo pipefail
 
 info "***** Mode: $MODE ****"
 
-[ -e /config/logs ] || mkdir -p /config/logs
+mkdir -p /config/logs
 chown nobody:root /config/logs
 
 info "***** prepare host ****"
@@ -220,4 +220,10 @@ fi
 
 info "***** system ready *****"
 
-su nobody -s /bin/bash -c /entrypoint.d/healthd.sh 2>&1 | tee -a /config/logs/healthd.log & wait $!
+ps aux
+
+info "***** start healthd *****"
+
+export HEALTHD_LOGFILE=/config/logs/healthd.log
+
+/entrypoint.d/healthd.sh & wait $!
