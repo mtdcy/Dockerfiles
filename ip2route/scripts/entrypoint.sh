@@ -144,36 +144,19 @@ case "$MODE" in
         ;;
 esac
 
+export RULES_FILE=/config/afw.rules
+if [ "$MODE" = route ] && [ -f "$RULES_FILE" ]; then
+    info "***** prepare firewall *****"
 
-if [ "$MODE" = route ]; then
-    export RULES_FILE=/config/afw.rules
-    if [ -f "$RULES_FILE" ]; then
-        info "***** prepare firewall *****"
+    echocmd /entrypoint.d/afw.sh
 
-        /entrypoint.d/afw.sh
-    fi
+    ROUTE_DEVICE="$LOCAL_DEVICE"
+    ROUTE_ADDR="$REMOTE_ADDR"
+    export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE
+    
+    info "***** prepare ip2route @$ROUTE_DEVICE => $ROUTE_ADDR *****"
 
-    if [ -f "$ROUTE_FILE" ]; then
-        info "***** prepare ip2route *****"
-
-        ROUTE_DEVICE="$LOCAL_DEVICE"
-        ROUTE_ADDR="$REMOTE_ADDR"
-        export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE
-
-        echocmd /entrypoint.d/ip2route.sh || {
-        info "***** ip2route start failed *****"
-            exit 1
-        }
-    fi
-
-    info "***** fix NAT loopback on $WAN *****"
-
-    # MASQUERADE: lan => lan
-    while read -r line; do
-        # shellcheck disable=SC2086
-        echocmd "$iptables" -t nat ${line/-A/-D}
-    done < <("$iptables" -t nat -S POSTROUTING | grep -Fw -- "-o $WAN")
-    echocmd "$iptables" -t nat -I POSTROUTING -s "$NET" -o "$WAN" -m addrtype ! --src-type LOCAL -j MASQUERADE
+    echocmd /entrypoint.d/ip2route.sh
 fi
 
 # hack: n2n gateway mode
@@ -211,7 +194,7 @@ if [ -n "$DNSMASQ_PORT" ]; then
     /entrypoint.d/dnsmasq.sh
 fi
 
-if ss -tunlp | grep -Fwq 5201; then
+if ss -tunlp | grep -Fwq ":5201"; then
     info "***** skip iperf3 as 5201 already in use *****"
 else
     info "***** prepare iperf3 @5201 *****"

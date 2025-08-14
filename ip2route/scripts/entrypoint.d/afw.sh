@@ -15,7 +15,8 @@ set -e
 
 # options       =
              WAN="${WAN:-$(ip route show default | head -n1 | grep -oP 'dev \K\S+')}"
-             NET="${NET:-$(ip addr show "$WAN" | grep -oP 'inet \K\S+')}"
+             LAN="${LAN:-$WAN}"
+             NET="$(ip addr show "$LAN" | grep -oP 'inet \K\S+')"
 
       RULES_FILE="${RULES_FILE:-/config/afw.rules}"
          VERBOSE="${VERBOSE:-}"
@@ -28,8 +29,8 @@ set -e
          BRIDGED="-m physdev --physdev-is-bridged"
           TCPSYN="-p tcp --tcp-flags SYN,RST SYN"
           TCPMSS="TCPMSS --set-mss" # suffix with mss value
+         COMMENT="-m comment --comment"
 
-            IPFT="-t nat"
         iptables="${iptables:-$(which iptables)}"
 
 usage() {
@@ -148,7 +149,7 @@ IPFsmj() {
     [ -z "$2" ] || match="$match $2"
     case "$3" in
         DNAT*)  IPTtmj "AFW -t nat" "${match# }" "$3" "${@:4}" ;;
-        *)      IPTtmj "AFW $IPFT"  "${match# }" "$3" "${@:4}" ;;
+        *)      IPTtmj "AFW -t nat"  "${match# }" "$3" "${@:4}" ;;
     esac
 }
 
@@ -245,6 +246,17 @@ IPLOG() {
     done < <( IPTd2m "$2" )
 }
 
+# CLEAN interface
+FLUSH() {
+    while read -r line; do
+        echocmd "$iptables -t nat ${line/-A/-D}"
+    done < <($iptables -t nat -S | grep -Ew -- "-i $1|-o $1")
+
+    while read -r line; do
+        echocmd "$iptables ${line/-A/-D}"
+    done < <($iptables -S | grep -Ew -- "-i $1|-o $1")
+}
+
 [ "$1" = "help" ] && usage && exit
 
 # always run as root
@@ -254,57 +266,52 @@ IPLOG() {
 # init PREROUTING for DNAT & firewall
 
 # cleanup
-while read -r line; do
-    echocmd "$iptables $IPFT ${line/-A/-D}"
-done < <($iptables $IPFT -S | grep -Ew -- "-i $WAN|-o $WAN")
+FLUSH "$WAN"
+[ "$LAN" = "$WAN" ] || FLUSH "$LAN"
 
-while read -r line; do
-    echocmd "$iptables ${line/-A/-D}"
-done < <($iptables -S | grep -Ew -- "-i $WAN|-o $WAN")
+info "prepare BLOCK TARGET"
+echocmd "$iptables -t nat -N BLOCK" || echocmd "$iptables -t nat -F BLOCK"
+[ -z "$VERBOSE" ] || echocmd "$iptables -t nat -A BLOCK -j LOG --log-prefix 'BLOCK => '"
+echocmd "$iptables -t nat -A BLOCK -j DNAT --to-destination 0.0.0.1"
 
-info "insert AFW to PREROUTING"
-$iptables $IPFT -N AFW 2>/dev/null || $iptables $IPFT -F AFW
-echocmd "$iptables $IPFT -I PREROUTING -i $WAN $LOCAL -j AFW"
+info "prepare PREROUTING/AFW" # => everything to AFW
+echocmd "$iptables -t nat -N AFW" || echocmd "$iptables -t nat -F AFW"
+echocmd "$iptables -t nat -I PREROUTING -i $WAN $LOCAL -j AFW"
+[ "$LAN" = "$WAN" ] || echocmd "$iptables -t nat -I PREROUTING -i $LAN $LOCAL -j AFW"
 
-info "add BLOCK to PREROUTING"
-$iptables $IPFT -N BLOCK 2>/dev/null || $iptables $IPFT -F BLOCK
-echocmd "$iptables $IPFT -A BLOCK -j DNAT --to-destination 0.0.0.1"
-
-[ -z "$VERBOSE" ] || echocmd "$iptables $IPFT -I BLOCK -j LOG --log-prefix 'BLOCK => '"
-
-info "insert AFW to FORWARD"
-$iptables -N AFW 2>/dev/null || $iptables -F AFW
-
+info "prepare FORWARD/AFW"
+echocmd "$iptables -N AFW" || echocmd "$iptables -F AFW"
+# accept tracked connections
+echocmd "$iptables -A AFW $TRACKED -j ACCEPT"
 # https://serverfault.com/questions/157375/reject-vs-drop-when-using-iptables
 echocmd "$iptables -A AFW -d 0.0.0.1/32 -p tcp -j REJECT --reject-with tcp-reset"
 #echocmd "$iptables -A AFW -d 0.0.0.1/32 -p udp -j REJECT --reject-with icmp-port-unreachable"
 echocmd "$iptables -A AFW -d 0.0.0.1/32 -j DROP"
-echocmd "$iptables -A AFW -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT"
-echocmd "$iptables -A AFW -s $NET -j ACCEPT"
-echocmd "$iptables -A AFW -j RETURN"
+echocmd "$iptables -A AFW -j ACCEPT" # in case FORWARD in DROP policy
 
-echocmd "$iptables -I FORWARD -o $WAN -j ACCEPT"
-echocmd "$iptables -I FORWARD -i $WAN -j AFW"
+echocmd "$iptables -I FORWARD -i $WAN ! -s $NET -j AFW $COMMENT 'WAN'"                          #2. WAN => AFW 
+echocmd "$iptables -I FORWARD -i $LAN -s $NET -j ACCEPT $COMMENT 'LAN'"                         #1. LAN
 
-info "enable MASQUERADE to $WAN"
-echocmd "$iptables" -t nat -I POSTROUTING -o "$WAN" -j MASQUERADE
-
-info "insert NAT to POSTROUTING"
-$iptables -t nat -N NAT 2>/dev/null || $iptables -t nat -F NAT
-echocmd "$iptables -t nat -I POSTROUTING -j NAT"
-
-# for docker and others compatible
-info "patch DOCKER"
-echocmd "$iptables $IPFT -A DOCKER -i $WAN -j ACCEPT"
+info "prepare POSTROUTING/NAT"
+echocmd "$iptables -t nat -N NAT" || echocmd "$iptables -t nat -F NAT"
+echocmd "$iptables -t nat -I POSTROUTING -s $NET ! -o $LAN -j MASQUERADE $COMMENT 'NAT => WAN'" #2. NAT => WAN
+echocmd "$iptables -t nat -I POSTROUTING -d $NET -o $LAN -j NAT $COMMENT 'SNAT => LAN'"         #1. SNAT => LAN
 
 if [ -f "$RULES_FILE" ]; then
+    info "apply rules $RULES_FILE"
     source "$RULES_FILE"
 else
-    echocmd "iptables $IPFT -A AFW -j RETURN"
+    echocmd "$iptables -t nat -A AFW -j RETURN $COMMENT 'no afw rules'"
     info "no afw rules, exit"
     exit
 fi
 
+info "postproc PREROUTING/AFW"
+echocmd "$iptables -t nat -A AFW -s $NET -j ACCEPT $COMMENT 'Allow/Local'"          # allow local traffics
+echocmd "$iptables -t nat -A AFW -j BLOCK $COMMENT 'Block/All'"                     # block all
 
-echocmd $iptables -t nat -vnL PREROUTING
-echocmd $iptables -t nat -vnL AFW
+info "patch NAT loopback"
+echocmd "$iptables -t nat -I POSTROUTING -s $NET -d $NET -o $LAN -m addrtype ! --src-type LOCAL -j MASQUERADE $COMMENT 'NAT loopback'"
+
+echocmd "$iptables -t nat -vnL PREROUTING"
+echocmd "$iptables -t nat -vnL AFW"

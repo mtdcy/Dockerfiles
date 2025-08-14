@@ -41,6 +41,5 @@ ALLOW   $NET            tcp:80,443,8443         ""                  "ALLOW/http"
 ALLOW   $NET            tcp+udp:1070            ""                  "ALLOW/sockss"
 ALLOW   $NET            udp:6677                ""                  "ALLOW/N2N"
 
-BLOCK   any             all                     ""                  "BLOCK/ALL" # FINAL: Block All
 # ==============================================================================
 
