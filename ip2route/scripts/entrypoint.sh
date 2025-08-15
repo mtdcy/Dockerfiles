@@ -188,8 +188,9 @@ if [ -n "$DNSMASQ_PORT" ]; then
 
     info "***** prepare dns server *****"
 
-    DNSMASQ_LOGFILE=/config/logs/dnsmasq.log
-    export DNSMASQ_PORT DNSMASQ_INTERFACE DNSMASQ_SERVER DNSMASQ_IPSET DNSMASQ_LOGFILE
+    export DNSMASQ_DIR=/config/
+    export DNSMASQ_LOGFILE="$DNSMASQ_DIR/logs/dnsmasq.log"
+    export DNSMASQ_PORT DNSMASQ_INTERFACE DNSMASQ_SERVER DNSMASQ_IPSET
 
     /entrypoint.d/dnsmasq.sh
 fi
