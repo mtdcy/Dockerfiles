@@ -16,6 +16,7 @@
         ROUTE_DEVICE="${ROUTE_DEVICE:-tun0}"
           ROUTE_ADDR="${ROUTE_ADDR:-}"
           ROUTE_FILE="${ROUTE_FILE:-/config/route/default.lst}"
+         ROUTE_FLUSH="${ROUTE_FLUSH:-true}"
 
        DNSMASQ_IPSET="${DNSMASQ_IPSET:-/config/dnsmasq.ipset}"
 
@@ -57,7 +58,9 @@ update_ipset() {
 
     #echo "cidr: $cidr"
     # destroy will fail if ipset is in use.
-    ipset -q destroy "$name" || ipset -q flush "$name" || true
+    if [ "$ROUTE_FLUSH" = "true" ]; then
+        ipset -q destroy "$name" || ipset -q flush "$name" || true
+    fi
 
     # create an ipset
     if [ "$cidr" -eq 0 ]; then

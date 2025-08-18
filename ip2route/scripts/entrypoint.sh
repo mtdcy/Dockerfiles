@@ -152,7 +152,7 @@ if [ "$MODE" = route ] && [ -f "$RULES_FILE" ]; then
 
     ROUTE_DEVICE="$LOCAL_DEVICE"
     ROUTE_ADDR="$REMOTE_ADDR"
-    export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE
+    export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE ROUTE_FLUSH
     
     info "***** prepare ip2route @$ROUTE_DEVICE => $ROUTE_ADDR *****"
 
