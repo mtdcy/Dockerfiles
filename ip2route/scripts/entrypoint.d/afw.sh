@@ -274,10 +274,12 @@ echocmd "$iptables -t nat -N BLOCK" || echocmd "$iptables -t nat -F BLOCK"
 [ -z "$VERBOSE" ] || echocmd "$iptables -t nat -A BLOCK -j LOG --log-prefix 'BLOCK => '"
 echocmd "$iptables -t nat -A BLOCK -j DNAT --to-destination 0.0.0.1"
 
-info "prepare PREROUTING/AFW" # => everything to AFW
+info "prepare PREROUTING/AFW" 
 echocmd "$iptables -t nat -N AFW" || echocmd "$iptables -t nat -F AFW"
+# WAN => AFW
 echocmd "$iptables -t nat -I PREROUTING -i $WAN $LOCAL -j AFW"
-[ "$LAN" = "$WAN" ] || echocmd "$iptables -t nat -I PREROUTING -i $LAN $LOCAL -j AFW"
+# LAN => ACCEPT
+[ "$LAN" = "$WAN" ] || echocmd "$iptables -t nat -I PREROUTING -i $LAN $LOCAL -j ACCEPT"
 
 info "prepare FORWARD/AFW"
 echocmd "$iptables -N AFW" || echocmd "$iptables -F AFW"
@@ -289,13 +291,14 @@ echocmd "$iptables -A AFW -d 0.0.0.1/32 -p tcp -j REJECT --reject-with tcp-reset
 echocmd "$iptables -A AFW -d 0.0.0.1/32 -j DROP"
 echocmd "$iptables -A AFW -j ACCEPT" # in case FORWARD in DROP policy
 
+echocmd "$iptables -P FORWARD ACCEPT" # force ACCEPT policy
 echocmd "$iptables -I FORWARD -i $WAN ! -s $NET -j AFW $COMMENT 'WAN'"                          #2. WAN => AFW 
 echocmd "$iptables -I FORWARD -i $LAN -s $NET -j ACCEPT $COMMENT 'LAN'"                         #1. LAN
 
 info "prepare POSTROUTING/NAT"
 echocmd "$iptables -t nat -N NAT" || echocmd "$iptables -t nat -F NAT"
-echocmd "$iptables -t nat -I POSTROUTING -s $NET ! -o $LAN -j MASQUERADE $COMMENT 'NAT => WAN'" #2. NAT => WAN
-echocmd "$iptables -t nat -I POSTROUTING -d $NET -o $LAN -j NAT $COMMENT 'SNAT => LAN'"         #1. SNAT => LAN
+echocmd "$iptables -t nat -I POSTROUTING -s $NET ! -o $LAN -j MASQUERADE $COMMENT 'WAN/NAT'"    #2. NAT => WAN
+echocmd "$iptables -t nat -I POSTROUTING -d $NET -o $LAN -j NAT $COMMENT 'LAN/SNAT'"            #1. SNAT => LAN
 
 if [ -f "$RULES_FILE" ]; then
     info "apply rules $RULES_FILE"
