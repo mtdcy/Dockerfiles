@@ -80,6 +80,9 @@ info "***** Mode: $MODE ****"
 mkdir -p /config/logs
 chown nobody:root /config/logs
 
+# simple logrotate
+find /config/logs -name "*.log" -exec gzip -f {} \;
+
 info "***** prepare host ****"
 
 # test dns server
