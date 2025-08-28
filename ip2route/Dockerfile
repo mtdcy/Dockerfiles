@@ -33,12 +33,13 @@ RUN <<-EOS
     echo "**** install essentials ****"
 
     apt-get update
-    apt-get install -y -q             \
-        kmod iptables ipset           \
-        iproute2 traceroute           \
-        openssh-client openssh-server \
-        dnsmasq moreutils ipcalc-ng   \
-        iperf3 conntrack netcat-openbsd
+    apt-get install -y -q               \
+        kmod iptables ipset             \
+        iproute2 traceroute             \
+        openssh-client openssh-server   \
+        dnsmasq moreutils ipcalc-ng     \
+        iperf3 conntrack netcat-openbsd \
+        dnsutils conntrack
 EOS
 
 COPY --from=builder /rootfs/ /
