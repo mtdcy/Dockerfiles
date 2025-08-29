@@ -48,6 +48,18 @@ net.ipv4.tcp_syncookies=1
 net.ipv4.tcp_synack_retries=2
 net.ipv4.tcp_max_tw_buckets=5000
 net.ipv4.tcp_max_syn_backlog=4096
+
+# https://feisky.gitbooks.io/sdn/content/linux/params.html
+# conntrack: 4G
+net.netfilter.nf_conntrack_buckets=65536
+net.netfilter.nf_conntrack_max=262144
+net.netfilter.nf_conntrack_tcp_timeout_established=300
+net.netfilter.nf_conntrack_acct=1
+
+# disable bridge nf to improve performance
+net.bridge.bridge-nf-call-iptables=0
+net.bridge.bridge-nf-call-ip6tables=0
+net.bridge.bridge-nf-call-arptables=0
 EOF
 
 # ignore errors
