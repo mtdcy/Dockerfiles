@@ -26,7 +26,7 @@ export           N2N_KEY="${N2N_KEY:-}"
 export          N2N_OPTS="${N2N_OPTS:-}"
 
 export               WAN="${WAN:-$(ip route show default | head -n1 | grep -oP 'dev \K\S+')}"
-export               NET="${NET:-$(ip addr show "$WAN" | grep -oP 'inet \K\S+')}"
+export               LAN="${LAN:-$WAN}"
 
 export        ROUTE_FILE="${ROUTE_FILE:-/config/route/route.lst}"
 

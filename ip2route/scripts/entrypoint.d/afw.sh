@@ -211,11 +211,11 @@ DNAT() {
 # SNAT destination tcp|udp:dports "ip|TARGET" [comments]
 SNAT() {
     while read -r match; do
-        match="$(IPTd2m $1) $match"
+        match="-o $LAN $(IPTd2m $1) $match"
         case "$3" in
-            ^*.*.*.*)   IPTtmj "NAT -t nat" "${match# }" "SNAT --to $3" "${@:4}" ;;
-            "")         IPTtmj "NAT -t nat" "${match# }" "MASQUERADE"   "${@:4}" ;;
-            *)          IPTtmj "NAT -t nat" "${match# }" "$4"           "${@:4}" ;;
+            ^*.*.*.*)   IPTtmj "POSTROUTING -t nat" "${match# }" "SNAT --to $3" "${@:4}" ;;
+            "")         IPTtmj "POSTROUTING -t nat" "${match# }" "MASQUERADE"   "${@:4}" ;;
+            *)          IPTtmj "POSTROUTING -t nat" "${match# }" "$4"           "${@:4}" ;;
         esac
     done < <(IPTp2m $2)
 }
@@ -292,13 +292,8 @@ echocmd "$iptables -A AFW -d 0.0.0.1/32 -j DROP"
 echocmd "$iptables -A AFW -j ACCEPT" # in case FORWARD in DROP policy
 
 echocmd "$iptables -P FORWARD ACCEPT" # force ACCEPT policy
-echocmd "$iptables -I FORWARD -i $WAN ! -s $NET -j AFW $COMMENT 'WAN'"                          #2. WAN => AFW 
-echocmd "$iptables -I FORWARD -i $LAN -s $NET -j ACCEPT $COMMENT 'LAN'"                         #1. LAN
-
-info "prepare POSTROUTING/NAT"
-echocmd "$iptables -t nat -N NAT" || echocmd "$iptables -t nat -F NAT"
-echocmd "$iptables -t nat -I POSTROUTING -s $NET ! -o $LAN -j MASQUERADE $COMMENT 'WAN/NAT'"    #2. NAT => WAN
-echocmd "$iptables -t nat -I POSTROUTING -d $NET -o $LAN -j NAT $COMMENT 'LAN/SNAT'"            #1. SNAT => LAN
+echocmd "$iptables -I FORWARD -i $WAN ! -s $NET -j AFW $COMMENT 'WAN'"              #2. WAN => AFW 
+echocmd "$iptables -I FORWARD -i $LAN -s $NET -j ACCEPT $COMMENT 'LAN'"             #1. LAN
 
 if [ -f "$RULES_FILE" ]; then
     info "apply rules $RULES_FILE"
@@ -313,8 +308,13 @@ info "postproc PREROUTING/AFW"
 echocmd "$iptables -t nat -A AFW -s $NET -j ACCEPT $COMMENT 'Allow/Local'"          # allow local traffics
 echocmd "$iptables -t nat -A AFW -j BLOCK $COMMENT 'Block/All'"                     # block all
 
-info "patch NAT loopback"
+info "enable NAT loopback"
 echocmd "$iptables -t nat -I POSTROUTING -s $NET -d $NET -o $LAN -m addrtype ! --src-type LOCAL -j MASQUERADE $COMMENT 'NAT loopback'"
+
+if [ "$LAN" != "$WAN" ]; then
+    info "enable MASQUERADE"
+    echocmd "$iptables -t nat -I POSTROUTING -o $WAN -j MASQUERADE $COMMENT 'WAN/NAT'"
+fi
 
 echocmd "$iptables -t nat -vnL PREROUTING"
 echocmd "$iptables -t nat -vnL AFW"
