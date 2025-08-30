@@ -113,36 +113,36 @@ elif [ ! -z "$host" ]; then
     echo -e " #$host => |${host4//$'\n'/;}|${host6//$'\n'/;}|\n"
 fi
 
-if [ ! -z "$host4" ] || [ -z "$host" ]; then
-    echo " #IPv4 Connections"
+if [ -n "$host4" ] || [ -z "$host" ]; then
+    echo " # IPv4"
     WI=$W4
-    printf " %-7s %-${WI}s => %-${WI}s %-11s \t%s\n" "#proto" "#source" "#destition" "#state" "# >next | @gw"
+    printf " %-7s %-${WI}s => %-${WI}s %11s \t%s\n" "proto" "source" "destition" "state" ">next | @gw"
     if [ -z "$host" ]; then
         conntrack -f ipv4 -L 2> /dev/null || true               # list all
     else
         while read -r line; do
-            conntrack -f ipv4 -L -s $line 2>/dev/null || true   # match source
-            conntrack -f ipv4 -L -d $line 2>/dev/null || true   # match destination
-            conntrack -f ipv4 -L -r $line 2>/dev/null || true   # match reply source
-            conntrack -f ipv4 -L -q $line 2>/dev/null || true   # match reply destination
+            conntrack -f ipv4 -L -s $line || true   # match source
+            conntrack -f ipv4 -L -d $line || true   # match destination
+            #conntrack -f ipv4 -L -r $line || true   # match reply source
+            #conntrack -f ipv4 -L -q $line || true   # match reply destination
         done <<< "$host4"
-    fi | grep -v "127.0.0.1" | format_lines
+    fi 2>/dev/null | grep -v "127.0.0.1" | format_lines
     echo ""
 fi
 
-if [ ! -z "$host6" ] || [ -z "$host" ]; then
-    echo " #IPv6 Connections"
+if [ -n "$host6" ] || [ -z "$host" ]; then
+    echo " # IPv6"
     WI=$W6
-    printf " %-7s %-${WI}s => %-${WI}s %-11s \t%s\n" "#proto" "#source" "#destition" "#state" "# >next | @gw"
+    printf " %-7s %-${WI}s => %-${WI}s %11s \t%s\n" "proto" "source" "destition" "state" ">next | @gw"
     if [ -z "$host" ]; then
         conntrack -f ipv6 -L 2> /dev/null || true               # list all
     else
         while read -r line; do
-            conntrack -f ipv6 -L -s $line 2>/dev/null || true   # match source
-            conntrack -f ipv6 -L -d $line 2>/dev/null || true   # match destination
-            conntrack -f ipv6 -L -r $line 2>/dev/null || true   # match reply source
-            conntrack -f ipv6 -L -q $line 2>/dev/null || true   # match reply destination
+            conntrack -f ipv6 -L -s $line || true   # match source
+            conntrack -f ipv6 -L -d $line || true   # match destination
+            #conntrack -f ipv6 -L -r $line || true   # match reply source
+            #conntrack -f ipv6 -L -q $line || true   # match reply destination
         done <<< "$host6"
-    fi | grep -v "::1" | format_lines
+    fi 2>/dev/null | grep -v "::1" | format_lines
     echo ""
 fi
