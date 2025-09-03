@@ -151,18 +151,10 @@ RUN <<-EOS
     rm -rf /etc/cron.*
 EOS
 
-# prepare rootfs
-COPY --from=builder /rootfs/ /
-COPY rootfs/ /
-
-# prepare plugins
-ARG NGX_UI_VER=2.1.14
-
+ARG NGX_UI_VER=2.1.17
 ARG TARGETPLATFORM
-
-SHELL ["bash", "-c"]
 RUN <<-EOS
-    set -ex -o pipefail
+    set -ex
     echo "**** prepare nginx-ui ****"
 
     TARGET="linux-64"
@@ -171,7 +163,15 @@ RUN <<-EOS
     esac
 
     curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+EOS
 
+# prepare rootfs
+COPY --from=builder /rootfs/ /
+COPY rootfs/ /
+
+SHELL ["bash", "-c"]
+RUN <<-EOS
+    set -ex -o pipefail
     echo "**** finish ****"
 
     ldconfig
