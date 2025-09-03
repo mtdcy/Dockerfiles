@@ -131,13 +131,24 @@ RUN <<-EOS
             libpcre3 libxslt1.1 libgd3 libgeoip1t64 \
             perl openssl nginx-full \
             cron logrotate
+    
+        echo "**** prepare goaccess ****"
+        apt-get install -y goaccess
+
         apt-get autoremove
         apt-get clean
         rm -rf /var/lib/apt/lists/*
     else
         apk update
-        apk add --no-cache nginx cron logrotate
+        apk add --no-cache nginx cron logrotate goaccess
     fi
+
+    # goaccess: share the same conf dir with nginx
+    mv /etc/goaccess/* /etc/nginx/
+    rm -rf /etc/goaccess
+
+    # no default crontab for logrotate
+    rm -rf /etc/cron.*
 EOS
 
 # prepare rootfs
@@ -171,14 +182,12 @@ RUN <<-EOS
 
     ln -sfv /dev/stdout /var/log/nginx/access.log
     ln -sfv /dev/stderr /var/log/nginx/error.log
-
-    # no default crontab for logrotate
-    rm -rf /etc/cron.*
 EOS
 
-# 8080 for mgmt
-EXPOSE  80 443 8080
+# 8080 for mgmt, 7890 for goaccess
+EXPOSE  80 443 8080 7890
 
 VOLUME /etc/nginx
+VOLUME /var/www/html
 
 ENTRYPOINT ["/entrypoint.sh"]

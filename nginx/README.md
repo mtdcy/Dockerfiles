@@ -13,6 +13,8 @@ docker run -it -d --name nginx \
 
 Access nginx ui with http://<your_ip>:8080.
 
+Access nginx statistics with http://<your_ip>/report.html
+
 ### Resources
 
 - default [nginx.conf](rootfs/etc/nginx/nginx.conf).
@@ -28,3 +30,4 @@ Access nginx ui with http://<your_ip>:8080.
 ## Plugins
 
 - [nginx-ui](https://github.com/0xJacky/nginx-ui)
+- [goaccess](https://github.com/allinurl/goaccess)

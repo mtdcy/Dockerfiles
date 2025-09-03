@@ -41,6 +41,9 @@ if [ -z "$1" ]; then
     chown -R www-data /var/lib/nginx /var/log/nginx
     chmod -R 0750 /var/log/nginx
 
+    touch /var/log/nginx/access.log
+    touch /var/log/nginx/error.log
+
     # some directories included by nginx.conf
     mkdir -p /etc/nginx/conf.d
     mkdir -p /etc/nginx/sites-available
@@ -51,7 +54,7 @@ if [ -z "$1" ]; then
     # always start plugins as root
     for x in /entrypoint.d/*; do
         info "**** start plugins $(basename "$x") ****"
-        sh "$x" &
+        bash "$x" &
         sleep 1
     done
 
