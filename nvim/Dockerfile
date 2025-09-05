@@ -106,6 +106,13 @@ RUN <<-EOS
     cd /opt/nvim
 
     ./install.sh --no-update
+
+    echo "🟢 remove caches 🟢"
+
+    rm -rf $HOME/.cache
+    rm -rf $HOME/.npm
+
+    rm -rf .git
 EOS
 
 COPY entrypoint.sh /
