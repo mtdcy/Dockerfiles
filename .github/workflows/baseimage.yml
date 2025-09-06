@@ -19,7 +19,7 @@ env:
   alpine: 3
   msys2: 20250221
   wine_url: https://gitlab.winehq.org/jhol/wine.git
-  wine_tag: msys2-hacks-19
+  wine_tag: msys2-hacks-21
 
 jobs:
   build-baseimage:
@@ -139,8 +139,7 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-            WINE_URL=${{ env.wine_url }}
-            WINE_TAG=${{ env.wine_tag }}
+            WINE_REPO=${{ env.wine_url }}#${{ env.wine_tag }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache,mode=max
 
@@ -153,7 +152,7 @@ jobs:
           # only amd64
           platforms: linux/amd64
           build-contexts: |
-            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-msys2-hacks-19
+            ubuntu:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ env.msys2 }}
