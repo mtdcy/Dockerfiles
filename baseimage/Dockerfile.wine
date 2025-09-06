@@ -3,7 +3,7 @@
 # refer: https://github.com/msys2/msys2-docker/blob/main/build-base/Dockerfile
 FROM ubuntu:latest AS builder
 
-ARG WINE_REPO=https://gitlab.winehq.org/jhol/wine.git#msys2-hacks-19
+ARG WINE_REPO=https://gitlab.winehq.org/jhol/wine.git#msys2-hacks-21
 ADD $WINE_REPO /tmp/wine.git
 
 RUN <<-EOS
