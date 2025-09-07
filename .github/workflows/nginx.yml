@@ -19,6 +19,10 @@ on:
 
 env:
   platforms: linux/amd64,linux/arm64
+  nginx: 1.28.0
+  geoip2: 3.4
+  fancyindex: 0.5.2
+  nginx-ui: 2.1.17
 
 jobs:
   build-nginx:
@@ -30,7 +34,6 @@ jobs:
         with:
           submodules: false
           fetch-depth: 1
-
       - name: Login
         env:
           password: ${{ secrets.REGISTRY_TOKEN }}
@@ -72,20 +75,15 @@ jobs:
       - name: Inspect
         id: inspect
         run: |
-          tags() {
-            IFS='=.' read -r _ m n r <<< "$(grep "$2=" $1/Dockerfile)"
-            t=(
-              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:latest
-              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m
-              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n
-            )
-            [ -n "$r" ] && t+=(
-              ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/$1:$m.$n.$r
-            )
-            echo "tags=$(tr ' ' ',' <<< "${t[*]}")" | tee -a $GITHUB_OUTPUT
-          }
+          IFS='=.' read -r m n r <<< "${{ env.nginx }}"
 
-          tags nginx NGX_VER
+          tags=(
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n.$r
+          )
+          echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
 
       - name: Build and Push
         uses: docker/build-push-action@v6
@@ -96,6 +94,11 @@ jobs:
           platforms: ${{ env.platforms }}
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+          build-args: |
+            NGX_VER=${{ env.nginx }}
+            NGX_GEOIP2_VER=${{ env.geoip2 }}
+            NGX_FANCYINDEX_VER=${{ env.fancyindex }}
+            NGX_UI_VER=${{ env.nginx-ui }}
           tags: ${{ steps.inspect.outputs.tags }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:buildcache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:buildcache,mode=max
