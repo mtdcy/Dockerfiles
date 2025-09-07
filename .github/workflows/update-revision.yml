@@ -31,27 +31,43 @@ jobs:
         run: |-
           set -ex
 
-          IFS='=.' read -r _ m n r <<< "$(grep 'NGX_VER=' nginx/Dockerfile)"
+          IFS='=.' read -r m n r <<< "$(yq '.env.nginx' .github/workflows/nginx.yml)"
 
           # update revision
           if curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$n.$((r+1)).tar.gz; then
             r=$((r+1))
           # update minor
           # elif curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$((n+1)).0.tar.gz; then
-          #  n=$((n+1))
-          #  r=0
+          #   n=$((n+1))
+          #   r=0
           else
             exit 0
           fi
 
-          echo "update nginx => $m.$n.$r"
-          sed -e "s/NGX_VER=.*$/NGX_VER=$m.$n.$r/" -i nginx/Dockerfile
-
           curl --fail -sL https://nginx.org/en/CHANGES-$m.$n -o nginx/NGX_CHANGES ||
           curl --fail -sL https://nginx.org/en/CHANGES -o nginx/NGX_CHANGES || true
 
-          git add nginx
-          git commit -m "update nginx => $m.$n.$r"
+          sed -i "s/nginx:.*$/nginx: $m.$n.$r/" .github/workflows/nginx.yml
+          message="update nginx => $m.$n.$r"
+
+          # geoip2
+          IFS='.' read -r m n <<< "$(yq '.env.geoip2' .github/workflows/nginx.yml)"
+          if curl --fail -sIL -o /dev/null https://github.com/leev/ngx_http_geoip2_module/archive/$m.$((n+1)).tar.gz; then
+            n=$((n+1))
+            sed -i "s/geoip2:.*$/geoip2: $m.$n/" .github/workflows/nginx.yml
+            message="$message/geoip2=> $m.$n"
+          fi
+
+          # fancyindex
+          IFS='.' read -r m n r <<< "$(yq '.env.fancyindex' .github/workflows/nginx.yml)"
+          if curl --fail -sIL -o /dev/null https://github.com/aperezdc/ngx-fancyindex/archive/v$m.$n.$((r+1)).tar.gz; then
+            r=$((r+1))
+            sed -i "s/fancyindex:.*$/fancyindex: $m.$n.$r/" .github/workflows/nginx.yml
+            message="$message/fancyindex => $m.$n.$r"
+          fi
+
+          git add nginx .github/workflows/nginx.yml
+          git commit -m "$message"
 
       - name: Commit
         shell: bash
