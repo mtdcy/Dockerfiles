@@ -59,7 +59,7 @@ if [ -z "$1" ]; then
     done
 
     info "**** start crontab process ****"
-    /usr/sbin/cron -P -L 15
+    /usr/sbin/cron -P -L 15 -f > /var/log/cron.log 2>&1 &
 
     info "**** start nginx process ****"
     exec $(which nginx) -g "daemon off; master_process on;"
