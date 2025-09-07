@@ -54,7 +54,7 @@ if [ -z "$1" ]; then
     # always start plugins as root
     for x in /entrypoint.d/*; do
         info "**** start plugins $(basename "$x") ****"
-        bash "$x" &
+        bash "$x"
         sleep 1
     done
 
