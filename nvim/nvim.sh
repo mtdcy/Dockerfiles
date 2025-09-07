@@ -14,10 +14,13 @@ fi
 
 [ "$*" = "--update" ] && exit 0
 
+# user
 opts+=( --user "$(id -u):$(id -g)" -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group )
-
+# ncopyc.sh
+opts+=( -e "SSH_CLIENT=$SSH_CLIENT" )
+# HOME
 opts+=( -v "$HOME:$HOME" )
-
+# PWD
 opts+=( -w "$PWD" )
 
 [[ "$PWD" =~ ^$HOME ]] || opts+=( -v "$PWD:$PWD" )
