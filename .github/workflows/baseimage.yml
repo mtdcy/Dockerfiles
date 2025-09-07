@@ -17,7 +17,7 @@ env:
   platforms: linux/amd64,linux/arm64
   ubuntu: 24.04
   alpine: 3
-  msys2: 20250221
+  msys2: 20250830
   wine_url: https://gitlab.winehq.org/jhol/wine.git
   wine_tag: msys2-hacks-21
 
