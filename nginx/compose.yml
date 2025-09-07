@@ -19,7 +19,8 @@ services:
       - GOACCESS_PORT=7890
     volumes:
       - nginx:/etc/nginx  # site config
-      - /var/log:/var/log
+      - html:/var/www/html  # site contents
+      - logs:/var/log  # logs
     ports:
       - 80:80
       - 443:443
@@ -35,3 +36,5 @@ services:
 
 volumes:
   nginx: null
+  html: null
+  logs: null

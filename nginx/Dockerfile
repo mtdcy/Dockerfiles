@@ -174,9 +174,6 @@ RUN <<-EOS
 
     rm -fv /var/www/html/*
     cp -fv /etc/nginx.default/index.html /var/www/html/
-
-    ln -sfv /dev/stdout /var/log/nginx/access.log
-    ln -sfv /dev/stderr /var/log/nginx/error.log
 EOS
 
 # 8080 for mgmt, 7890 for goaccess
@@ -184,5 +181,6 @@ EXPOSE  80 443 8080 7890
 
 VOLUME /etc/nginx
 VOLUME /var/www/html
+VOLUME /var/log
 
 ENTRYPOINT ["/entrypoint.sh"]
