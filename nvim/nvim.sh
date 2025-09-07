@@ -28,7 +28,7 @@ for x in "$@"; do
         *)
             test -f "$x" || touch "$x"
             x="$(realpath "$x")"
-            [[ "$x" =~ "$HOME" ]] || [[ "$x" =~ "$PWD" ]] || opts+=( -v "$x:$x" )
+            [[ "$x" =~ ^$HOME ]] || [[ "$x" =~ ^"$PWD" ]] || opts+=( -v "$x:$x" )
             ;;
     esac
 done
