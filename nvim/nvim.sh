@@ -15,26 +15,25 @@ fi
 [ "$*" = "--update" ] && exit 0
 
 # user
-opts+=( --user "$(id -u):$(id -g)" -v /etc/passwd:/etc/passwd -v /etc/group:/etc/group )
+[ "$(id -u)" -eq 0 ] || opts+=( -e "PUID=$(id -u)" -e "PGID=$(id -g)" )
 # ncopyc.sh
-opts+=( -e "SSH_CLIENT=$SSH_CLIENT" )
+[ -z "$SSH_CLIENT" ] || opts+=( -e "SSH_CLIENT=$SSH_CLIENT" )
 # HOME
 opts+=( -v "$HOME:$HOME" )
 # PWD
+[[ "$PWD" =~ ^$HOME ]] || opts+=( -v "$PWD:$PWD" )
 opts+=( -w "$PWD" )
 
-[[ "$PWD" =~ ^$HOME ]] || opts+=( -v "$PWD:$PWD" )
-
-for x in "$@"; do
-    case "$x" in
+for v in "$@"; do
+    case "$v" in
         -*) ;;
         *)
             # files must exists before mounting
-            test -e "$x" || touch "$x"
+            test -e "$v" || touch "$v"
             # get full path
-            x="$(realpath -s "$x")"
-
-            [[ "$x" =~ ^$HOME ]] || [[ "$x" =~ ^$PWD ]] || opts+=( -v "$x:$x" )
+            v="$(realpath -s "$v")"
+            # mount if not in HOME or PWD
+            [[ "$v" =~ ^$HOME ]] || [[ "$v" =~ ^$PWD ]] || opts+=( -v "$v:$v" )
             ;;
     esac
 done

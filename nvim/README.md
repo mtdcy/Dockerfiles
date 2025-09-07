@@ -14,4 +14,3 @@ chmod a+x /usr/local/bin/nvim
 ## Known Issues
 
 - Can't edit some files if which mounting to docker causes docker to stop running.
-- Won't work if user name is not in /etc/passwd like macOS.

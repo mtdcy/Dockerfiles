@@ -1,5 +1,11 @@
 #!/bin/bash
 
-[ -f "$HOME/.local/share/nvim/rplugin.vim" ] || nvim -c 'UpdateRemotePlugins' +quit
+if [ "$(id -u)" -eq 0 ]; then
+    exec "$@"
+else
+    # apply PUID:PGID
+    [ -z "$PUID" ] || usermod nvim -u "$PUID" 2>/dev/null || true
+    [ -z "$PGID" ] || groupmod nvim -g "$PGID" 2>/dev/null || true
 
-exec "$@"
+    exec sudo -u nvim "$@"
+fi

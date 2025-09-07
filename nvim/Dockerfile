@@ -113,6 +113,12 @@ RUN <<-EOS
     rm -rf $HOME/.npm
 
     rm -rf .git
+    
+    echo "🟢 add user nvim 🟢"
+
+    useradd -U -m -s /bin/bash nvim
+
+    sudo -u nvim nvim -c 'packloadall | silent! helptags ALL | UpdateRemotePlugins' +quit
 EOS
 
 COPY entrypoint.sh /
