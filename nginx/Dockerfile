@@ -2,12 +2,10 @@
 FROM baseimage:latest AS builder
 
 ARG NGX_VER=1.27.5
-ARG NGX_CONNECT_VER=0.0.7
 ARG NGX_GEOIP2_VER=3.4
 ARG NGX_FANCYINDEX_VER=0.5.2
 
 ADD https://github.com/leev/ngx_http_geoip2_module/archive/$NGX_GEOIP2_VER.tar.gz \
-    https://github.com/chobits/ngx_http_proxy_connect_module/archive/v$NGX_CONNECT_VER.tar.gz \
     https://github.com/aperezdc/ngx-fancyindex/archive/v$NGX_FANCYINDEX_VER.tar.gz \
     http://nginx.org/download/nginx-$NGX_VER.tar.gz \
     /tmp/build/
@@ -51,13 +49,8 @@ RUN <<-EOS
 
     cd /tmp/build
     find . -name "*.tar.gz" -exec tar -xf {} \;
-    cd nginx-$NGX_VER
-    case "$NGX_VER" in
-        1.24.*|1.25.*|1.26.*|1.27.*)
-            patch -p1 < ../ngx_http_proxy_connect_module-$NGX_CONNECT_VER/patch/proxy_connect_rewrite_102101.patch
-            ;;
-    esac
 
+    cd nginx-$NGX_VER
     ./configure \
         --with-cc-opt='-g -O2 -flto=auto -ffat-lto-objects -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2' \
         --with-ld-opt='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto -Wl,-z,relro -Wl,-z,now -fPIC' \
@@ -102,7 +95,6 @@ RUN <<-EOS
         --with-stream_geoip_module                       \
         --with-stream_ssl_preread_module                 \
         --add-module=../ngx_http_geoip2_module-$NGX_GEOIP2_VER          \
-        --add-module=../ngx_http_proxy_connect_module-$NGX_CONNECT_VER  \
         --add-module=../ngx-fancyindex-$NGX_FANCYINDEX_VER
     make
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
