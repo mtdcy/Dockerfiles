@@ -8,3 +8,4 @@ ip2route/logs
 ip2route/n2n
 ip2route/dnsmasq.conf
 ip2route/route/edge.lst
+.DS_Store
