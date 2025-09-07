@@ -21,4 +21,4 @@ opts+=( -o /var/www/html/report.html )
 # port
 [ -z "$GOACCESS_PORT" ] || opts+=( --port="$GOACCESS_PORT" )
 
-goaccess /var/log/nginx/access.log "${opts[@]}" & disown
+goaccess /var/log/nginx/access.log "${opts[@]}" 2>&1 | tee -a /var/log/goaccess.log & disown

@@ -172,6 +172,9 @@ RUN <<-EOS
 
     mv /etc/nginx /etc/nginx.default
 
+    rm -fv /var/www/html/*
+    cp -fv /etc/nginx.default/index.html /var/www/html/
+
     ln -sfv /dev/stdout /var/log/nginx/access.log
     ln -sfv /dev/stderr /var/log/nginx/error.log
 EOS
