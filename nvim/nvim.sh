@@ -26,9 +26,12 @@ for x in "$@"; do
     case "$x" in
         -*) ;;
         *)
-            test -f "$x" || touch "$x"
-            x="$(realpath "$x")"
-            [[ "$x" =~ ^$HOME ]] || [[ "$x" =~ ^"$PWD" ]] || opts+=( -v "$x:$x" )
+            # files must exists before mounting
+            test -e "$x" || touch "$x"
+            # get full path
+            x="$(realpath -s "$x")"
+
+            [[ "$x" =~ ^$HOME ]] || [[ "$x" =~ ^$PWD ]] || opts+=( -v "$x:$x" )
             ;;
     esac
 done
