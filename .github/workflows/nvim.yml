@@ -85,3 +85,5 @@ jobs:
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
           tags: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nvim:latest
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache,mode=max
