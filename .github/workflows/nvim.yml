@@ -21,8 +21,7 @@ on:
   workflow_dispatch: null
 
 env:
-  # some python packages not available for linux/arm64
-  platforms: linux/amd64
+  platforms: linux/amd64, linux/arm64
 
 jobs:
   build-nvim:
