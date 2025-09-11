@@ -88,6 +88,8 @@ jobs:
           push: ${{ vars.PUSH_REGISTRY }}
           context: builder
           file: builder/Dockerfile.msys2
+          # only amd64
+          platforms: linux/amd64
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
           tags: |

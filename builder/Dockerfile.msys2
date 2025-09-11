@@ -53,6 +53,9 @@ RUN <<-EOS
         ${prefix}rust \
         ${prefix}go 
 
+    # curl: (6) getaddrinfo() thread failed to start
+    rm /${MSYSTEM,,}/bin/curl || true
+
     echo "**** Cleanup ****"
 
     pacman --noconfirm --ignore pacman --debug -Scc

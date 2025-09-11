@@ -16,14 +16,6 @@ export WINEPATH="${WINEPATH:-C:\\msys64\\usr\\bin}"
 export OSTYPE=msys
 export MSYSTEM="${MSYSTEM:-UCRT64}"
 
-WORKDIR="$(pwd -P)"
-#mkdir -p "$(dirname "/msys64$WORKDIR")"
-#ln -sf "$WORKDIR" "/msys64$WORKDIR"
-# symlink: realpath will flat to a different path
-#   => mount bind => needs '--cap-add=SYS_ADMIN'
-mkdir -p "/msys64$WORKDIR"
-mount --bind "$WORKDIR" "/msys64$WORKDIR"
-
 if [ "$PUID" -gt 0 ]; then
     [ "$PUID" -eq "$(id -u buildbot)" ] || usermod  buildbot -u "$PUID" || true
     [ "$PGID" -eq "$(id -u buildbot)" ] || groupmod buildbot -g "$PGID" || true
