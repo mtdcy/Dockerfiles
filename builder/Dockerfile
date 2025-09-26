@@ -52,7 +52,7 @@ RUN <<-EOS
     else
         apk update
         apk add --no-cache \
-            grep sed gawk \
+            grep sed gawk coreutils \
             wget curl git diffutils findutils ncurses \
             tar gzip xz lzip unzip zstd \
             linux-headers build-base libtool pkgconfig \
