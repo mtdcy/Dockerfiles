@@ -25,6 +25,8 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 COPY --from=stage /usr/local/go /usr/local/
 ENV PATH="/usr/local/go/bin:$PATH"
 
+ARG NODE_VERSION=22.20.0
+
 # install packages
 SHELL ["/bin/bash", "-c"]
 RUN <<-EOS
@@ -42,13 +44,24 @@ RUN <<-EOS
             cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
-            nodejs python3 moreutils \
+            python3 moreutils \
             openssh-client rsync \
             ccache distcc \
             cargo
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
+
+        # newest node is not available for alpine/musl
+        case "$(uname -m)" in
+            aarch64)    ARCH=arm64 ;;
+            *)          ARCH=x64   ;;
+        esac
+
+        cd /tmp/
+        wget https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.gz
+        tar -C /usr/local -xvf node-v*.tar.gz --strip-components=1
+        rm -rf /tmp/node-*
     else
         apk update
         apk add --no-cache \
