@@ -2,7 +2,9 @@
 FROM baseimage:latest AS stage
 
 ARG GO_VERSION=1.23.6
+ARG NODE_VERSION=22.20.0
 
+WORKDIR /tmp
 SHELL ["/bin/bash", "-c"]
 RUN <<-EOS
     set -ex
@@ -12,9 +14,16 @@ RUN <<-EOS
         *)          ARCH=amd64 ;;
     esac
 
-    cd /tmp
     wget https://go.dev/dl/go$GO_VERSION.${HOST,,}-$ARCH.tar.gz
-    tar -C /usr/local -xvf /tmp/*.tar.gz
+    tar -C /usr/local -xvf go*.tar.gz
+    
+    case "$(uname -m)" in
+        aarch64)    ARCH=arm64 ;;
+        *)          ARCH=x64   ;;
+    esac
+
+    wget https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-${HOST,,}-$ARCH.tar.gz
+    tar -C /usr/local -xvf node-v*.tar.gz --strip-components=1
 EOS
 
 FROM baseimage:latest
@@ -22,7 +31,7 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-COPY --from=stage /usr/local/go /usr/local/
+COPY --from=stage /usr/local/ /usr/local/
 ENV PATH="/usr/local/go/bin:$PATH"
 
 # install packages
@@ -42,7 +51,7 @@ RUN <<-EOS
             cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
-            nodejs python3 moreutils \
+            python3 moreutils \
             openssh-client rsync \
             ccache distcc \
             cargo
@@ -60,7 +69,7 @@ RUN <<-EOS
             cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl perl-http-daemon \
-            nodejs python3 moreutils \
+            python3 moreutils \
             openssh rsync \
             ccache distcc \
             cargo
