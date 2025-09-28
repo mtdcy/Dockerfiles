@@ -34,7 +34,7 @@ RUN <<-EOS
         apt-get update
 
         # Fix: error processing package libc-bin
-        apt-get --reinstall install libc-bin
+        apt-get --reinstall install -y libc-bin || true
 
         apt-get install -y \
             bash locales tzdata \
