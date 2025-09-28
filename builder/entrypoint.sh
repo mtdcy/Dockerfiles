@@ -1,19 +1,22 @@
 #!/bin/bash -e
 
-if [ "$(id -u)" -ne 0 ]; then
-    echo "Please run as root and set PUID|PGID instead."
-    exit 1
-fi
-
 export PUID="${PUID:-0}"
 export PGID="${PGID:-0}"
 
-if [ "$PUID" -gt 0 ]; then
-    [ "$PUID" -eq "$(id -u buildbot)" ] || usermod  buildbot -u "$PUID" || true
-    [ "$PGID" -eq "$(id -u buildbot)" ] || groupmod buildbot -g "$PGID" || true
+cmd=( "${@:-bash}" )
 
-    # shellcheck disable=SC2145
-    su buildbot -c "$@"
+if [ "$(id -u)" -ne 0 ]; then
+    exec "${cmd[@]}"
 else
-    eval -- "$*"
+    [ "$PUID" -eq "$(id -u buildbot)" ] || usermod  buildbot -u "$PUID" 2>/dev/null || true
+    [ "$PGID" -eq "$(id -u buildbot)" ] || groupmod buildbot -g "$PGID" 2>/dev/null || true
+
+    # su in alpine has no '--pty' option
+    #su buildbot --pty -c "$*"
+    # --pty: pseudo-terminal
+    # --login: will change the workdir and clear envs
+    
+    exec sudo -E -u buildbot -H "${cmd[@]}"
+    # -E: preserve envs (no login shell)
+    # -H: set HOME
 fi
