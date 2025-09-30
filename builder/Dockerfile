@@ -63,6 +63,9 @@ RUN <<-EOS
     # delete default user(1000)
     userdel ubuntu || true
     useradd -U -m -s /bin/bash buildbot
+
+    # no passwd for buildbot
+    echo "buildbot ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
 EOS
 
 # add Implib.so
