@@ -35,6 +35,10 @@ RUN <<-EOS
 
     if which apt-get; then
         export DEBIAN_FRONTEND=noninteractive
+
+        # new nodejs
+        curl -sL https://deb.nodesource.com/setup_22.x | bash -
+
         apt-get update
         apt-get install -y \
             wget curl git diffutils findutils ncurses-bin \
@@ -47,21 +51,10 @@ RUN <<-EOS
             python3 moreutils \
             openssh-client rsync \
             ccache distcc \
-            cargo
+            cargo nodejs
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
-
-        # newest node is not available for alpine/musl
-        case "$(uname -m)" in
-            aarch64)    ARCH=arm64 ;;
-            *)          ARCH=x64   ;;
-        esac
-
-        cd /tmp/
-        wget https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.gz
-        tar -C /usr/local -xvf node-v*.tar.gz --strip-components=1
-        rm -rf /tmp/node-*
     else
         apk update
         apk add --no-cache \
