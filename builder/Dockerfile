@@ -1,28 +1,9 @@
 # syntax=docker/dockerfile:1
-FROM baseimage:latest AS stage
-
-ARG GO_VERSION=1.23.6
-
-SHELL ["/bin/bash", "-c"]
-RUN <<-EOS
-    set -ex
-    HOST=$(uname -s)
-    case "$(uname -m)" in
-        aarch64)    ARCH=arm64 ;;
-        *)          ARCH=amd64 ;;
-    esac
-
-    cd /tmp
-    wget https://go.dev/dl/go$GO_VERSION.${HOST,,}-$ARCH.tar.gz
-    tar -C /usr/local -xvf /tmp/*.tar.gz
-EOS
-
 FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-COPY --from=stage /usr/local/go /usr/local/
 ENV PATH="/usr/local/go/bin:$PATH"
 
 ARG NODE_VERSION=22.20.0
@@ -35,6 +16,12 @@ RUN <<-EOS
 
     if which apt-get; then
         export DEBIAN_FRONTEND=noninteractive
+
+        # PPA: go & nodejs
+        apt-get update && apt-get install -y software-properties-common # install add-apt-repository
+        add-apt-repository ppa:longsleep/golang-backports
+        curl -sL https://deb.nodesource.com/setup_22.x | bash -
+
         apt-get update
         apt-get install -y \
             wget curl git diffutils findutils ncurses-bin \
@@ -47,21 +34,11 @@ RUN <<-EOS
             python3 moreutils \
             openssh-client rsync \
             ccache distcc \
-            cargo
+            golang-go cargo nodejs
+
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
-
-        # newest node is not available for alpine/musl
-        case "$(uname -m)" in
-            aarch64)    ARCH=arm64 ;;
-            *)          ARCH=x64   ;;
-        esac
-
-        cd /tmp/
-        wget https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-$ARCH.tar.gz
-        tar -C /usr/local -xvf node-v*.tar.gz --strip-components=1
-        rm -rf /tmp/node-*
     else
         apk update
         apk add --no-cache \
@@ -76,8 +53,11 @@ RUN <<-EOS
             nodejs python3 moreutils \
             openssh rsync \
             ccache distcc \
-            cargo
+            go cargo
     fi
+
+    go version
+    node --version
 
     echo "**** post setup ****"
     # delete default user(1000)
