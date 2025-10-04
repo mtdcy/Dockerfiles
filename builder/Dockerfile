@@ -1,33 +1,58 @@
 # syntax=docker/dockerfile:1
-FROM baseimage:latest AS stage
 
-ARG GO_VERSION=1.23.6
+FROM baseimage:latest AS builder
 
-SHELL ["/bin/bash", "-c"]
+ARG MIRROR
+ARG TARGETPLATFORM
+
+COPY ./resources/${TARGETPLATFORM}/* /tmp/
+ENV RUSTUP_HOME="/opt/rust"
+ENV CARGO_HOME="/opt/rust/cargo"
+ENV PATH="$CARGO_HOME/bin:/opt/go/bin:/opt/bin:$PATH"
+
+WORKDIR /opt/
 RUN <<-EOS
     set -ex
-    HOST=$(uname -s)
-    case "$(uname -m)" in
-        aarch64)    ARCH=arm64 ;;
-        *)          ARCH=amd64 ;;
-    esac
+    ls -lh /tmp/
 
-    cd /tmp
-    wget https://go.dev/dl/go$GO_VERSION.${HOST,,}-$ARCH.tar.gz
-    tar -C /usr/local -xvf /tmp/*.tar.gz
+    echo "**** setup nodejs ****"
+    # node prebuilts only for glibc
+    if ldd --version | grep GLIBC; then
+        tar --strip-components=1 -xf /tmp/node-v*.tar.xz
+    fi
+
+   #echo "**** setup musl toolcahin ****"
+   #tar --strip-components=1 -xf /tmp/$(uname -m)-linux-musl-native.tgz
+
+   #mkdir -pv /lib/$(uname -m)-linux-musl
+   #ln -sfv /opt/lib/libgcc_s.* /lib/$(uname -m)-linux-musl/
+   ## fails on alpine-3, why?
+   #ldconfig || true
+
+    echo "**** setup golang ****"
+    tar -xf /tmp/go*.tar.gz
+
+    echo "**** setup rust ****"
+    if test -n "${MIRROR}"; then
+        export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+        export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+    fi
+
+    /tmp/rustup-init.sh -y --no-modify-path
+    
+    echo "**** setup env ****"
+    echo "export CARGO_HOME=$CARGO_HOME"   >> .env
+    echo "export RUSTUP_HOME=$RUSTUP_HOME" >> .env
+    echo "export PATH=$PATH"               >> .env
 EOS
+
 
 FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-COPY --from=stage /usr/local/go /usr/local/
-ENV PATH="/usr/local/go/bin:$PATH"
-
-ARG NODE_VERSION=22.20.0
-
-# install packages
+WORKDIR /opt/
 SHELL ["/bin/bash", "-c"]
 RUN <<-EOS
     set -ex
@@ -35,10 +60,6 @@ RUN <<-EOS
 
     if which apt-get; then
         export DEBIAN_FRONTEND=noninteractive
-
-        # new nodejs
-        curl -sL https://deb.nodesource.com/setup_22.x | bash -
-
         apt-get update
         apt-get install -y \
             wget curl git diffutils findutils ncurses-bin \
@@ -50,8 +71,7 @@ RUN <<-EOS
             luajit perl libhttp-daemon-perl \
             python3 moreutils \
             openssh-client rsync \
-            ccache distcc \
-            cargo nodejs
+            ccache distcc
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
@@ -68,17 +88,46 @@ RUN <<-EOS
             luajit perl perl-http-daemon \
             nodejs python3 moreutils \
             openssh rsync \
-            ccache distcc \
-            cargo
+            ccache distcc
     fi
+EOS
 
+# nodejs path
+ENV PATH="/opt/bin:$PATH" 
+
+COPY --from=builder /opt /opt
+RUN <<-EOS
+    set -ex
     echo "**** post setup ****"
+
+    # setup env
+    . /opt/.env
+
+   #mkdir -pv /lib/$(uname -m)-linux-musl
+   #ln -sfv /opt/lib/libgcc_s.* /lib/$(uname -m)-linux-musl/
+    # fails on alpine-3, why?
+    ldconfig || true
+
+    node --version
+    gcc --version
+    go version
+    cargo --version
+    rustc --version
+
     # delete default user(1000)
     userdel ubuntu || true
     useradd -U -m -s /bin/bash buildbot
 
     # no passwd for buildbot
-    echo "buildbot ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers
+    echo "buildbot ALL=(ALL) NOPASSWD:ALL"  >> /etc/sudoers
+    
+    # keep env PATH
+    sed -i '/env_reset/ s/^/# &/g' /etc/sudoers
+    echo "Defaults !env_reset"              >> /etc/sudoers
+    echo "Defaults env_keep += \"PATH\""    >> /etc/sudoers
+
+    sed -i '/secure_path/ s/^/# &/g' /etc/sudoers
+    echo "Defaults secure_path=\"$PATH\""   >> /etc/sudoers
 EOS
 
 # add Implib.so

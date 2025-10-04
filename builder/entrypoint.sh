@@ -1,5 +1,7 @@
 #!/bin/bash -e
 
+[ -f /opt/.env ] && . /opt/.env || true
+
 export PUID="${PUID:-0}"
 export PGID="${PGID:-0}"
 

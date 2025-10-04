@@ -1,7 +1,7 @@
 
 MAKEFLAGS += --always-make
 
-MIRROR ?= http://mirrors.mtdcy.top
+MIRROR ?= https://mirrors.mtdcy.top
 
 ifeq ($(shell uname -m),arm64)
 DOCKER_PLATFORM ?= linux/arm64
