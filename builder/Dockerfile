@@ -5,29 +5,26 @@ FROM baseimage:latest AS builder
 ARG MIRROR
 ARG TARGETPLATFORM
 
+# add Implib.so
+COPY --chmod=0755 Implib.so /opt/bin/
+COPY --chmod=0755 entrypoint.sh /opt/
+
 COPY ./resources/${TARGETPLATFORM}/* /tmp/
+
+ENV GOROOT="/opt/go"
 ENV RUSTUP_HOME="/opt/rust"
 ENV CARGO_HOME="/opt/rust/cargo"
-ENV PATH="$CARGO_HOME/bin:/opt/go/bin:/opt/bin:$PATH"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
 WORKDIR /opt/
-RUN <<-EOS
-    set -ex
-    ls -lh /tmp/
 
+SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+RUN <<-EOS
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
     if ldd --version | grep GLIBC; then
         tar --strip-components=1 -xf /tmp/node-v*.tar.xz
     fi
-
-   #echo "**** setup musl toolcahin ****"
-   #tar --strip-components=1 -xf /tmp/$(uname -m)-linux-musl-native.tgz
-
-   #mkdir -pv /lib/$(uname -m)-linux-musl
-   #ln -sfv /opt/lib/libgcc_s.* /lib/$(uname -m)-linux-musl/
-   ## fails on alpine-3, why?
-   #ldconfig || true
 
     echo "**** setup golang ****"
     tar -xf /tmp/go*.tar.gz
@@ -38,12 +35,10 @@ RUN <<-EOS
         export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
     fi
 
-    /tmp/rustup-init.sh -y --no-modify-path
-    
-    echo "**** setup env ****"
-    echo "export CARGO_HOME=$CARGO_HOME"   >> .env
-    echo "export RUSTUP_HOME=$RUSTUP_HOME" >> .env
-    echo "export PATH=$PATH"               >> .env
+    /tmp/rustup-init.sh -y --no-modify-path     \
+        --profile minimal                       \
+        --default-toolchain stable              \
+        --target $(uname -m)-unknown-linux-musl
 EOS
 
 
@@ -53,9 +48,8 @@ FROM baseimage:latest
 LABEL maintainer="mtdcy.chen@gmail.com"
 
 WORKDIR /opt/
-SHELL ["/bin/bash", "-c"]
+SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 RUN <<-EOS
-    set -ex
     echo "**** install essentials ****"
 
     if which apt-get; then
@@ -71,7 +65,7 @@ RUN <<-EOS
             luajit perl libhttp-daemon-perl \
             python3 moreutils \
             openssh-client rsync \
-            ccache distcc
+            ccache distcc musl-tools
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
@@ -90,21 +84,25 @@ RUN <<-EOS
             openssh rsync \
             ccache distcc
     fi
+
+    # Implib.so
+    git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
 EOS
 
 # nodejs path
 ENV PATH="/opt/bin:$PATH" 
 
 COPY --from=builder /opt /opt
+
+# must set these ENVs explicitly, or run container with --entrypoint='' will have problem
+ENV GOROOT="/opt/go"
+ENV RUSTUP_HOME="/opt/rust"
+ENV CARGO_HOME="/opt/rust/cargo"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+
 RUN <<-EOS
-    set -ex
     echo "**** post setup ****"
 
-    # setup env
-    . /opt/.env
-
-   #mkdir -pv /lib/$(uname -m)-linux-musl
-   #ln -sfv /opt/lib/libgcc_s.* /lib/$(uname -m)-linux-musl/
     # fails on alpine-3, why?
     ldconfig || true
 
@@ -130,10 +128,6 @@ RUN <<-EOS
     echo "Defaults secure_path=\"$PATH\""   >> /etc/sudoers
 EOS
 
-# add Implib.so
-RUN git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
-COPY --chmod=0755 Implib.so /usr/bin/
-
 # ccache: disable by default
 ENV USE_CCACHE=0
 ENV CCACHE_UMASK=022
@@ -146,7 +140,6 @@ ENV DISTCC_OPTS=
 ENV DISTCC_HOSTS=
 
 # override entrypoint
-COPY --chmod=0755 entrypoint.sh /
-ENTRYPOINT ["/entrypoint.sh"]
+ENTRYPOINT ["/opt/entrypoint.sh"]
 
 ENV BUILDER_NAME=cmdlets-builder
