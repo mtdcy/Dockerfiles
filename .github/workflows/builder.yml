@@ -73,23 +73,6 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
-      - name: Build and Push (ubuntu-latest)
-        uses: docker/build-push-action@v6
-        with:
-          push: ${{ vars.PUSH_REGISTRY }}
-          context: builder
-          file: builder/Dockerfile
-          platforms: ${{ env.platforms }}
-          build-contexts: |
-            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
-          build-args: |
-            MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-buildcache,mode=max
-
       - name: Build and Push (ubuntu-22.04)
         uses: docker/build-push-action@v6
         with:
@@ -100,11 +83,12 @@ jobs:
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu22-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu22-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-cache,mode=max
 
       - name: Build and Push (alpine-latest)
         uses: docker/build-push-action@v6
@@ -120,5 +104,5 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-cache,mode=max
