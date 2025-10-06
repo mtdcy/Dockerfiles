@@ -19,12 +19,15 @@ RUN <<-EOS
     echo "**** apply mirrors ****"
 
     if test -n "${MIRROR}"; then
-        sed -e "s|https\?://archive.ubuntu.com|${MIRROR}|g" \
-            -e "s|https\?://security.ubuntu.com|${MIRROR}|g" \
-            -e "s|https\?://ports.ubuntu.com|${MIRROR}|g" \
-            -i /etc/apt/sources.list \
-            -i /etc/apt/sources.list.d/* || true
-        sed -e "s|https\?://dl-cdn.alpinelinux.org|${MIRROR}|g" \
+        # Fix 'No system certificates available.' by using http
+        sources=$(echo "$MIRROR" | sed -e 's/^https/http/' -e 's/:[0-9]\+$//')
+
+        sed -e "s|https\?://archive.ubuntu.com|$sources|g"      \
+            -e "s|https\?://security.ubuntu.com|$sources|g"     \
+            -e "s|https\?://ports.ubuntu.com|$sources|g"        \
+            -i /etc/apt/sources.list                            \
+            -i /etc/apt/sources.list.d/ubuntu.sources || true
+        sed -e "s|https\?://dl-cdn.alpinelinux.org|$sources|g"  \
             -i /etc/apk/repositories || true
     fi
 
@@ -36,13 +39,14 @@ RUN <<-EOS
         # Fix: error processing package libc-bin
         apt-get --reinstall install -y libc-bin || true
 
-        apt-get install -y \
-            bash locales tzdata \
-            wget curl \
+        apt-get install -y               \
+        ca-certificates                  \
+            bash locales tzdata          \
+            wget curl                    \
             tar xz-utils zstd lzip unzip \
-            procps \
-            iputils-ping \
-            bind9-dnsutils \
+            procps                       \
+            iputils-ping                 \
+            bind9-dnsutils               \
             sudo
 
         dpkg-reconfigure tzdata
@@ -51,15 +55,30 @@ RUN <<-EOS
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
     else
         apk update
-        apk add --no-cache \
-            bash shadow \
-            musl-locales tzdata \
-            wget curl \
+        apk add --no-cache         \
+            ca-certificates        \
+            bash shadow            \
+            musl-locales tzdata    \
+            wget curl              \
             tar xz zstd lzip unzip \
-            procps \
-            iputils \
-            bind-tools \
+            procps                 \
+            iputils                \
+            bind-tools             \
             sudo
+    fi
+        
+    # Fix: Certificate verification failed: The certificate is NOT trusted.
+    update-ca-certificates || true
+   
+    # set the right MIRROR
+    if test -n "${MIRROR}"; then
+        sed -e "s|$sources|$MIRROR|g" \
+            -e "s|$sources|$MIRROR|g" \
+            -e "s|$sources|$MIRROR|g" \
+            -i /etc/apt/sources.list  \
+            -i /etc/apt/sources.list.d/ubuntu.sources || true
+        sed -e "s|$sources|$MIRROR|g" \
+            -i /etc/apk/repositories || true
     fi
 
     echo "**** post setup ****"
@@ -69,7 +88,7 @@ RUN <<-EOS
         ln -svf /usr/share/zoneinfo/$TZ /etc/localtime
         echo "$TZ" > /etc/timezone
     else
-        echo ">>>> wrong TZ:$TZ <<<<"; \
+        echo ">>>> wrong TZ:$TZ <<<<"
     fi
 
     userdel ubuntu || true

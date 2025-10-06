@@ -88,8 +88,8 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ env.ubuntu }}
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ env.ubuntu }}-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ env.ubuntu }}-cache,mode=max
 
       - name: Build and Push (ubuntu-22.04)
         uses: docker/build-push-action@v6
@@ -104,8 +104,8 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu2204-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu2204-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04-cache,mode=max
 
       - name: Build and Push (alpine-latest)
         uses: docker/build-push-action@v6
@@ -121,8 +121,8 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-${{ env.alpine }}
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-${{ env.alpine }}-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-${{ env.alpine }}-cache,mode=max
 
       - name: Build and Push (wine-latest)
         uses: docker/build-push-action@v6
@@ -138,10 +138,10 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
           build-args: |
-            MIRROR=${{ vars.MIRRORS }}
+            MIRROR=${{ vars.HTTP_MIRROR }}
             WINE_REPO=${{ env.wine_url }}#${{ env.wine_tag }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-cache,mode=max
 
       - name: Build and Push (msys2-latest)
         uses: docker/build-push-action@v6
@@ -157,7 +157,7 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ env.msys2 }}
           build-args: |
-            MIRROR=${{ vars.MIRRORS }}
+            MIRROR=${{ vars.HTTP_MIRROR }}
             MSYS2_VERSION=${{ env.msys2 }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-buildcache,mode=max
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-cache,mode=max
