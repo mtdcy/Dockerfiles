@@ -74,7 +74,7 @@ RUN <<-EOS
             luajit perl libhttp-daemon-perl \
             python3 moreutils \
             openssh-client rsync \
-            ccache distcc musl-tools
+            ccache distcc
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
