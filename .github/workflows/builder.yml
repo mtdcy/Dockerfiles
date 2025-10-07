@@ -73,6 +73,23 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
+      - name: Build and Push (ubuntu-24.04|latest)
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: builder
+          file: builder/Dockerfile
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
+          build-args: |
+            MIRROR=${{ vars.MIRRORS }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-cache,mode=max
+
       - name: Build and Push (ubuntu-22.04)
         uses: docker/build-push-action@v6
         with:
@@ -83,14 +100,13 @@ jobs:
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
           build-args: |
             MIRROR=${{ vars.MIRRORS }}
           cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-cache
           cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-cache,mode=max
 
-      - name: Build and Push (alpine-latest)
+      - name: Build and Push (alpine-3|latest)
         uses: docker/build-push-action@v6
         with:
           push: ${{ vars.PUSH_REGISTRY }}
@@ -98,7 +114,7 @@ jobs:
           file: builder/Dockerfile
           platforms: ${{ env.platforms }}
           build-contexts: |
-            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3
