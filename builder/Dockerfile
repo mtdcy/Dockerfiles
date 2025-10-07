@@ -89,9 +89,6 @@ RUN <<-EOS
     git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
 EOS
 
-# nodejs path
-ENV PATH="/opt/bin:$PATH" 
-
 COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
