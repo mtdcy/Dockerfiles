@@ -90,25 +90,25 @@ jobs:
           IFS='=.' read -r m n _ <<< "$version"
 
           # nginx:latest
-          docker manifest create  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64 \
-                               --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
-          docker manifest push --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest         \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
 
           # nginx:1.28.0
-          docker manifest create  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64 \
-                               --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version
-          docker manifest push --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version
 
           # nginx:1.28
-          docker manifest create  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64 \
-                               --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
-          docker manifest push --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n          \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
 
           # nginx:1
-          docker manifest create  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                  --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64 \
-                               --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
-          docker manifest push --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m             \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
