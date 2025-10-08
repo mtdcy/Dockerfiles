@@ -112,6 +112,8 @@ jobs:
           [ -n "$cache" ] || cache="$(echo "${{ inputs.tags }}" | head -n1 | tr -d '\n')-cache"
           echo "cache=$cache" >> $GITHUB_OUTPUT
 
+          echo "cachebust=$(date +%s)" >> $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
@@ -128,5 +130,6 @@ jobs:
             ${{ inputs.tags }}
           build-args: |
             ${{ inputs.args }}
+            CACHEBUST=${{ steps.prepare.outputs.cachebust }}
           cache-from: type=registry,ref=${{ steps.prepare.outputs.cache }}
           cache-to: type=registry,ref=${{ steps.prepare.outputs.cache }},mode=max

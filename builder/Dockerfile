@@ -4,6 +4,8 @@ FROM baseimage:latest AS builder
 
 ARG MIRROR
 ARG TARGETPLATFORM
+# no cache for this stage
+ARG CACHEBUST=1
 
 # add Implib.so
 COPY --chmod=0755 Implib.so /opt/bin/
