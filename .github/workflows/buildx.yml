@@ -27,8 +27,8 @@ on:
         required: false
         type: string
         default: 'ubuntu:latest'
-      tag:
-        description: 'image name with tag'
+      tags:
+        description: 'multi-line tags'
         required: true
         type: string
       args:
@@ -95,6 +95,14 @@ jobs:
               mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
               http = true
 
+      - name: Prepare
+        id: prepare
+        shell: bash
+        run: |
+          set -ex
+          first_tag=$(echo "${{ inputs.tags }}" | head -n1)
+          echo "first_tag=$first_tag" >> $GITHUB_OUTPUT
+
       - name: Build and Push
         uses: docker/build-push-action@v6
         with:
@@ -107,8 +115,9 @@ jobs:
           build-contexts: |
             ubuntu:latest=docker-image://${{ inputs.baseimage }}
             baseimage:latest=docker-image://${{ inputs.baseimage }}
-          tags: ${{ inputs.tag }}
+          tags: |
+            ${{ inputs.tags }}
           build-args: |
             ${{ inputs.args }}
-          cache-from: type=registry,ref=${{ inputs.tag }}-cache
-          cache-to: type=registry,ref=${{ inputs.tag }}-cache,mode=max
+          cache-from: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache
+          cache-to: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache,mode=max
