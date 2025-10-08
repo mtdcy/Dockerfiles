@@ -28,8 +28,12 @@ on:
         type: string
         default: 'ubuntu:latest'
       tags:
-        description: 'multi-line tags'
+        description: 'image tags (multi-line)'
         required: true
+        type: string
+      cache:
+        description: 'cache tag (default: first tag of tags with -cache suffix)'
+        required: false
         type: string
       args:
         description: 'for --build-arg'
@@ -100,8 +104,13 @@ jobs:
         shell: bash
         run: |
           set -ex
-          first_tag=$(echo "${{ inputs.tags }}" | head -n1)
-          echo "first_tag=$first_tag" >> $GITHUB_OUTPUT
+
+          # tr: remove trailing new line '\n'
+          cache="$(tr -d '\n' <<< "${{ inputs.cache }}")"
+
+          # OR: take the first tag-cache
+          [ -n "$cache" ] || cache="$(echo "${{ inputs.tags }}" | head -n1 | tr -d '\n')-cache"
+          echo "cache=$cache" >> $GITHUB_OUTPUT
 
       - name: Build and Push
         uses: docker/build-push-action@v6
@@ -119,5 +128,5 @@ jobs:
             ${{ inputs.tags }}
           build-args: |
             ${{ inputs.args }}
-          cache-from: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache
-          cache-to: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache,mode=max
+          cache-from: type=registry,ref=${{ steps.prepare.outputs.cache }}
+          cache-to: type=registry,ref=${{ steps.prepare.outputs.cache }},mode=max
