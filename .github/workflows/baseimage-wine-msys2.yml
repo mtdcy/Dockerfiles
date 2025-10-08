@@ -1,0 +1,53 @@
+---
+name: Build wine msys2
+
+on:
+  push:
+    paths:
+      - baseimage/Dockerfile.wine
+      - baseimage/Dockerfile.msys2
+      - baseimage/wine/**
+      - baseimage/msys2
+      - .github/workflows/baseimage-wine-msys2.yml
+
+  workflow_dispatch: null
+
+env:
+  msys2: 20250830
+  wine_url: https://gitlab.winehq.org/jhol/wine.git
+  wine_tag: msys2-hacks-21
+
+jobs:
+  wine:
+    name: Build wine
+    uses: ./.github/workflows/buildx.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      platforms: linux/amd64
+      context: baseimage
+      dockerfile: baseimage/Dockerfile.wine
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+        WINE_REPO=${{ env.wine_url }}#${{ env.wine_tag }}
+
+  msys2:
+    name: Build msys2
+    uses: ./.github/workflows/buildx.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      platforms: linux/amd64
+      context: baseimage
+      dockerfile: baseimage/Dockerfile.msys2
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ env.msys2 }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+        MSYS2_VERSION=${{ env.msys2 }}
