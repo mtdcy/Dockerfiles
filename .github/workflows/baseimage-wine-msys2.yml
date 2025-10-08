@@ -12,16 +12,19 @@ on:
 
   workflow_dispatch: null
 
-env:
-  msys2: 20250830
-  wine_url: https://gitlab.winehq.org/jhol/wine.git
-  wine_tag: msys2-hacks-21
+# env is unavailable under jobs.<job_id>.with.<with_id>
 
 jobs:
   wine:
     name: Build wine
     uses: ./.github/workflows/buildx.yml
     secrets: inherit
+    strategy:
+      matrix:
+        wine_url:
+          - https://gitlab.winehq.org/jhol/wine.git
+        wine_tag:
+          - msys2-hacks-21
     with:
       runner: ubuntu-latest
       platforms: linux/amd64
@@ -29,25 +32,30 @@ jobs:
       dockerfile: baseimage/Dockerfile.wine
       baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
       tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ matrix.wine_tag }}
         ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
       args: |-
         MIRROR=${{ vars.MIRRORS }}
-        WINE_REPO=${{ env.wine_url }}#${{ env.wine_tag }}
+        WINE_REPO=${{ matrix.wine_url }}#${{ matrix.wine_tag }}
 
   msys2:
-    name: Build msys2
+    name: Build msys
+    needs: wine
     uses: ./.github/workflows/buildx.yml
     secrets: inherit
+    strategy:
+      matrix:
+        msys2:
+          - 20250830
     with:
       runner: ubuntu-latest
       platforms: linux/amd64
       context: baseimage
       dockerfile: baseimage/Dockerfile.msys2
-      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine_tag }}
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
       tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ env.msys2 }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-${{ matrix.msys2 }}
         ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:msys2-latest
       args: |-
         MIRROR=${{ vars.MIRRORS }}
-        MSYS2_VERSION=${{ env.msys2 }}
+        MSYS2_VERSION=${{ matrix.msys2 }}
