@@ -29,13 +29,7 @@ RUN <<-EOS
     fi
     
     echo "**** setup musl-gcc ****"
-    if curl -fsSI --connect-timeout 1 https://git.mtdcy.top; then
-        url=https://git.mtdcy.top:8443/mtdcy/musl-gcc-build/releases/download/latest/$(uname -m)-unknown-linux-musl.tar.xz
-    else
-        url=https://github.com/mtdcy/musl-gcc-build/releases/latest/download/$(uname -m)-unknown-linux-musl.tar.xz
-    fi
-    curl -fsSL "$url" -o /tmp/$(uname -m)-unknown-linux-musl.tar.xz
-    tar -xf /tmp/$(uname -m)-unknown-linux-musl.tar.xz
+    /tmp/musl-gcc.sh
 
     echo "**** setup golang ****"
     tar -xf /tmp/go*.tar.gz
