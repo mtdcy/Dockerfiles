@@ -103,11 +103,6 @@ ENV CARGO_HOME="/opt/rust/cargo"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
 RUN <<-EOS
-    echo "**** fix musl-gcc ****"
-
-    # *.la: libdir='/aarch64-unknown-linux-musl/lib'
-    ln -sfv /opt/$(uname -m)-unknown-linux-musl /
-
     echo "**** post setup ****"
 
     # fails on alpine-3, why?
