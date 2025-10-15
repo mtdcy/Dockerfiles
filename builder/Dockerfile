@@ -27,9 +27,11 @@ RUN <<-EOS
     if ldd --version | grep GLIBC; then
         tar --strip-components=1 -xf /tmp/node-v*.tar.xz
     fi
-    
+
     echo "**** setup musl-gcc ****"
     /tmp/musl-gcc.sh
+
+    find /opt -name "*.la" -exec rm -rf {} \;
 
     echo "**** setup golang ****"
     tar -xf /tmp/go*.tar.gz
@@ -120,7 +122,7 @@ RUN <<-EOS
 
     # no passwd for buildbot
     echo "buildbot ALL=(ALL) NOPASSWD:ALL"  >> /etc/sudoers
-    
+
     # keep env PATH
     sed -i '/env_reset/ s/^/# &/g' /etc/sudoers
     echo "Defaults !env_reset"              >> /etc/sudoers
