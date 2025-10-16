@@ -93,9 +93,9 @@ RUN <<-EOS
     fi
 
     echo "**** install latest meson ****"
-    pip install --upgrade pip || true
+    python3 -m pip install --upgrade pip || true
     # --break-system-packages: This environment is externally managed
-    pip install meson --break-system-packages
+    python3 -m pip install --upgrade meson --break-system-packages
     rm -rf "$HOME/.cache" || true
 
     # Implib.so
