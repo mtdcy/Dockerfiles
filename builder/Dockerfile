@@ -70,7 +70,7 @@ RUN <<-EOS
             cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
-            python3 moreutils \
+            python3 python3-pip moreutils \
             openssh-client rsync \
             ccache distcc
         update-distcc-symlinks
@@ -87,10 +87,16 @@ RUN <<-EOS
             cmake meson texinfo \
             nasm yasm bison flex \
             luajit perl perl-http-daemon \
-            nodejs python3 moreutils \
+            nodejs python3 py3-pip moreutils \
             openssh rsync \
             ccache distcc
     fi
+
+    echo "**** install latest meson ****"
+    pip install --upgrade pip || true
+    # --break-system-packages: This environment is externally managed
+    pip install meson --break-system-packages
+    rm -rf "$HOME/.cache" || true
 
     # Implib.so
     git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
