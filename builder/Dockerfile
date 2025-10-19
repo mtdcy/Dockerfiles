@@ -113,6 +113,9 @@ ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 RUN <<-EOS
     echo "**** post setup ****"
 
+    # fix ld-musl
+    ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
+
     # fails on alpine-3, why?
     ldconfig || true
 
