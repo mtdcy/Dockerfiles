@@ -5,6 +5,7 @@ on:
   push:
     paths:
       - nginx/Dockerfile
+      - nginx/Dockerfile.lite
       - nginx/rootfs/**
       - .github/workflows/nginx.yml
 
