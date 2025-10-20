@@ -37,7 +37,7 @@ if [ -z "$1" ]; then
         -e '/^master_process/s/^/#/' \
         -i /etc/nginx/nginx.conf
 
-    mkdir -p /var/lib/nginx /var/log/nginx /var/run
+    mkdir -p /var/lib/nginx /var/log/nginx /var/run/nginx
     chown -R www-data /var/lib/nginx /var/log/nginx
     chmod -R 0750 /var/log/nginx
 

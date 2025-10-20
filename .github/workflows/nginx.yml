@@ -66,11 +66,37 @@ jobs:
       args: |-
         NGX_VER=${{ needs.setup-nginx.outputs.nginx }}
 
+  build-nginx-lite:
+    name: Build nginx-${{ matrix.arch }} on ${{ matrix.os }}
+    needs: setup-nginx
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            arch: amd64
+          - os: ubuntu-24.04-arm
+            arch: arm64
+    uses: ./.github/workflows/buildx.yml
+    secrets: inherit
+    with:
+      runner: ${{ matrix.os }}
+      platforms: linux/${{ matrix.arch }}
+      context: nginx
+      dockerfile: nginx/Dockerfile.lite
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-${{ needs.setup-nginx.outputs.nginx }}-${{ matrix.arch }}
+      cache: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-cache-${{ matrix.arch }}
+      args: |-
+        NGX_VER=${{ needs.setup-nginx.outputs.nginx }}
+
   merge-tagged-nginx:
     runs-on: ubuntu-latest
     needs:
       - setup-nginx
       - build-nginx
+      - build-nginx-lite
     steps:
       # need to login and setup registry again
       - name: Login
@@ -114,3 +140,15 @@ jobs:
                                     --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
                                     --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
           docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+
+          # nginx:lite-latest
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-latest         \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-latest
+
+          # nginx:1.28.0
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version
