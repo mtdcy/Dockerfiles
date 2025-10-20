@@ -63,6 +63,8 @@ jobs:
         ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:${{ needs.setup-nginx.outputs.nginx }}-${{ matrix.arch }}
       cache: |
         ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache-${{ matrix.arch }}
+      args: |-
+        NGX_VER=${{ needs.setup-nginx.outputs.nginx }}
 
   merge-tagged-nginx:
     runs-on: ubuntu-latest

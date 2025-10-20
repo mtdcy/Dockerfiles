@@ -10,6 +10,9 @@ ADD https://github.com/leev/ngx_http_geoip2_module/archive/$NGX_GEOIP2_VER.tar.g
     http://nginx.org/download/nginx-$NGX_VER.tar.gz \
     /tmp/build/
 
+# no cache for this stage
+ARG CACHEBUST=1
+
 SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
@@ -123,7 +126,7 @@ RUN <<-EOS
             libpcre3 libxslt1.1 libgd3 libgeoip1t64 \
             perl openssl nginx-full \
             cron logrotate
-    
+
         echo "**** prepare goaccess ****"
         apt-get install -y goaccess
 
