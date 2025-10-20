@@ -4,7 +4,14 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-# install dependencies
+ARG NGX_VER=1.29.2
+ARG NGX_UI_VER=2.1.17
+
+ARG CACHEBUST=1
+ARG TARGETPLATFORM
+
+COPY rootfs/ /
+
 SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
@@ -28,13 +35,10 @@ RUN <<-EOS
 
     # no default crontab for logrotate
     rm -rf /etc/cron.*
-EOS
 
-ARG CACHEBUST=1
-ARG NGX_VER=1.29.2
-ARG NGX_UI_VER=2.1.17
-ARG TARGETPLATFORM
-RUN <<-EOS
+    # alpine has different crontab names
+    which crond && ln -sfv $(which crond) /usr/sbin/cron || true
+
     set -ex
     echo "**** prepare nginx ****"
     if curl -fsSL --connect-timeout 3 http://git.mtdcy.top -o /dev/null; then
@@ -53,14 +57,7 @@ RUN <<-EOS
     esac
 
     curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
-EOS
 
-# prepare rootfs
-COPY rootfs/ /
-
-SHELL ["bash", "-c"]
-RUN <<-EOS
-    set -ex -o pipefail
     echo "**** finish ****"
 
     # fails on alpine
@@ -88,3 +85,5 @@ VOLUME /var/www/html
 VOLUME /var/log
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# vim:ft=dockerfile
