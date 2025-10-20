@@ -22,7 +22,7 @@ on:
         description: nginx version to build
 
 env:
-  nginx: 1.28.0
+  nginx: 1.29.2
 
 jobs:
   # env is unavailable under jobs.<job_id>.with.<with_id>
