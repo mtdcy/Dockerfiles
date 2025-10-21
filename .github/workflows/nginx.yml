@@ -108,5 +108,3 @@ jobs:
             NGX_UI_VER=${{ env.nginx-ui }}
             CACHEBUST=${{ steps.inspect.outputs.cachebust }}
           tags: ${{ steps.inspect.outputs.tags }}
-          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache
-          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache,mode=max
