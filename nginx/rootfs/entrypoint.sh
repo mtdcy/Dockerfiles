@@ -62,8 +62,8 @@ if [ -z "$1" ]; then
     /usr/sbin/cron -P -f 2>&1 | tee -a /var/log/cron.log &
 
     if which cmdlets.sh && test -n "$NGX_VERSION"; then
-        # update nginx
-        cmdlets.sh install nginx@$NGX_VERSION
+        # try update nginx
+        cmdlets.sh install nginx@$NGX_VERSION || true
     fi
 
     info "**** start nginx process ****"

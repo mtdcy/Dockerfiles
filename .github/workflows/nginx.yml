@@ -23,133 +23,90 @@ on:
         description: nginx version to build
 
 env:
+  platforms: linux/amd64,linux/arm64
   nginx: 1.29.2
+  nginx-ui: 2.1.17
 
 jobs:
-  # env is unavailable under jobs.<job_id>.with.<with_id>
-  setup-nginx:
-    name: Setup Environment Variables
-    runs-on: ubuntu-latest
-    outputs:
-      nginx: ${{ steps.prepare.outputs.nginx }}
-
-    steps:
-      - name: Prepare
-        id: prepare
-        shell: bash
-        run: |
-          version=${{ inputs.nginx }}
-          [ -n "$version" ] || version=${{ env.nginx }}
-
-          echo "nginx=$version" >> "$GITHUB_OUTPUT"
-
   build-nginx:
-    name: Build nginx-${{ matrix.arch }} on ${{ matrix.os }}
-    needs: setup-nginx
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-    uses: ./.github/workflows/buildx.yml
-    secrets: inherit
-    with:
-      runner: ${{ matrix.os }}
-      platforms: linux/${{ matrix.arch }}
-      context: nginx
-      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
-      tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:${{ needs.setup-nginx.outputs.nginx }}-${{ matrix.arch }}
-      cache: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache-${{ matrix.arch }}
-      args: |-
-        NGX_VER=${{ needs.setup-nginx.outputs.nginx }}
-
-  build-nginx-lite:
-    name: Build nginx-${{ matrix.arch }} on ${{ matrix.os }}
-    needs: setup-nginx
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-    uses: ./.github/workflows/buildx.yml
-    secrets: inherit
-    with:
-      runner: ${{ matrix.os }}
-      platforms: linux/${{ matrix.arch }}
-      context: nginx
-      dockerfile: nginx/Dockerfile.lite
-      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
-      tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-${{ needs.setup-nginx.outputs.nginx }}-${{ matrix.arch }}
-      cache: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-cache-${{ matrix.arch }}
-      args: |-
-        NGX_VER=${{ needs.setup-nginx.outputs.nginx }}
-
-  merge-tagged-nginx:
     runs-on: ubuntu-latest
-    needs:
-      - setup-nginx
-      - build-nginx
-      - build-nginx-lite
+
     steps:
-      # need to login and setup registry again
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
       - name: Login
         env:
-          token: ${{ secrets.REGISTRY_TOKEN }}
-        if: ${{ env.token != '' }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+        if: ${{ env.password != '' }}
         uses: docker/login-action@v3
         with:
           registry: ${{ vars.REGISTRY }}
           username: ${{ vars.REGISTRY_USER }}
           password: ${{ secrets.REGISTRY_TOKEN }}
 
-      - name: Merge tagged images
-        shell: bash
-        run: |-
-          set -ex
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: docker/setup-buildx-action@v3
 
-          version="${{ needs.setup-nginx.outputs.nginx }}"
-          IFS='=.' read -r m n _ <<< "$version"
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
 
-          # nginx:latest
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest         \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+      - name: Inspect
+        id: inspect
+        run: |
+          version=${{ inputs.nginx }}
+          [ -n "$version" ] || version=${{ env.nginx }}
 
-          # nginx:1.28.0
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version       \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version
+          IFS='=.' read -r m n r <<< "$version"
 
-          # nginx:1.28
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n          \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
+          tags=(
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n.$r
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+          )
+          echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
 
-          # nginx:1
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m             \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+          echo "cachebust=$(date +%s)" >> $GITHUB_OUTPUT
 
-          # nginx:lite-latest
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-latest         \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-latest
-
-          # nginx:1.28.0
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version       \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-amd64 \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:lite-$version
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: nginx
+          file: nginx/Dockerfile.lite
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+          build-args: |
+            NGX_VER=${{ env.nginx }}
+            NGX_UI_VER=${{ env.nginx-ui }}
+            CACHEBUST=${{ steps.inspect.outputs.cachebust }}
+          tags: ${{ steps.inspect.outputs.tags }}
+          cache-from: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache
+          cache-to: type=registry,ref=${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:cache,mode=max
