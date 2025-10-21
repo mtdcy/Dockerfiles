@@ -12,6 +12,8 @@ ARG TARGETPLATFORM
 
 COPY rootfs/ /
 
+ENV NGX_VERSION=$NGX_VER
+
 SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
