@@ -18,17 +18,17 @@ on:
 
   workflow_dispatch:
     inputs:
-      nginx:
+      nginx: 1.29.3
         type: string
         description: nginx version to build
 
 env:
   platforms: linux/amd64,linux/arm64
-  nginx: 1.29.2
+  nginx: 1.29.3
   nginx-ui: 2.1.17
 
 jobs:
-  build-nginx:
+  build-nginx: 1.29.3
     runs-on: ubuntu-latest
 
     steps:
@@ -85,10 +85,10 @@ jobs:
           IFS='=.' read -r m n r <<< "$version"
 
           tags=(
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n.$r
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx: 1.29.3
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx: 1.29.3
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx: 1.29.3
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx: 1.29.3
           )
           echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
 
