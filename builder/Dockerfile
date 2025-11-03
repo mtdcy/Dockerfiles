@@ -116,8 +116,15 @@ RUN <<-EOS
     # fix ld-musl
     ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
 
+    # fix LD_LIBRARY_PATH
+    echo /opt/$(uname -m)-unknown-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+
     # fails on alpine-3, why?
     ldconfig || true
+
+    # testing
+    ldconfig -p | grep libc.so
+    ldconfig -p | grep libgcc_s.so
 
     node --version
     gcc --version
