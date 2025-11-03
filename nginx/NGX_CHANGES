@@ -1,101 +1,4 @@
 
-Changes with nginx 1.29.3                                        28 Oct 2025
-
-    *) Feature: the "add_header_inherit" and "add_trailer_inherit"
-       directives.
-
-    *) Feature: the $request_port and $is_request_port variables.
-
-    *) Feature: the $ssl_sigalg and $ssl_client_sigalg variables.
-
-    *) Feature: the "volatile" parameter of the "geo" directive.
-
-    *) Feature: now certificate compression is available with BoringSSL.
-
-    *) Bugfix: now certificate compression is disabled with OCSP stapling.
-
-
-Changes with nginx 1.29.2                                        07 Oct 2025
-
-    *) Feature: now nginx can be built with AWS-LC.
-       Thanks Samuel Chiang.
-
-    *) Bugfix: now the "ssl_protocols" directive works in a virtual server
-       different from the default server when using OpenSSL 1.1.1 or newer.
-
-    *) Bugfix: SSL handshake always failed when using TLSv1.3 with OpenSSL
-       and client certificates and resuming a session with a different SNI
-       value; the bug had appeared in 1.27.4.
-
-    *) Bugfix: the "ignoring stale global SSL error" alerts might appear in
-       logs when using QUIC and the "ssl_reject_handshake" directive; the
-       bug had appeared in 1.29.0.
-       Thanks to Vladimir Homutov.
-
-    *) Bugfix: in delta-seconds processing in the "Cache-Control" backend
-       response header line.
-
-    *) Bugfix: an XCLIENT command didn't use the xtext encoding.
-       Thanks to Igor Morgenstern of Aisle Research.
-
-    *) Bugfix: in SSL certificate caching during reconfiguration.
-
-
-Changes with nginx 1.29.1                                        13 Aug 2025
-
-    *) Security: processing of a specially crafted login/password when using
-       the "none" authentication method in the ngx_mail_smtp_module might
-       cause worker process memory disclosure to the authentication server
-       (CVE-2025-53859).
-
-    *) Change: now TLSv1.3 certificate compression is disabled by default.
-
-    *) Feature: the "ssl_certificate_compression" directive.
-
-    *) Feature: support for 0-RTT in QUIC when using OpenSSL 3.5.1 or newer.
-
-    *) Bugfix: the 103 response might be buffered when using HTTP/2 and the
-       "early_hints" directive.
-
-    *) Bugfix: in handling "Host" and ":authority" header lines with equal
-       values when using HTTP/2; the bug had appeared in 1.17.9.
-
-    *) Bugfix: in handling "Host" header lines with a port when using
-       HTTP/3.
-
-    *) Bugfix: nginx could not be built on NetBSD 10.0.
-
-    *) Bugfix: in the "none" parameter of the "smtp_auth" directive.
-
-
-Changes with nginx 1.29.0                                        24 Jun 2025
-
-    *) Feature: support for response code 103 from proxy and gRPC backends;
-       the "early_hints" directive.
-
-    *) Feature: loading of secret keys from hardware tokens with OpenSSL
-       provider.
-
-    *) Feature: support for the "so_keepalive" parameter of the "listen"
-       directive on macOS.
-
-    *) Change: the logging level of SSL errors in a QUIC handshake has been
-       changed from "error" to "crit" for critical errors, and to "info" for
-       the rest; the logging level of unsupported QUIC transport parameters
-       has been lowered from "info" to "debug".
-
-    *) Change: the native nginx/Windows binary release is now built using
-       Windows SDK 10.
-
-    *) Bugfix: nginx could not be built by gcc 15 if ngx_http_v2_module or
-       ngx_http_v3_module modules were used.
-
-    *) Bugfix: nginx might not be built by gcc 14 or newer with -O3 -flto
-       optimization if ngx_http_v3_module was used.
-
-    *) Bugfixes and improvements in HTTP/3.
-
-
 Changes with nginx 1.27.5                                        16 Apr 2025
 
     *) Feature: CUBIC congestion control in QUIC connections.
@@ -2618,7 +2521,7 @@ Changes with nginx 1.7.4                                         05 Aug 2014
     *) Change: URI escaping now uses uppercase hexadecimal digits.
        Thanks to Piotr Sikora.
 
-    *) Feature: now nginx can be built with BoringSSL and LibreSSL.
+    *) Feature: now nginx can be build with BoringSSL and LibreSSL.
        Thanks to Piotr Sikora.
 
     *) Bugfix: requests might hang if resolver was used and a DNS server
@@ -7894,7 +7797,7 @@ Changes with nginx 0.3.30                                        22 Feb 2006
     *) Change: the ECONNABORTED error log level was changed to "error" from
        "crit".
 
-    *) Bugfix: the ngx_http_perl_module could not be built without the
+    *) Bugfix: the ngx_http_perl_module could not be build without the
        ngx_http_ssi_filter_module.
 
     *) Bugfix: nginx could not be built on i386 platform, if the PIC was
