@@ -47,7 +47,8 @@ jobs:
           curl --fail -sL https://nginx.org/en/CHANGES-$m.$n -o nginx/NGX_CHANGES ||
           curl --fail -sL https://nginx.org/en/CHANGES -o nginx/NGX_CHANGES || true
 
-          sed -i "s/nginx:.*$/nginx: $m.$n.$r/" .github/workflows/nginx.yml
+          sed -i .github/workflows/nginx.yml \
+              -e '/ *nginx[ :0-9.]\+/s/:.*$/: $m.$n.$r/'
           message="update nginx => $m.$n.$r"
 
           # geoip2
