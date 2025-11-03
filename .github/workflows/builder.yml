@@ -61,26 +61,26 @@ jobs:
       args: |-
         MIRROR=${{ vars.MIRRORS }}
 
-  alpine-3:
-    name: Build alpine-3-${{ matrix.arch }} on ${{ matrix.os }}
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-24.04
-            arch: amd64
-          - os: ubuntu-24.04-arm
-            arch: arm64
-    uses: ./.github/workflows/buildx.yml
-    secrets: inherit
-    with:
-      runner: ${{ matrix.os }}
-      platforms: linux/${{ matrix.arch }}
-      context: builder
-      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
-      tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-${{ matrix.arch }}
-      args: |-
-        MIRROR=${{ vars.MIRRORS }}
+# alpine-3:
+#   name: Build alpine-3-${{ matrix.arch }} on ${{ matrix.os }}
+#   strategy:
+#     matrix:
+#       include:
+#         - os: ubuntu-24.04
+#           arch: amd64
+#         - os: ubuntu-24.04-arm
+#           arch: arm64
+#   uses: ./.github/workflows/buildx.yml
+#   secrets: inherit
+#   with:
+#     runner: ${{ matrix.os }}
+#     platforms: linux/${{ matrix.arch }}
+#     context: builder
+#     baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+#     tags: |
+#       ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-${{ matrix.arch }}
+#     args: |-
+#       MIRROR=${{ vars.MIRRORS }}
 
   merge-tagged-images:
     runs-on: ubuntu-latest
@@ -122,14 +122,14 @@ jobs:
                                     --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-arm64
           docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
 
-          # alpine-latest
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest      \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
+#         # alpine-latest
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest      \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
 
-          # alpine-3
-          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3           \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
-                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
-          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3
+#         # alpine-3
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3           \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3
