@@ -1,7 +1,7 @@
 #!/bin/bash -e
 # ip route management script.
 # Copyright (c) Chen Fang 2023, mtdcy.chen@gmail.com.
-# 
+#
 # v0.3      - 20250421, modify for docker usage
 # v0.2.1    - 20240613, add echocmd and fix tcpmss
 # v0.2      - 20231125, code refactoring.
@@ -40,9 +40,11 @@ is_cidr() { [[ "$*" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/[0-9]+$  ]]; }
 
 # update_dnsmasq <domain> <set> <@dns>
 update_dnsmasq() {
-    echo "ipset=/$1/$2"                             >> "$DNSMASQ_IPSET"
+    echo "ipset=/$1/$2"                         >> "$DNSMASQ_IPSET"
     # override dns with ROUTE_ADDR
-    echo "server=/$1/${ROUTE_ADDR:-${3/:/#}}"  >> "$DNSMASQ_IPSET"
+    echo "server=/$1/${ROUTE_ADDR:-${3/:/#}}"   >> "$DNSMASQ_IPSET"
+    # filter out AAAA
+    echo "address=/$1/!6"                       >> "$DNSMASQ_IPSET"
 }
 
 # update_ipset path/to/some.ip [list]
