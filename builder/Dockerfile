@@ -72,7 +72,8 @@ RUN <<-EOS
             luajit perl libhttp-daemon-perl \
             python3 python3-pip moreutils \
             openssh-client rsync \
-            ccache distcc
+            ccache distcc \
+            libssl-dev
         update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
@@ -89,7 +90,8 @@ RUN <<-EOS
             luajit perl perl-http-daemon \
             nodejs python3 py3-pip moreutils \
             openssh rsync \
-            ccache distcc
+            ccache distcc \
+            openssl-dev
     fi
 
     echo "**** install latest meson ****"

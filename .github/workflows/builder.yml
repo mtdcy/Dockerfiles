@@ -9,6 +9,10 @@ on:
       - builder/Implib.so
       - .github/workflows/builder.yml
 
+  # update rust toolchain and others weekly
+  schedule:
+    - cron: '0 0 * * 1'  # weekly
+
 # workflows_run:
 #   workflows: [Build baseimage]
 #   types:
@@ -87,7 +91,6 @@ jobs:
     needs:
       - ubuntu-2404
       - ubuntu-2204
-      - alpine-3
     steps:
       # need to login and setup registry again
       - name: Login
