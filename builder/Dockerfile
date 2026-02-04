@@ -118,6 +118,9 @@ RUN <<-EOS
     # fix ld-musl
     ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
 
+    # hack libgcc_s.a => some build system like rustc won't search for libgcc.a
+    ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
+
     # fix LD_LIBRARY_PATH
     echo /opt/$(uname -m)-unknown-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
 
