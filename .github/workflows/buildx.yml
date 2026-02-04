@@ -121,5 +121,6 @@ jobs:
             ${{ inputs.tags }}
           build-args: |
             ${{ inputs.args }}
+            CACHEBUST=${{ steps.inspect.outputs.cachebust }}
           cache-from: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache
           cache-to: type=registry,ref=${{ steps.prepare.outputs.first_tag }}-cache,mode=max
