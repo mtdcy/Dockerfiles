@@ -12,6 +12,7 @@ COPY --chmod=0755 Implib.so /opt/bin/
 COPY --chmod=0755 entrypoint.sh /opt/
 
 COPY ./resources/${TARGETPLATFORM}/* /tmp/
+COPY ./scripts/* /tmp/
 
 ENV GOROOT="/opt/go"
 ENV RUSTUP_HOME="/opt/rust"
@@ -33,8 +34,10 @@ RUN <<-EOS
 
     find /opt -name "*.la" -exec rm -rf {} \;
 
-    echo "**** setup golang ****"
-    tar -xf /tmp/go*.tar.gz
+    goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+    echo "**** setup $goversion ****"
+
+    curl -fsSL https://go.dev/dl/$goversion.linux-${TARGETPLATFORM#*/}.tar.gz | tar -C /opt -xz
 
     echo "**** setup rust ****"
     if test -n "${MIRROR}"; then
