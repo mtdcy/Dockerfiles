@@ -68,7 +68,7 @@ jobs:
           fi
 
           git add nginx .github/workflows/nginx.yml
-          git commit -m "$message"
+          git commit -m "$message" || exit 0
 
       - name: Update Go for builder
         run: |-
@@ -85,7 +85,7 @@ jobs:
           done
 
           git add builder
-          git commit -m "update $goversion"
+          git commit -m "update $goversion" || exit 0
 
       - name: Commit
         shell: bash
