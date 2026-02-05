@@ -34,10 +34,8 @@ RUN <<-EOS
 
     find /opt -name "*.la" -exec rm -rf {} \;
 
-    goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
-    echo "**** setup $goversion ****"
-
-    curl -fsSL https://go.dev/dl/$goversion.linux-${TARGETPLATFORM#*/}.tar.gz | tar -C /opt -xz
+    echo "**** setup golang ****"
+    tar -xf /tmp/go*.tar.gz
 
     echo "**** setup rust ****"
     if test -n "${MIRROR}"; then

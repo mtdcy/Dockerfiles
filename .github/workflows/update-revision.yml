@@ -70,6 +70,23 @@ jobs:
           git add nginx .github/workflows/nginx.yml
           git commit -m "$message"
 
+      - name: Update Go for builder
+        run: |-
+          set -ex
+
+          goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+
+          for target in amd64 arm64; do
+            test -f builder/resources/linux/$target/$goversion.linux-$target.tar.gz && continue
+            rm -rf builder/resources/linux/$target/go* || true
+
+            curl -fsSL -o builder/resources/linux/$target/$goversion.linux-$target.tar.gz \
+              https://go.dev/dl/$goversion.linux-$target.tar.gz
+          done
+
+          git add builder
+          git commit -m "update $goversion"
+
       - name: Commit
         shell: bash
         run: |-
