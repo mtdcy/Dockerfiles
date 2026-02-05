@@ -24,7 +24,7 @@ on:
 
 env:
   platforms: linux/amd64,linux/arm64
-  nginx: 1.29.4
+  nginx: 1.29.5
   nginx-ui: 2.1.17
 
 jobs:
