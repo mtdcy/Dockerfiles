@@ -16,7 +16,7 @@ else
     # --pty: pseudo-terminal
     # --login: will change the workdir and clear envs
 
-    exec sudo -u "#$PUID" -g "#$PGID" -E -H "${cmd[@]}"
+    exec sudo -u "#$PUID" -g "#$PGID" -E -H bash -c "${cmd[*]}"
     # -E: preserve envs (no login shell)
     # -H: set HOME
 fi
