@@ -87,6 +87,38 @@ jobs:
           git add builder
           git commit -m "update $goversion" || exit 0
 
+      - name: Update Node.js for builder
+        run: |-
+          set -ex
+
+          # LTS: v24
+          IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^v24[0-9.]+" -m1)
+
+          # arm64
+          name="node-$version-linux-arm64.tar.xz"
+          (
+            pushd builder/resources/linux/arm64
+            test -f "$name" || {
+              rm -f node-* || true
+              curl -fsSL -o "$name" https://nodejs.org/dist/$version/$name"
+            } || true
+            popd
+          ) || true
+
+          # amd64
+          name="node-$version-linux-x64.tar.xz"
+          (
+            pushd builder/resources/linux/amd64
+            test -f "$name" || {
+              rm -f node-* || true
+              curl -fsSL -o "$name" https://nodejs.org/dist/$version/$name"
+            } || true
+            popd
+          ) || true
+
+          git add builder
+          git commit -m "update node => $version" || exit 0
+
       - name: Commit
         shell: bash
         run: |-
