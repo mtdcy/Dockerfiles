@@ -168,4 +168,5 @@ ENV DISTCC_HOSTS=
 # override entrypoint
 ENTRYPOINT ["/opt/entrypoint.sh"]
 
-ENV BUILDER_NAME=cmdlets-builder
+ARG TARGETPLATFORM
+ENV BUILDER_NAME="$TARGETPLATFORM"
