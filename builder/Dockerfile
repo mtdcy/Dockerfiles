@@ -123,7 +123,7 @@ RUN <<-EOS
     ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
 
     # fix LD_LIBRARY_PATH
-    echo /opt/$(uname -m)-unknown-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+    echo /opt/$(uname -m)-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
 
     # fails on alpine-3, why?
     ldconfig || true
