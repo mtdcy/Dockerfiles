@@ -8,15 +8,15 @@ cmd=( "${@:-bash}" )
 if [ "$(id -u)" -ne 0 ]; then
     exec "${cmd[@]}"
 else
-    [ "$PUID" -eq "$(id -u buildbot)" ] || usermod  buildbot -u "$PUID" 2>/dev/null || true
-    [ "$PGID" -eq "$(id -u buildbot)" ] || groupmod buildbot -g "$PGID" 2>/dev/null || true
+    getent passwd "$PUID" || usermod  buildbot -u "$PUID" || true
+    getent group  "$PGID" || groupmod buildbot -g "$PGID" || true
 
     # su in alpine has no '--pty' option
     #su buildbot --pty -c "$*"
     # --pty: pseudo-terminal
     # --login: will change the workdir and clear envs
-    
-    exec sudo -E -u buildbot -H "${cmd[@]}"
+
+    exec sudo -u "#$PUID" -g "#$PGID" -E -H "${cmd[@]}"
     # -E: preserve envs (no login shell)
     # -H: set HOME
 fi
