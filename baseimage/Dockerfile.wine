@@ -5,6 +5,7 @@ FROM ubuntu:latest AS builder
 ARG WINE=https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
 ADD $WINE /tmp/
 
+WORKDIR /rootfs
 RUN <<-EOS
     set -ex
     echo "**** Install WINE build dependencies ****"
@@ -21,14 +22,21 @@ RUN <<-EOS
 
     tar -xf /tmp/${WINE##*/} -C /tmp
     cd /tmp/wine-*
-    {
-        ./configure --prefix=/usr --enable-win64 --enable-archs=x86_64,i386 --with-mingw
-        make -j$(nproc)
-        DESTDIR=/rootfs make install
-        find /rootfs -type f -exec strip --strip-all {} \;
-        find /rootfs -type f -name "*.a" -exec rm -f {} \;
-        rm -rf /rootfs/usr/include
-    } | tee /rootfs/wine-build.log
+
+    true > /rootfs/wine-build.log
+
+    ./configure --prefix=/usr --enable-win64 --enable-archs=x86_64,i386 --with-mingw | tee -a /rootfs/wine-build.log
+
+    make -j$(nproc) >> /rootfs/wine-build.log || {
+        tail -n 100 /rootfs/wine-build.log
+        exit 1
+    }
+
+    DESTDIR=/rootfs make install
+
+    find /rootfs -type f -exec strip --strip-all {} +
+    find /rootfs -type f -name "*.a" -exec rm -fv {} +
+    rm -rfv /rootfs/usr/include
 
     gzip -f /rootfs/wine-build.log
 
