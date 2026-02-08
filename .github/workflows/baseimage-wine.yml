@@ -10,13 +10,27 @@ on:
   workflow_dispatch: null
 
 env:
-  wine: 11.0
+  wine: '11.0'
 
 jobs:
-  wine:
-    name: Build wine
+  prepare:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+
+    steps:
+      - name: Check
+        id: check
+        run: |-
+          set -ex
+
+          # TODO: find out the latest version
+          echo "version=${{ env.wine }}" >> "$GITHUB_OUTPUT"
+
+  wine-latest:
+    name: Build wine-latest
     uses: ./.github/workflows/buildx.yml
+    needs: prepare
     secrets: inherit
     with:
       runner: ubuntu-latest
@@ -25,8 +39,8 @@ jobs:
       dockerfile: baseimage/Dockerfile.wine
       baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
       tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ needs.prepare.outputs.version }}
         ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
       args: |-
         MIRROR=${{ vars.MIRRORS }}
-        WINE=https://dl.winehq.org/wine/source/${{ env.wine }}/wine-${{ env.wine }}.tar.xz
+        WINE=https://dl.winehq.org/wine/source/${{ needs.prepare.outputs.version }}/wine-${{ needs.prepare.outputs.version }}.tar.xz
