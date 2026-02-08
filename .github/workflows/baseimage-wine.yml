@@ -1,0 +1,32 @@
+---
+name: Build wine baseimage
+
+on:
+  push:
+    paths:
+      - baseimage/Dockerfile.wine
+      - .github/workflows/baseimage-wine.yml
+
+  workflow_dispatch: null
+
+env:
+  wine: 11.0
+
+jobs:
+  wine:
+    name: Build wine
+    runs-on: ubuntu-latest
+    uses: ./.github/workflows/buildx.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      platforms: linux/amd64
+      context: baseimage
+      dockerfile: baseimage/Dockerfile.wine
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.wine }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+        WINE=https://dl.winehq.org/wine/source/${{ env.wine }}/wine-${{ env.wine }}.tar.xz

@@ -1,10 +1,9 @@
 # syntax=docker/dockerfile:1
 
-# refer: https://github.com/msys2/msys2-docker/blob/main/build-base/Dockerfile
 FROM ubuntu:latest AS builder
 
-ARG WINE_REPO=https://gitlab.winehq.org/jhol/wine.git#msys2-hacks-19
-ADD $WINE_REPO /tmp/wine.git
+ARG WINE=https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
+ADD $WINE /tmp/
 
 RUN <<-EOS
     set -ex
@@ -20,17 +19,18 @@ RUN <<-EOS
 
     echo "**** Install patched WINE64 ****"
 
-    # https://gitlab.winehq.org/jhol/wine/-/commits/msys2-hacks-18
-    #git clone https://gitlab.winehq.org/jhol/wine.git \
-    #    --branch msys2-hacks-18 --single-branch /tmp/wine.git
-    #git checkout 90e376d085e78ed4c5e91480f354866637f53e1c
-    cd /tmp/wine.git
-    ./configure --prefix=/usr --enable-win64 --enable-archs=x86_64,i386 --with-mingw
-    make -j$(nproc)
-    DESTDIR=/rootfs make install
-    find /rootfs -type f -exec strip --strip-all {} \;
-    find /rootfs -type f -name "*.a" -exec rm -f {} \;
-    rm -rf /rootfs/usr/include
+    tar -xf /tmp/${WINE##*/} -C /tmp
+    cd /tmp/wine-*
+    {
+        ./configure --prefix=/usr --enable-win64 --enable-archs=x86_64,i386 --with-mingw
+        make -j$(nproc)
+        DESTDIR=/rootfs make install
+        find /rootfs -type f -exec strip --strip-all {} \;
+        find /rootfs -type f -name "*.a" -exec rm -f {} \;
+        rm -rf /rootfs/usr/include
+    } | tee /rootfs/wine-build.log
+
+    gzip -f /rootfs/wine-build.log
 
     du -a -h /rootfs | tee /rootfs/wine-files
 EOS
@@ -43,17 +43,18 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 #1. Install wine64 and runtime deps
 RUN <<-EOS
     set -ex
-    echo "**** Install WINE64 runtime deps ****"
+    echo "**** Install Wine64 ****"
 
     apt update
-    apt install -y --no-install-recommends xvfb wine64 xauth file
-    apt remove -y wine64 libwine
+    apt install -y --no-install-recommends xvfb wine64 xauth file \
+                binfmt-support wine-binfmt \
+                winetricks cabextract
+
     rm -rf /var/lib/apt/lists/*
 EOS
 
-#2. Override with patched wine64 and MSYS2 files
+#2. Override with new Wine64
 COPY --from=builder /rootfs/ /
-COPY wine /wine
 
 # shared wine prefix
 ENV WINEPREFIX=/wine
@@ -62,10 +63,10 @@ ENV WINEARCH=win64
 
 WORKDIR $WINEPREFIX
 
-#3. Prepare WINE64
+#3. Prepare Wine64
 RUN <<-EOS
     set -ex
-    echo "**** Prepare WINE64 & MSYS2 ****"
+    echo "**** Prepare Wine64 ****"
 
     ldconfig
 
@@ -73,6 +74,16 @@ RUN <<-EOS
     #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
     winecfg || true
 
-    # Fixme: always return error
-    wine reg import regs/disable-crash-dialog.reg || true
+    # run wineserver and wait for terminates issue by winetricks
+    wineserver -w
+
+    winetricks corefonts
+
+    # enable wine-binfmt
+    update-binfmts --import wine
+    update-binfmts --display
+
+    # enable binfmt support of wine later in entrypoint
+    # mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
+    # update-binfmts --enable wine
 EOS
