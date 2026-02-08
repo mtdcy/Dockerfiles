@@ -6,6 +6,7 @@ on:
     paths:
       - builder/Dockerfile
       - builder/entrypoint.sh
+      - builder/resources/**
       - builder/Implib.so
       - .github/workflows/builder.yml
 

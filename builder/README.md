@@ -2,17 +2,10 @@
 
 ## Available Images
 
-### Linux Images
+### Images
 
-- lcr.io/mtdcy/builder:ubuntu-latest
-- lcr.io/mtdcy/builder:alpine-latest
-- lcr.io/mtdcy/builder:mingw64-latest
-- lcr.io/mtdcy/builder:clang64-latest
-- lcr.io/mtdcy/builder:ucrt64-latest
-
-### Windows Images
-
--
+- lcr.io/mtdcy/builder:ubuntu-latest    (Linux targets)
+- lcr.io/mtdcy/builder:mingw64-latest   (Windows targets)
 
 ## Quick Start
 
@@ -26,9 +19,4 @@ docker run --rm -it -e PUID=1000 -e PGID=1000 lcr.io/mtdcy/builder:ubuntu-latest
 - always run as buildbot, PUID|PGID are accepted.
 - use `docker run ... root` to require root permission.
 
-## BUSS
-
-### MSYS2
-
-- Ctrl-C doesn't work
-- 'ln: failed to create symbolic link '/etc/mtab': Permission denied'
+## BUGS

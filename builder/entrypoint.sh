@@ -13,9 +13,24 @@ reap_children() {
 }
 trap 'reap_children' SIGCHLD # trap SIGCHLD => no exec permitted
 
+: "${WINEPREFIX:=}"
+
+# enable binfmt support
+if test -n "$WINEPREFIX" && ! test -e /proc/sys/fs/binfmt_misc/wine; then
+    sudo mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
+    sudo update-binfmts --import wine
+    sudo update-binfmts --enable wine
+fi
+
 if [ "$(id -u)" -ne 0 ]; then
+    # wine: '/wine' is not owned by you
+    test -z "$WINEPREFIX" || chown "$(id -u):$(id -g)" "$WINEPREFIX"
+
     bash -c "${cmd[*]}"
 else
+    # wine: '/wine' is not owned by you
+    test -z "$WINEPREFIX" || chown "$PUID:$PGID" "$WINEPREFIX"
+
     getent passwd "$PUID" >/dev/null || usermod  buildbot -u "$PUID" || true
     getent group  "$PGID" >/dev/null || groupmod buildbot -g "$PGID" || true
 
