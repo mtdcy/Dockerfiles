@@ -24,7 +24,7 @@ RUN <<-EOS
         tar -xf /tmp/${WINE##*/} -C /tmp
         cd /tmp/wine-*
 
-        true > /rootfs/wine-build.log
+        true > /rootfs/wine-build
 
         ./configure --prefix=/usr               \
                     --disable-win16             \
@@ -44,14 +44,16 @@ RUN <<-EOS
 
         # keep windows headers /usr/include/wine/*
 
-    } | tee -a /rootfs/wine-build.log || {
-        tail -n 100 /rootfs/wine-build.log
+    } | tee -a /rootfs/wine-build || {
+        tail -n 100 /rootfs/wine-build
         exit 1
     }
 
-    gzip -f /rootfs/wine-build.log
+    gzip -f /rootfs/wine-build
 
     du -a -h /rootfs | tee /rootfs/wine-files
+
+    gzip -f /rootfs/wine-files
 EOS
 
 FROM ubuntu:latest
@@ -76,7 +78,7 @@ EOS
 COPY --from=builder /rootfs/ /
 
 # shared wine prefix
-ENV WINEPREFIX=/wine
+ENV WINEPREFIX=/opt/wine
 ENV WINEDEBUG=-all
 ENV WINEARCH=win64
 
