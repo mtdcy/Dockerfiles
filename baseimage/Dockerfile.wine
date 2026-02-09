@@ -20,28 +20,34 @@ RUN <<-EOS
 
     echo "**** Install patched WINE64 ****"
 
-    tar -xf /tmp/${WINE##*/} -C /tmp
-    cd /tmp/wine-*
+    {
+        tar -xf /tmp/${WINE##*/} -C /tmp
+        cd /tmp/wine-*
 
-    true > /rootfs/wine-build.log
+        true > /rootfs/wine-build.log
 
-    ./configure --prefix=/usr                   \
-                --disable-win16                 \
-                --enable-win64                  \
-                --enable-archs=x86_64,i386      \
-                --with-mingw                    \
-                | tee -a /rootfs/wine-build.log
+        ./configure --prefix=/usr               \
+                    --disable-win16             \
+                    --enable-win64              \
+                    --enable-archs=x86_64,i386  \
+                    --with-mingw                \
 
-    make -j$(nproc) >> /rootfs/wine-build.log || {
+        make -j$(nproc)
+
+        DESTDIR=/rootfs make install
+
+        # strip files
+        find /rootfs/usr/bin -type f -exec strip --strip-all {} + || true
+
+        # remove static libraries except usr/lib/wine/* (windows static libraries)
+        find /rootfs -not -path '*/usr/lib/wine/*' -type f -name "*.a" -exec rm -fv {} + || true
+
+        # keep windows headers /usr/include/wine/*
+
+    } | tee -a /rootfs/wine-build.log || {
         tail -n 100 /rootfs/wine-build.log
         exit 1
     }
-
-    DESTDIR=/rootfs make install
-
-    find /rootfs -type f -exec strip --strip-all {} + || true
-    find /rootfs -type f -name "*.a" -exec rm -fv {} + || true
-    rm -rfv /rootfs/usr/include
 
     gzip -f /rootfs/wine-build.log
 
