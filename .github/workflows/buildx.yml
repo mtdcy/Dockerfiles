@@ -103,6 +103,12 @@ jobs:
           first_tag=$(echo "${{ inputs.tags }}" | head -n1)
           echo "first_tag=$first_tag" >> $GITHUB_OUTPUT
 
+          if test -n "${{ inputs.platforms }}"; then
+            echo "platforms=${{ inputs.platforms }}" >> $GITHUB_OUTPUT
+          else
+            echo "platforms=${{ env.platforms }}" >> $GITHUB_OUTPUT
+          fi
+
           echo "cachebust=$(date +%Y-%m-%dT%H:%M:%S)" >> $GITHUB_OUTPUT
 
       - name: Build and Push
@@ -111,7 +117,7 @@ jobs:
           push: true
           context: ${{ inputs.context }}
           file: ${{ inputs.dockerfile }}
-          platforms: ${{ inputs.platforms }}
+          platforms: ${{ steps.prepare.outputs.platforms }}
           provenance: false
           sbom: false
           build-contexts: |

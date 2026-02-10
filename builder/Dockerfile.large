@@ -1,0 +1,39 @@
+# syntax=docker/dockerfile:1
+
+FROM baseimage:latest AS builder
+
+ARG MIRROR
+ARG TARGETPLATFORM
+# no cache for this stage
+ARG CACHEBUST=1
+
+# labels
+LABEL maintainer="mtdcy.chen@gmail.com"
+
+WORKDIR /opt/
+RUN <<-EOS
+    set -ex
+
+    echo "🚀 setup zsh 🚀"
+
+    apt-get update
+    apt-get install -y zsh
+
+    echo "🚀 setup files 🚀"
+
+    git clone --depth 1 https://git.mtdcy.top:8443/mtdcy/dotfiles.git files
+
+    cd /opt/files
+    ./install.sh --no-update
+    cd -
+
+    echo "🚀 setup nvim 🚀"
+
+    git clone --depth 1 https://git.mtdcy.top:8443/mtdcy/pretty.nvim.git nvim
+
+    cd /opt/nvim
+    ./install.sh --update-core
+    cd -
+
+    echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
+EOS

@@ -1,0 +1,44 @@
+---
+name: Build builder
+
+on:
+  push:
+    paths:
+      - builder/Dockerfile.large
+      - .github/workflows/builder-large.yml
+
+  # update rust toolchain and others weekly
+  schedule:
+    - cron: '0 0 * * 1'  # weekly
+
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call: null
+
+  workflow_dispatch: null
+
+jobs:
+  ubuntu-2404:
+    name: Build ${{ matrix.baseimage }}-large
+    strategy:
+      matrix:
+        include:
+          - baseimage: mingw64-latest
+            platforms: linux/amd64
+          - baseimage: ubuntu-22.04
+          - baseimage: ubuntu-latest
+    uses: ./.github/workflows/buildx.yml
+    secrets: inherit
+    with:
+      runner: ubuntu-latest
+      platforms: ${{ matrix.platforms }}
+      context: builder
+      dockerfile: builder/Dockerfile.large
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.baseimage }}
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.baseimage }}-large
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
