@@ -36,13 +36,16 @@ RUN <<-EOS
 
         DESTDIR=/rootfs make install
 
+        # keep only runtime files
+
         # strip files
-        find /rootfs/usr/bin -type f -exec strip --strip-all {} + || true
+        find /rootfs -type f -executable -exec strip --strip-all {} + || true
 
-        # remove static libraries except usr/lib/wine/* (windows static libraries)
-        find /rootfs -not -path '*/usr/lib/wine/*' -type f -name "*.a" -exec rm -fv {} + || true
+        # remove static libraries (development files)
+        find /rootfs -type f -name "*.a" -exec rm -fv {} + || true
 
-        # keep windows headers /usr/include/wine/*
+        # remove headers (development files)
+        find /rootfs -type f -name "*.h" -exec rm -fv {} + || true
 
     } | tee -a /rootfs/wine-build || {
         tail -n 100 /rootfs/wine-build
