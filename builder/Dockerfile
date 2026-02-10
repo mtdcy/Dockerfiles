@@ -152,6 +152,8 @@ RUN <<-EOS
 
     sed -i '/secure_path/ s/^/# &/g' /etc/sudoers
     echo "Defaults secure_path=\"$PATH\""   >> /etc/sudoers
+
+    echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
 EOS
 
 # ccache: disable by default
