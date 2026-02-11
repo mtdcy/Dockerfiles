@@ -100,7 +100,8 @@ jobs:
             pushd builder/resources/linux/arm64
             test -f "$name" || {
               rm -f node-* || true
-              curl -fsSL -o "$name" https://nodejs.org/dist/$version/$name"
+              curl -fsSL -o "$name" "https://nodejs.org/dist/$version/$name"
+              git add .
             } || true
             popd
           ) || true
@@ -111,7 +112,8 @@ jobs:
             pushd builder/resources/linux/amd64
             test -f "$name" || {
               rm -f node-* || true
-              curl -fsSL -o "$name" https://nodejs.org/dist/$version/$name"
+              curl -fsSL -o "$name" "https://nodejs.org/dist/$version/$name"
+              git add .
             } || true
             popd
           ) || true
