@@ -23,6 +23,7 @@ on:
 jobs:
   ubuntu-2404:
     name: Build ${{ matrix.baseimage }}-large
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         include:
