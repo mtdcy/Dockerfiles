@@ -61,10 +61,10 @@ RUN <<-EOS
         tar gzip xz-utils lzip unzip zstd \
         mingw-w64 binutils-mingw-w64 mingw-w64-tools \
         libtool automake autoconf autopoint \
-        cmake meson texinfo gettext \
+        cmake meson texinfo gettext moreutils \
         nasm yasm bison flex \
         luajit perl libhttp-daemon-perl \
-        python3 python3-pip moreutils \
+        python3 python3-pip python3-venv \
         openssh-client rsync \
         ccache distcc \
         libssl-dev
