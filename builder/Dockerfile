@@ -68,10 +68,10 @@ RUN <<-EOS
             tar gzip xz-utils lzip unzip zstd \
             build-essential libtool pkg-config \
             automake autoconf gettext autopoint \
-            cmake meson texinfo \
+            cmake meson texinfo moreutils \
             nasm yasm bison flex \
             luajit perl libhttp-daemon-perl \
-            python3 python3-pip moreutils \
+            python3 python3-pip python3-venv \
             openssh-client rsync \
             ccache distcc \
             libssl-dev
@@ -86,10 +86,10 @@ RUN <<-EOS
             tar gzip xz lzip unzip zstd \
             linux-headers build-base libtool pkgconfig \
             automake autoconf gettext \
-            cmake meson texinfo \
+            cmake meson texinfo moreutils \
             nasm yasm bison flex \
             luajit perl perl-http-daemon \
-            nodejs python3 py3-pip moreutils \
+            nodejs python3 py3-pip python3-dev \
             openssh rsync \
             ccache distcc \
             openssl-dev
