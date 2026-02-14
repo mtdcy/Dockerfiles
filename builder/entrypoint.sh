@@ -24,12 +24,12 @@ fi
 
 if [ "$(id -u)" -ne 0 ]; then
     # wine: '/wine' is not owned by you
-    test -z "$WINEPREFIX" || chown "$(id -u):$(id -g)" "$WINEPREFIX"
+    [ "$(stat -c %u "$WINEPREFIX")" -eq $(id -u) ] || chown -R $(id -u) "$WINEPREFIX"
 
     bash -c "${cmd[*]}"
 else
     # wine: '/wine' is not owned by you
-    test -z "$WINEPREFIX" || chown "$PUID:$PGID" "$WINEPREFIX"
+    [ "$(stat -c %u "$WINEPREFIX")" -eq $PUID ] || chown -R $PUID "$WINEPREFIX"
 
     getent passwd "$PUID" >/dev/null || usermod  buildbot -u "$PUID" || true
     getent group  "$PGID" >/dev/null || groupmod buildbot -g "$PGID" || true

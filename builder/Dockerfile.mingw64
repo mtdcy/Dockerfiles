@@ -90,7 +90,18 @@ ENV RUSTUP_HOME="/opt/rust"
 ENV CARGO_HOME="/opt/rust/cargo"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
+ENV WINEDEBUG=err+module
+
+# 00a4:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c0000142
+# 003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1114
+ENV WINEDLLOVERRIDES="winebth.sys=d"
+
 RUN <<-EOS
+    echo "**** winetricks ****"
+    wineserver -w # wait signal from winetricks
+
+    winetricks sound=disabled vd=off
+
     echo "**** post setup ****"
 
     # fails on alpine-3, why?
@@ -105,6 +116,8 @@ RUN <<-EOS
     # delete default user(1000)
     userdel ubuntu || true
     useradd -U -m -s /bin/bash buildbot
+
+    chown -R buildbot "$WINEPREFIX"
 
     # no passwd for buildbot
     echo "buildbot ALL=(ALL) NOPASSWD:ALL"  >> /etc/sudoers
