@@ -94,13 +94,19 @@ ENV WINEDEBUG=err+module
 
 # 00a4:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c0000142
 # 003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1114
-ENV WINEDLLOVERRIDES="winebth.sys=d"
+ENV WINEDLLOVERRIDES="winebth.dll="
 
 RUN <<-EOS
     echo "**** winetricks ****"
     wineserver -w # wait signal from winetricks
 
     winetricks sound=disabled vd=off
+
+    winetricks nocrashdialog
+
+    # first time run gave an error:
+    #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
+    winecfg || true
 
     echo "**** post setup ****"
 
