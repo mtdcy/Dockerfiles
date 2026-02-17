@@ -29,18 +29,57 @@ jobs:
     strategy:
       matrix:
         include:
+          # arch tagged images need by cmdlets
           - version: '22.04'
+            arch: amd64
+          - version: '22.04'
+            arch: arm64
           - version: '24.04'
+            arch: amd64
+          - version: '24.04'
+            arch: arm64
     uses: ./.github/workflows/buildx.yml
     with:
+      runner: ubuntu-latest
+      platforms: linux/${{ matrix.arch }}
       context: builder
       dockerfile: builder/Dockerfile
       baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ matrix.version }}
       tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-${{ matrix.version }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-${{ matrix.version }}-${{ matrix.arch }}
       args: |-
         MIRROR=${{ vars.MIRRORS }}
     secrets: inherit
+
+  merge-tagged-images:
+    runs-on: ubuntu-latest
+    needs:
+      - ubuntu
+    steps:
+      # need to login and setup registry again
+      - name: Login
+        uses: docker/login-action@v3
+        if: ${{ vars.REGISTRY != 'lcr.io' }}
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Merge tagged images
+        run: |-
+          set -ex
+
+          # ubuntu-24.04
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
+
+          # ubuntu-22.04
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
 
   mingw64:
     name: Build mingw64 builder
