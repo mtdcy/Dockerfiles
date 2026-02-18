@@ -30,7 +30,7 @@ if test -n "$WINEPREFIX"; then
     if ! test -e /proc/sys/fs/binfmt_misc/wine; then
         sudo mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
         sudo update-binfmts --import wine
-        sudo update-binfmts --enable wine
+        sudo update-binfmts --enable wine &>/dev/null
     fi
 
     # wine: '/wine' is not owned by you

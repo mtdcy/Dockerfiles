@@ -40,8 +40,9 @@ RUN <<-EOS
 
     /tmp/rustup-init.sh -y --no-modify-path     \
         --profile minimal                       \
-        --default-toolchain stable              \
-        --target $(uname -m)-pc-windows-gnu
+        --default-toolchain stable
+
+    rustup target add $(uname -m)-pc-windows-gnu $(uname -m)-pc-windows-msvc
 EOS
 
 FROM baseimage:latest

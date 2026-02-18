@@ -45,8 +45,9 @@ RUN <<-EOS
 
     /tmp/rustup-init.sh -y --no-modify-path     \
         --profile minimal                       \
-        --default-toolchain stable              \
-        --target $(uname -m)-unknown-linux-musl
+        --default-toolchain stable
+
+    rustup target add $(uname -m)-unknown-linux-musl
 EOS
 
 
