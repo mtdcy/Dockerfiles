@@ -18,15 +18,11 @@ reap_children() {
 }
 trap 'reap_children' SIGCHLD # trap SIGCHLD => no exec permitted
 
-: "${WINEPREFIX:=}"
-
-if [ "$(id -u)" -ne 0 ]; then
-    PUID="$(id -u)"
-    PGID="$(id -g)"
-fi
+getent passwd "$PUID" >/dev/null || usermod  buildbot -u "$PUID" || true
+getent group  "$PGID" >/dev/null || groupmod buildbot -g "$PGID" || true
 
 # enable binfmt support
-if test -n "$WINEPREFIX"; then
+if test -n "$WINEPREFIX" && which wine &>/dev/null; then
     if ! test -e /proc/sys/fs/binfmt_misc/wine; then
         sudo mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
         sudo update-binfmts --import wine
@@ -35,12 +31,9 @@ if test -n "$WINEPREFIX"; then
 
     # wine: '/wine' is not owned by you
     [ "$(stat -c %u "$WINEPREFIX")" -eq $PUID ] || chown -R $PUID "$WINEPREFIX"
-    
+
     sudo -u "#$PUID" -g "#$PGID" -E -H wineserver -p
 fi
-
-getent passwd "$PUID" >/dev/null || usermod  buildbot -u "$PUID" || true
-getent group  "$PGID" >/dev/null || groupmod buildbot -g "$PGID" || true
 
 # su in alpine has no '--pty' option
 #su buildbot --pty -c "$*"
