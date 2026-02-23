@@ -12,7 +12,7 @@ on:
 
 jobs:
   ubuntu:
-    name: Build ubuntu baseimage
+    name: Build ubuntu
     strategy:
       matrix:
         include:
@@ -29,7 +29,7 @@ jobs:
     secrets: inherit
 
   alpine:
-    name: Build alpine baseimage
+    name: Build alpine
     strategy:
       matrix:
         include:
@@ -44,31 +44,11 @@ jobs:
         MIRROR=${{ vars.MIRRORS }}
     secrets: inherit
 
-  wine:
-    name: Build wine baseimage
-    strategy:
-      matrix:
-        include:
-          - version: '11.0'
-            arch: amd64
-    uses: ./.github/workflows/buildx.yml
-    with:
-      platforms: linux/${{ matrix.arch }}
-      context: baseimage
-      dockerfile: baseimage/Dockerfile.wine
-      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
-      tags: |
-        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ matrix.version }}
-      args: |-
-        MIRROR=${{ vars.MIRRORS }}
-    secrets: inherit
-
   make-latest:
     runs-on: ubuntu-latest
     needs:
       - ubuntu
       - alpine
-      - wine
     steps:
       # need to login and setup registry again
       - name: Login
@@ -101,59 +81,23 @@ jobs:
                   ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3      \
             --tag ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
 
-          # wine
-          docker buildx imagetools create                                                \
-                  ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-11.0     \
-            --tag ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
-
-# merge-tagged-images:
-#   runs-on: ubuntu-latest
-#   needs:
-#     - ubuntu-2404
-#     - ubuntu-2204
-#     - alpine-3
-#   steps:
-#     # need to login and setup registry again
-#     - name: Login
-#       env:
-#         token: ${{ secrets.REGISTRY_TOKEN }}
-#       if: ${{ env.token != '' }}
-#       uses: docker/login-action@v3
-#       with:
-#         registry: ${{ vars.REGISTRY }}
-#         username: ${{ vars.REGISTRY_USER }}
-#         password: ${{ secrets.REGISTRY_TOKEN }}
-
-#     - name: Merge tagged images
-#       run: |-
-#         set -ex
-
-#         # ubuntu-latest
-#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest      \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04-amd64 \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04-arm64
-#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
-
-#         # ubuntu-24.04|latest
-#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04       \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04-amd64 \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04-arm64
-#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
-
-#         # ubuntu-22.04
-#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04       \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04-amd64 \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04-arm64
-#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
-
-#         # alpine-latest
-#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest      \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3-amd64     \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3-arm64
-#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
-
-#         # alpine-3
-#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3           \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3-amd64     \
-#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3-arm64
-#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+  wine:
+    name: Build wine
+    needs:
+      - make-latest
+    strategy:
+      matrix:
+        include:
+          - version: '11.0'
+    uses: ./.github/workflows/buildx.yml
+    with:
+      context: baseimage
+      platforms: linux/amd64
+      dockerfile: baseimage/Dockerfile.wine
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-latest
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ matrix.version }}
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+    secrets: inherit
