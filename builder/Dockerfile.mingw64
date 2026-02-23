@@ -98,13 +98,6 @@ ENV WINEDEBUG=err+module
 ENV WINEDLLOVERRIDES="winebth.dll="
 
 RUN <<-EOS
-    echo "**** winetricks ****"
-    wineserver -w # wait signal from winetricks
-
-    winetricks sound=disabled vd=off
-
-    winetricks nocrashdialog
-
     # first time run gave an error:
     #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
     winecfg || true

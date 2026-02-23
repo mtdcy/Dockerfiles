@@ -16,7 +16,7 @@ RUN <<-EOS
 
     apt-get update
     apt-get build-dep --install-recommends -y wine
-    apt-get install -y curl zstd git gcc-mingw-w64-i686
+    apt-get install -y zstd
 
     echo "**** Install patched WINE64 ****"
 
@@ -29,7 +29,7 @@ RUN <<-EOS
         ./configure --prefix=/usr               \
                     --disable-win16             \
                     --enable-win64              \
-                    --enable-archs=x86_64,i386  \
+                    --enable-archs=x86_64       \
                     --with-mingw                \
 
         make -j$(nproc)
@@ -70,7 +70,7 @@ RUN <<-EOS
     echo "**** Install Wine64 ****"
 
     apt update
-    apt install -y --no-install-recommends xvfb wine64 xauth file \
+    apt install -y --no-install-recommends xvfb wine xauth file \
                 binfmt-support wine-binfmt \
                 winetricks cabextract
 
@@ -97,6 +97,8 @@ RUN <<-EOS
     # first time run gave an error:
     #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
     winecfg || true
+
+    echo "**** winetricks ****"
 
     # run wineserver and wait for terminates issue by winetricks
     wineserver -w
