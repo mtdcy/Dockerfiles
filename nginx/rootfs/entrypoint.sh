@@ -61,10 +61,10 @@ if [ -z "$1" ]; then
     info "**** start crontab process ****"
     /usr/sbin/cron -P -f 2>&1 | tee -a /var/log/cron.log &
 
-    if which cmdlets.sh && test -n "$NGX_VERSION"; then
-        # try update nginx
-        cmdlets.sh install nginx@$NGX_VERSION || true
-    fi
+    #if which cmdlets.sh && test -n "$NGX_VERSION"; then
+    #    # try update nginx
+    #    cmdlets.sh install nginx@$NGX_VERSION || true
+    #fi
 
     info "**** start nginx process ****"
     exec $(which nginx) -g "daemon off; master_process on;"
