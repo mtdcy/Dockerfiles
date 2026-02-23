@@ -1,0 +1,14 @@
+---
+services:
+  p910nd:
+    image: ${REGISTRY:-docker.io}/mtdcy/printer:latest
+    container_name: p910nd
+    hostname: p910nd
+    network_mode: bridge
+    restart: always
+    ports:
+      - "9100:9100"
+    environment:
+      - TZ="Asia/Shanghai"
+    devices:
+      - /dev/usb/lp0:/dev/usb/lp0

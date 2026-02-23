@@ -1,0 +1,51 @@
+# wow tw 
+#battle.net
+#blizzard.com
+@8.8.8.8
+# battle.net setup
+nydus.battle.net
+iir.blizzard.com
+tw.patch.battle.net
+us.patch.battle.net
+kr.patch.battle.net
+level3.blizzard.com # CNAME
+us.cdn.blizzard.com
+blzddist1-a.akamaihd.net
+level3.ssl.blizzard.com
+telemetry-in.battle.net
+a1219.d.akamai.net
+
+prod.depot.battle.net
+kr.battle.net
+kr.actual.battle.net
+kr.api.blizzard.com
+alert-kr.battle.net
+kr.cdn.blizzard.com
+blizzard.gcdn.cloudn.co.kr
+
+#download.blizzard.com.c.footprint.net
+#blizzard.secure.footprint.net
+#nydus.battle.net
+#us.patch.battle.net
+#tw.patch.battle.net
+#kr.patch.battle.net
+#cn.patch.battlenet.com.cn
+#cn.launcher.battlenet.com.cn
+#api.blizzard.com
+#kr.patch.battle.net
+
+# known ips
+#5.42.162.236
+#5.42.162.202
+#5.42.162.224
+#5.42.162.70
+#5.42.162.72
+#5.42.162.79
+5.42.162.0/24
+
+#34.80.99.170
+#34.80.83.222 
+34.80.0.0/15        # google-cloud
+
+#104.155.197.237
+104.155.192.0/19    # google-cloud

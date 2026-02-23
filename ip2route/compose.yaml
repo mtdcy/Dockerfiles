@@ -1,0 +1,29 @@
+---
+services:
+  ip2route:
+    image: ip2route:latest
+    container_name: ip2route
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    privileged: true  # need by sysctl
+    environment:
+      # create a routable tunnel
+      - MODE=route
+      - REMOTE_HOST=user@remote:22
+      - LOCAL_ADDR=10.0.2.123/24
+      - REMOTE_ADDR=10.0.2.1
+      - REMOTE_DEVICE=tun2
+      # dns server
+      # DNSMASQ_PORT=1053  # def: 53
+      - DNSMASQ_SERVER=10.10.10.10
+    volumes:
+      - .:/config
+      - ~/.ssh:/config/ssh
+      # develop
+      - ./scripts/entrypoint.sh:/entrypoint.sh
+      - ./scripts/entrypoint.d:/entrypoint.d
+    devices:
+      - /dev/net/tun:/dev/net/tun

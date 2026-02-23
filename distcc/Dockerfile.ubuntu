@@ -1,0 +1,37 @@
+# syntax=docker/dockerfile:1
+
+FROM    mtdcy/ubuntu:latest
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+ENV LANG=en_US.UTF-8
+ENV DEBIAN_FRONTEND=noninteractive
+
+# distcc
+ARG DISTCC_DIR=/home/distcc
+ENV DISTCC_VERBOSE=1
+ENV DISTCC_OPTS="--allow 0.0.0.0/0 --nice 4"
+ENV CCACHE="distcc ccache"
+ENV HOME="${DISTCC_DIR}"
+
+RUN apt-get -y update                            \
+    && apt-get -y install                        \
+        distcc-pump ccache clang build-essential \
+    && update-distcc-symlinks                    \
+    && mkdir -pv "${DISTCC_DIR}"                 \
+    && chmod 777 "${DISTCC_DIR}"                 \
+    && useradd -s /bin/bash distcc               \
+    && apt-get -y autoremove --purge             \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY entrypoint.sh /
+RUN chmod a+x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+EXPOSE 3632/tcp 3633/tcp
+
+# distcc volumes
+VOLUME ${DISTCC_DIR}
+
+# healthcheck in compose.yml
+#HEALTHCHECK --interval=5m --timeout=3s \
+#  CMD curl --fail http://0.0.0.0:3633/ || exit 1

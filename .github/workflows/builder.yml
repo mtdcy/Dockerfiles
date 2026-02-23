@@ -1,0 +1,227 @@
+---
+name: Build builder
+
+on:
+  push:
+    paths:
+      - builder/Dockerfile**
+      - builder/entrypoint.sh
+      - builder/resources/**
+      - builder/Implib.so
+      - .github/workflows/builder.yml
+
+  # update rust toolchain and others weekly
+  schedule:
+    - cron: '0 0 * * 1'  # weekly
+
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call: null
+
+  workflow_dispatch: null
+
+jobs:
+  ubuntu:
+    name: Build ubuntu builder
+    strategy:
+      matrix:
+        include:
+          # arch tagged images need by cmdlets
+          - version: '22.04'
+            arch: amd64
+          - version: '22.04'
+            arch: arm64
+          - version: '24.04'
+            arch: amd64
+          - version: '24.04'
+            arch: arm64
+    uses: ./.github/workflows/buildx.yml
+    with:
+      runner: ubuntu-latest
+      platforms: linux/${{ matrix.arch }}
+      context: builder
+      dockerfile: builder/Dockerfile
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-${{ matrix.version }}
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-${{ matrix.version }}-${{ matrix.arch }}
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+    secrets: inherit
+
+  merge-tagged-images:
+    runs-on: ubuntu-latest
+    needs:
+      - ubuntu
+    steps:
+      # need to login and setup registry again
+      - name: Login
+        uses: docker/login-action@v3
+        if: ${{ vars.REGISTRY != 'lcr.io' }}
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Merge tagged images
+        run: |-
+          set -ex
+
+          # ubuntu-24.04
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
+
+          # ubuntu-22.04
+          docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04       \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-amd64 \
+                                    --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-arm64
+          docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
+
+  mingw64:
+    name: Build mingw64 builder
+    uses: ./.github/workflows/buildx.yml
+    with:
+      runner: ubuntu-latest
+      platforms: linux/amd64
+      context: builder
+      dockerfile: builder/Dockerfile.mingw64
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+    secrets: inherit
+
+  full:
+    name: Build full builder
+    needs:
+      - ubuntu
+      - mingw64
+    strategy:
+      matrix:
+        include:
+          - baseimage: ubuntu-22.04
+          - baseimage: ubuntu-24.04
+          - baseimage: mingw64-latest
+            platforms: linux/amd64
+    uses: ./.github/workflows/buildx.yml
+    with:
+      runner: ubuntu-latest
+      platforms: ${{ matrix.platforms }}
+      context: builder
+      dockerfile: builder/Dockerfile.full
+      baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.baseimage }}
+      tags: |
+        ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:${{ matrix.baseimage }}-full
+      args: |-
+        MIRROR=${{ vars.MIRRORS }}
+    secrets: inherit
+
+  make-latest:
+    runs-on: ubuntu-latest
+    needs:
+      - ubuntu
+      - full
+    steps:
+      # need to login and setup registry again
+      - name: Login
+        uses: docker/login-action@v3
+        if: ${{ vars.REGISTRY != 'lcr.io' }}
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Setup buildx
+        uses: docker/setup-buildx-action@v3
+        if: ${{ vars.REGISTRY == 'lcr.io' }}
+        with:
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.REGISTRY }}"]
+              http = true
+
+      - name: Tag latest
+        run: |-
+          set -ex
+          docker buildx imagetools create                                                   \
+                  ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04       \
+            --tag ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
+
+          docker buildx imagetools create                                                   \
+                  ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-full  \
+            --tag ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest-full
+
+# alpine-3:
+#   name: Build alpine-3-${{ matrix.arch }} on ${{ matrix.os }}
+#   strategy:
+#     matrix:
+#       include:
+#         - os: ubuntu-24.04
+#           arch: amd64
+#         - os: ubuntu-24.04-arm
+#           arch: arm64
+#   uses: ./.github/workflows/buildx.yml
+#   secrets: inherit
+#   with:
+#     context: builder
+#     baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
+#     tags: |
+#       ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-${{ matrix.arch }}
+#     args: |-
+#       MIRROR=${{ vars.MIRRORS }}
+
+# merge-tagged-images:
+#   runs-on: ubuntu-latest
+#   needs:
+#     - ubuntu-2404
+#     - ubuntu-2204
+#   steps:
+#     # need to login and setup registry again
+#     - name: Login
+#       env:
+#         token: ${{ secrets.REGISTRY_TOKEN }}
+#       if: ${{ env.token != '' }}
+#       uses: docker/login-action@v3
+#       with:
+#         registry: ${{ vars.REGISTRY }}
+#         username: ${{ vars.REGISTRY_USER }}
+#         password: ${{ secrets.REGISTRY_TOKEN }}
+
+#     - name: Merge tagged images
+#       run: |-
+#         set -ex
+
+#         # ubuntu-latest
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest      \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-amd64 \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
+
+#         # ubuntu-24.04|latest
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04       \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-amd64 \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
+
+#         # ubuntu-22.04
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04       \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-amd64 \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
+
+#         # alpine-latest
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest      \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-latest
+
+#         # alpine-3
+#         docker manifest create --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3           \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-amd64     \
+#                                   --amend ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3-arm64
+#         docker manifest push   --insecure ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:alpine-3

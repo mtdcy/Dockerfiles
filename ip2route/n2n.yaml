@@ -1,0 +1,26 @@
+---
+services:
+  ip2route:
+    image: ip2route:latest
+    container_name: ip2route
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: host
+    privileged: true  # need by sysctl
+    environment:
+      - REMOTE_HOST=n2n://community@example.org:7654
+      - MODE=basic
+      - LOCAL_ADDR=10.0.0.123/24
+      - REMOTE_ADDR=10.0.0.1
+      - LOCAL_DEVICE=n2n0
+      - DNSMASQ_SERVER=10.10.10.10
+      - N2N_KEY=encryptkey
+      - N2N_OPTS=-p 7788
+      - ROUTE_FILE=/config/route/edge.lst
+    volumes:
+      - ./n2n:/config
+      - ./route:/config/route
+    devices:
+      - /dev/net/tun:/dev/net/tun

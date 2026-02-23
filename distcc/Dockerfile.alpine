@@ -1,0 +1,36 @@
+# syntax=docker/dockerfile:1
+
+FROM    mtdcy/alpine:latest
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+ENV LANG=en_US.UTF-8
+
+# distcc
+ARG DISTCC_DIR=/home/distcc
+ENV DISTCC_VERBOSE=1
+ENV DISTCC_OPTS="--allow 0.0.0.0/0 --nice 4"
+ENV CCACHE="distcc ccache"
+ENV HOME="${DISTCC_DIR}"
+
+RUN apk update &&                       \
+    apk add --no-cache                  \
+        alpine-sdk clang-dev openmp-dev \
+        ccache bash shadow distcc-pump  \
+    && update-distcc-symlinks           \
+    && mkdir -pv "${DISTCC_DIR}"        \
+    && chmod 777 "${DISTCC_DIR}"
+
+# user distcc exists in alpine
+
+COPY entrypoint.sh /
+RUN chmod a+x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]
+
+EXPOSE 3632/tcp 3633/tcp
+
+# distcc volumes
+VOLUME ${DISTCC_DIR}
+
+# healthcheck in compose.yml
+#HEALTHCHECK --interval=5m --timeout=3s \
+#  CMD curl --fail http://0.0.0.0:3633/ || exit 1

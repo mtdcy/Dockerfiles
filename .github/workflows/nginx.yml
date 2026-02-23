@@ -1,0 +1,110 @@
+---
+name: Build nginx
+
+on:
+  push:
+    paths:
+      - nginx/Dockerfile
+      - nginx/Dockerfile.lite
+      - nginx/rootfs/**
+      - .github/workflows/nginx.yml
+
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call: null
+
+  workflow_dispatch:
+    inputs:
+      nginx:
+        type: string
+        description: nginx version to build
+
+env:
+  platforms: linux/amd64,linux/arm64
+  nginx: 1.29.5
+  nginx-ui: 2.1.17
+
+jobs:
+  build-nginx:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Login
+        env:
+          password: ${{ secrets.REGISTRY_TOKEN }}
+        if: ${{ env.password != '' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.REGISTRY }}
+          username: ${{ vars.REGISTRY_USER }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Setup buildx
+        if: ${{ vars.LOCAL_REGISTRY == '' }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Setup buildx (local registry)
+        if: ${{ vars.LOCAL_REGISTRY }}
+        uses: docker/setup-buildx-action@v3
+        with:
+          buildkitd-config-inline: |
+            debug = true
+            [registry."${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."docker.io"]
+              mirrors = ["registry.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."ghcr.io"]
+              mirrors = ["ghcr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+            [registry."lscr.io"]
+              mirrors = ["lscr.${{ vars.LOCAL_REGISTRY }}"]
+              http = true
+
+      - name: Inspect
+        id: inspect
+        run: |
+          version=${{ inputs.nginx }}
+          [ -n "$version" ] || version=${{ env.nginx }}
+
+          IFS='=.' read -r m n r <<< "$version"
+
+          tags=(
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n.$r
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m.$n
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/nginx:$m
+          )
+          echo "tags=$(tr ' ' ',' <<< "${tags[*]}")" | tee -a $GITHUB_OUTPUT
+
+          echo "cachebust=$(date +%s)" >> $GITHUB_OUTPUT
+
+      - name: Build and Push
+        uses: docker/build-push-action@v6
+        with:
+          push: ${{ vars.PUSH_REGISTRY }}
+          context: nginx
+          file: nginx/Dockerfile.lite
+          platforms: ${{ env.platforms }}
+          build-contexts: |
+            baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
+          build-args: |
+            NGX_VER=${{ env.nginx }}
+            NGX_UI_VER=${{ env.nginx-ui }}
+            CACHEBUST=${{ steps.inspect.outputs.cachebust }}
+          tags: ${{ steps.inspect.outputs.tags }}

@@ -1,0 +1,113 @@
+# syntax=docker/dockerfile:1
+
+FROM ubuntu:latest AS builder
+
+ARG WINE=https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
+ADD $WINE /tmp/
+
+WORKDIR /rootfs
+RUN <<-EOS
+    set -ex
+    echo "**** Install WINE build dependencies ****"
+
+    sed -e 's/^Types: deb$/Types: deb deb-src/' \
+        -i /etc/apt/sources.list \
+        -i /etc/apt/sources.list.d/* || true
+
+    apt-get update
+    apt-get build-dep --install-recommends -y wine
+    apt-get install -y curl zstd git gcc-mingw-w64-i686
+
+    echo "**** Install patched WINE64 ****"
+
+    {
+        tar -xf /tmp/${WINE##*/} -C /tmp
+        cd /tmp/wine-*
+
+        true > /rootfs/wine-build
+
+        ./configure --prefix=/usr               \
+                    --disable-win16             \
+                    --enable-win64              \
+                    --enable-archs=x86_64,i386  \
+                    --with-mingw                \
+
+        make -j$(nproc)
+
+        DESTDIR=/rootfs make install
+
+        # keep only runtime files
+
+        # strip files
+        find /rootfs -type f -executable -exec strip --strip-all {} + || true
+
+        # remove static libraries (development files)
+        find /rootfs -type f -name "*.a" -exec rm -fv {} + || true
+
+        # remove headers (development files)
+        find /rootfs -type f -name "*.h" -exec rm -fv {} + || true
+
+    } | tee -a /rootfs/wine-build || {
+        tail -n 100 /rootfs/wine-build
+        exit 1
+    }
+
+    gzip -f /rootfs/wine-build
+
+    du -a -h /rootfs | tee /rootfs/wine-files
+
+    gzip -f /rootfs/wine-files
+EOS
+
+FROM ubuntu:latest
+
+# labels
+LABEL maintainer="mtdcy.chen@gmail.com"
+
+#1. Install wine64 and runtime deps
+RUN <<-EOS
+    set -ex
+    echo "**** Install Wine64 ****"
+
+    apt update
+    apt install -y --no-install-recommends xvfb wine64 xauth file \
+                binfmt-support wine-binfmt \
+                winetricks cabextract
+
+    rm -rf /var/lib/apt/lists/*
+EOS
+
+#2. Override with new Wine64
+COPY --from=builder /rootfs/ /
+
+# shared wine prefix
+ENV WINEPREFIX=/opt/wine
+ENV WINEDEBUG=-all
+ENV WINEARCH=win64
+
+WORKDIR $WINEPREFIX
+
+#3. Prepare Wine64
+RUN <<-EOS
+    set -ex
+    echo "**** Prepare Wine64 ****"
+
+    ldconfig
+
+    # first time run gave an error:
+    #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
+    winecfg || true
+
+    # run wineserver and wait for terminates issue by winetricks
+    wineserver -w
+
+    winetricks corefonts
+
+    # enable wine-binfmt
+    update-binfmts --import wine
+    update-binfmts --display
+
+    # enable binfmt support of wine later in entrypoint
+    # mount -t binfmt_misc none /proc/sys/fs/binfmt_misc
+    # update-binfmts --enable wine
+EOS

@@ -1,0 +1,79 @@
+# proxy pass to official repo
+server {
+    listen 88 default_server;
+    server_name _;
+    
+    access_log /var/log/nginx/access.log upstreams;
+    include /app/omnicache/upstreams.conf;
+
+    location ~ ^/ubuntu/.*-security/ {
+        proxy_pass  http://security.ubuntu.com;
+    }
+
+    location ~ ^/ubuntu/ {
+        proxy_pass  http://archive.ubuntu.com;
+    }
+
+    location ~ ^/(debian|debian-security)/ {
+        proxy_pass  http://deb.debian.org;
+    }
+
+    location ^~ /raspberrypi/ {
+        proxy_pass  http://archive.raspberrypi.org;
+    }
+
+    location ^~ /alpine/ {
+        proxy_pass  https://dl-cdn.alpinelinux.org;
+    }
+
+    location ^~ /kali/ {
+        proxy_pass  http://kali.download;
+    }
+
+    location ^~ /openwrt/ {
+        rewrite     /openwrt/(.*) /$1 break;
+        proxy_pass  http://downloads.openwrt.org;
+    }
+
+    location ^~ /immortalwrt/ {
+        rewrite     /immortalwrt/(.*) /$1 break;
+        proxy_pass  https://downloads.immortalwrt.org;
+    }
+
+    location ^~ /pypi/ {
+        rewrite     /pypi/(.*) /$1 break;
+        proxy_pass  https://pypi.org;
+    }
+
+    location ^~ /npmjs/ {
+        rewrite     /npmjs/(.*) /$1 break;
+        proxy_pass  https://registry.npmjs.org;
+    }
+
+    location ^~ /gnu/ {
+        proxy_pass  https://ftp.gnu.org;
+    }
+
+    location ~ ^/homebrew.*/api/(.*) {
+        proxy_pass  https://formulae.brew.sh/api/$1;
+    }
+
+    # https://stackoverflow.com/questions/38861529/where-are-homebrew-bottles-stored-online
+    #  => need to parse cask.jws.json and get from ghcr.io => full mirror
+    location ~ ^/homebrew-bottles/ {
+        return 501;
+    }
+
+    location ~ ^/(brew|homebrew-.*) {
+        # remove suffix '.git' if exists
+        rewrite     ^/(brew|homebrew-.*)\.git/(.*) /$1/$2;
+        # add prefix 'Homebrew'
+        rewrite     ^/(.*) /Homebrew/$1 break;
+        proxy_pass  https://github.com;
+    }
+
+    location / {
+        return 501;
+    }
+}
+

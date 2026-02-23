@@ -1,0 +1,17 @@
+---
+version: '3'
+
+volumes:
+  data:
+
+services:
+  server:
+    image: mtdcy/omnicache
+    container_name: mirrors.mtdcy.top
+    network_mode: bridge
+    restart: always
+    ports:
+      - "3080-3088:80-88"
+    volumes:
+      - data:/data
+    #  - ./omnicache.nginx:/app/omnicache.nginx
