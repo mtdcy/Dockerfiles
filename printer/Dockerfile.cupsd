@@ -1,0 +1,38 @@
+# syntax=docker/dockerfile:1
+
+FROM mtdcy/ubuntu:latest
+LABEL   maintainer="mtdcy.chen@gmail.com"
+
+# ARG & ENV variables
+ENV DEBIAN_FRONTEND=noninteractive
+ENV TZ=Asia/Shanghai
+ENV CUPSADMIN=admin
+ENV CUPSPASSWORD=password
+
+# Install dependencies
+RUN apt-get update &&               \
+    apt-get install -y              \
+        usbutils                    \
+        cups                        \
+        cups-bsd \
+        printer-driver-all          \
+        printer-driver-cups-pdf     \
+        openprinting-ppds           \
+        hpijs-ppds                  \
+        hp-ppd                      \
+        hplip                       \
+    && apt-get clean                \
+    && rm -rf /var/lib/apt/lists/*
+
+EXPOSE 631
+EXPOSE 5353/udp
+
+COPY cups/ /etc/cups/
+RUN cp -rp /etc/cups /etc/cups-bak
+VOLUME [ "/etc/cups" ]
+
+# Copy files
+COPY entrypoint.sh /
+RUN chmod a+x /entrypoint.sh
+
+CMD ["/entrypoint.sh"]

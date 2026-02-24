@@ -1,0 +1,46 @@
+# tuna
+server {
+    listen 81 default_server;
+    server_name _;
+    
+    access_log /var/log/nginx/access.log upstreams;
+    include /app/omnicache/upstreams.conf;
+
+    # no mirros
+    location ~ ^/debian-(debug|backports)/ {
+        proxy_pass  http://deb.debian.org;
+    }
+
+    # ustc npm mirror has seperate domain name.
+    location ^~ /npmjs/ {
+        rewrite     /npmjs/(.*) /$1 break;
+        # use official repo as no alternative mirror.
+        proxy_pass  https://registry.npmjs.org;
+
+        # return 404 sometimes
+        #proxy_pass  https://npmreg.proxy.ustclug.org;
+        
+        # Notes:
+        # don't use https://registry.npmmirror.com here,
+        #  as it always redirect resource files.
+    }
+
+    # ustc dropped pypi mirror.
+    #  => https://mirrors.ustc.edu.cn/help/pypi.html 
+    location ^~ /pypi/ {
+        rewrite     /pypi/(.*) /$1 break;
+        proxy_pass  https://pypi.tuna.tsinghua.edu.cn;
+    }
+
+    # immortalwrt: no mirrors
+    location ^~ /immortalwrt/ {
+        rewrite     /immortalwrt/(.*) /$1 break;
+        proxy_pass  https://downloads.immortalwrt.org;
+    }
+
+    # ustc is much faster than tuna mirrors.
+    location / {
+        proxy_pass  https://mirrors.ustc.edu.cn;
+    }
+}
+

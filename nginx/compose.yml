@@ -1,0 +1,40 @@
+---
+services:
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    hostname: nginx
+    network_mode: bridge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    cap_add:
+      - NET_ADMIN
+    environment:
+      - TZ=${TZ:-Asia/Shanghai}
+      - PUID=${UID:-1000}
+      - PGID=${GID:-1000}
+      - UMASK=022
+      # GoAccess默认端口: 7890, 下方ports必须与此处保持一致
+      - GOACCESS_PORT=7890
+    volumes:
+      - nginx:/etc/nginx  # site config
+      - html:/var/www/html  # site contents
+      - logs:/var/log  # logs
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080  # mgmt port
+      - 7890:7890  # goaccess
+    restart: always
+    healthcheck:
+      test: curl --fail -o /dev/null http://localhost:80
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 60s
+
+volumes:
+  nginx: null
+  html: null
+  logs: null

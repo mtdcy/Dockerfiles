@@ -1,0 +1,23 @@
+---
+services:
+  basic:
+    image: ip2route:latest
+    container_name: ip2route
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    network_mode: bridge
+    environment:
+      - REMOTE_HOST=user@example.org:22
+      # create a ssh socks5 tunnel with remote host
+      # dns server [optional]
+      - DNSMASQ_PORT=53
+      - DNSMASQ_SERVER=8.8.8.8  # def: 114.114.114.114
+    volumes:
+      - ./basic:/config
+      - ./data:/config/data
+      - ~/.ssh:/config/ssh
+    ports:
+      - 1070:1070
+      - 5353:53/udp

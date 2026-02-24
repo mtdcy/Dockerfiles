@@ -1,0 +1,21 @@
+---
+name: Cleanup registry
+
+on:
+  schedule:
+    - cron: '0 0 * * 0'  # weekly
+
+  workflow_dispatch: null
+
+jobs:
+  delete-untagged-images:
+    runs-on: ubuntu-latest
+    if: ${{ vars.REGISTRY == 'ghcr.io' }}
+
+    steps:
+      - name: ghcr.io cleanup
+        uses: dataaxiom/ghcr-cleanup-action@v1
+        with:
+          token: ${{ secrets.REGISTRY_TOKEN }}
+          packages: baseimage,builder,nginx,ip2route,nvim
+          delete-untagged: true

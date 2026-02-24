@@ -1,0 +1,11 @@
+.*.swp
+*.log
+ip2route/dnsmasq.ipset
+ip2route/ssh/
+ip2route/basic
+ip2route/serve
+ip2route/logs
+ip2route/n2n
+ip2route/dnsmasq.conf
+ip2route/route/edge.lst
+.DS_Store

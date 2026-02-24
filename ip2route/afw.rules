@@ -1,0 +1,45 @@
+# ==============================================================================
+# ================================== IPLOG =====================================
+#IPLOG  #source         #destination        #tcp|udp:dports     #match      #label
+IPLOG   47.75.191.66    any                 all                 ""          "N2N"
+IPLOG   any             47.75.191.66        all                 ""          "N2N"
+
+# ==============================================================================
+
+# ==============================================================================
+# =================================== DNAT =====================================
+#       #source         #tcp+udp[:dports]       #destination        #comments
+
+#DNAT    any             tcp:80,443,8443         10.10.10.200        "NAS/http"
+DNAT    any             tcp:6015                10.10.10.200:22     "NAS/SSH"
+
+# ==============================================================================
+
+# ==============================================================================
+# =================================== Reject ===================================
+#REJECT #source         #destination            #match              #comments
+
+# https://bbs.archlinux.org/viewtopic.php?id=222894
+REJECT  any             172.253.117.188:5228    ""                  "Google Cloud Messaging Server"
+
+
+# ==============================================================================
+# ================================= Allow/Block ================================
+#A/B    #source         #tcp|udp[:dports]       #match              #comments
+
+DOCKER  $NET            tcp:9001                ""                  "Docker/agent"
+
+ALLOW   $NET            all                     ""                  "ALLOW/Local"   # Allow All Local Traffics
+
+ALLOW   any             icmp                    ""                  "ALLOW/ICMP"
+ALLOW   any             igmp                    ""                  "ALLOW/IGMP"
+
+ALLOW   $NET            tcp:22                  ""                  "ALLOW/SSH"
+ALLOW   $NET            udp:53                  ""                  "ALLOW/DNS"
+ALLOW   $NET            udp:67,68               ""                  "ALLOW/DHCP"
+ALLOW   $NET            tcp:80,443,8443         ""                  "ALLOW/http"
+ALLOW   $NET            tcp+udp:1070            ""                  "ALLOW/sockss"
+ALLOW   $NET            udp:6677                ""                  "ALLOW/N2N"
+
+# ==============================================================================
+
