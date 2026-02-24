@@ -7,8 +7,6 @@ ARG TARGETPLATFORM
 # no cache for this stage
 ARG CACHEBUST=1
 
-# add Implib.so
-COPY --chmod=0755 Implib.so /opt/bin/
 COPY --chmod=0755 entrypoint.sh /opt/
 
 COPY ./resources/${TARGETPLATFORM}/* /tmp/
@@ -49,7 +47,6 @@ RUN <<-EOS
 
     rustup target add $(uname -m)-unknown-linux-musl
 EOS
-
 
 FROM baseimage:latest
 
@@ -101,9 +98,6 @@ RUN <<-EOS
     # --break-system-packages: This environment is externally managed
     python3 -m pip install --upgrade meson --break-system-packages
     rm -rf "$HOME/.cache" || true
-
-    # Implib.so
-    git clone --depth=1 https://github.com/yugr/Implib.so /opt/Implib.so
 EOS
 
 COPY --from=builder /opt /opt

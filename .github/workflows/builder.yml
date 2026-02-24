@@ -7,7 +7,7 @@ on:
       - builder/Dockerfile**
       - builder/entrypoint.sh
       - builder/resources/**
-      - builder/Implib.so
+      - builder/scripts/**
       - .github/workflows/builder.yml
 
   # update rust toolchain and others weekly
