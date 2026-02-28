@@ -71,9 +71,7 @@ RUN <<-EOS
             luajit perl libhttp-daemon-perl \
             python3 python3-pip python3-venv \
             openssh-client rsync \
-            ccache distcc \
             libssl-dev
-        update-distcc-symlinks
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
     else
@@ -89,7 +87,6 @@ RUN <<-EOS
             luajit perl perl-http-daemon \
             nodejs python3 py3-pip python3-dev \
             openssh rsync \
-            ccache distcc \
             openssl-dev
     fi
 
@@ -153,17 +150,6 @@ RUN <<-EOS
 
     echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
 EOS
-
-# ccache: disable by default
-ENV USE_CCACHE=0
-ENV CCACHE_UMASK=022
-ENV CCACHE_DIR=
-
-# distcc
-ENV DISTCC_VERBOSE=0
-ENV DISTCC_DIR=
-ENV DISTCC_OPTS=
-ENV DISTCC_HOSTS=
 
 # override entrypoint
 ENTRYPOINT ["/opt/entrypoint.sh"]
