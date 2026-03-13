@@ -29,6 +29,10 @@ RUN <<-EOS
     else
         apk update
         apk add --no-cache cronie logrotate goaccess
+
+        # php-fpm
+        apk add --no-cache php php-fpm
+        ln -sfv /usr/sbin/php-fpm* /usr/sbin/php-fpm || true
     fi
 
     # goaccess: share the same conf dir with nginx

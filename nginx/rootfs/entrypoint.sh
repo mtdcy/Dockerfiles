@@ -52,9 +52,9 @@ if [ -z "$1" ]; then
     mkdir -p /etc/nginx/streams-enabled
 
     # always start plugins as root
-    for x in /entrypoint.d/*; do
+    for x in /entrypoint.d/*.sh; do
         info "**** start plugins $(basename "$x") ****"
-        bash "$x"
+        bash "$x" || true # ignore errors, let nginx start first
         sleep 1
     done
 
