@@ -10,9 +10,6 @@ ADD https://github.com/leev/ngx_http_geoip2_module/archive/$NGX_GEOIP2_VER.tar.g
     http://nginx.org/download/nginx-$NGX_VER.tar.gz \
     /tmp/build/
 
-# no cache for this stage
-ARG CACHEBUST=1
-
 SHELL ["bash", "-c"]
 RUN <<-EOS
     set -ex
@@ -145,6 +142,9 @@ RUN <<-EOS
     # no default crontab for logrotate
     rm -rf /etc/cron.*
 EOS
+
+# no cache after this stage
+ARG CACHEBUST=1
 
 ARG NGX_UI_VER=2.1.17
 ARG TARGETPLATFORM
