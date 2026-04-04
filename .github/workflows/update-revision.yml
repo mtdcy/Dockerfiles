@@ -78,7 +78,7 @@ jobs:
 
           for target in amd64 arm64; do
             test -f builder/resources/linux/$target/$goversion.linux-$target.tar.gz && continue
-            rm -rf builder/resources/linux/$target/go* || true
+            git rm --cached builder/resources/linux/$target/go* || true
 
             mkdir -pv builder/resources/linux/$target
             curl -fsSL -o builder/resources/linux/$target/$goversion.linux-$target.tar.gz \
@@ -101,7 +101,7 @@ jobs:
             mkdir -pv builder/resources/linux/arm64
             pushd builder/resources/linux/arm64
             test -f "$name" || {
-              rm -f node-* || true
+              git rm --cached node-* || true
               curl -fsSL -o "$name" "https://nodejs.org/dist/$version/$name"
               git add .
             } || true
@@ -114,7 +114,7 @@ jobs:
             mkdir -pv builder/resources/linux/amd64
             pushd builder/resources/linux/amd64
             test -f "$name" || {
-              rm -f node-* || true
+              git rm --cached node-* || true
               curl -fsSL -o "$name" "https://nodejs.org/dist/$version/$name"
               git add .
             } || true
