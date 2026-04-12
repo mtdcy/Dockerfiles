@@ -9,7 +9,6 @@ ARG CACHEBUST=1
 
 COPY --chmod=0755 entrypoint.sh /opt/
 
-COPY ./resources/${TARGETPLATFORM}/* /tmp/
 COPY ./scripts/* /tmp/
 
 ENV GOROOT="/opt/go"
@@ -21,19 +20,29 @@ WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 RUN <<-EOS
+    echo "**** setup musl-gcc ****"
+    /tmp/musl-gcc.sh
+
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
     if ldd --version | grep GLIBC; then
-        tar --strip-components=1 -xf /tmp/node-v*.tar.xz
+        # LTS: v24
+        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^v24[0-9.]+" -m1)
+        case "$TARGETPLATFORM" in
+          linux/arm64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+          linux/amd64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+        esac
     fi
-
-    echo "**** setup musl-gcc ****"
-    /tmp/musl-gcc.sh
 
     find /opt -name "*.la" -exec rm -rf {} \;
 
     echo "**** setup golang ****"
-    tar -xf /tmp/go*.tar.gz
+    goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+    curl -fsSL https://go.dev/dl/$goversion.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
 
     echo "**** setup rust ****"
     if test -n "${MIRROR}"; then
