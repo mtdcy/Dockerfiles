@@ -78,7 +78,7 @@ jobs:
 
           for target in amd64 arm64; do
             test -f builder/resources/linux/$target/$goversion.linux-$target.tar.gz && continue
-            git rm --cached builder/resources/linux/$target/go* || true
+            rm -fv builder/resources/linux/$target/go*.tar.gz
 
             mkdir -pv builder/resources/linux/$target
             curl -fsSL -o builder/resources/linux/$target/$goversion.linux-$target.tar.gz \
