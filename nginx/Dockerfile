@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 FROM baseimage:latest AS builder
 
-ARG NGX_VER=1.27.5
+ARG NGX_VER=1.29.8
 ARG NGX_GEOIP2_VER=3.4
 ARG NGX_FANCYINDEX_VER=0.5.2
 
@@ -54,51 +54,52 @@ RUN <<-EOS
     ./configure \
         --with-cc-opt='-g -O2 -flto=auto -ffat-lto-objects -flto=auto -ffat-lto-objects -fstack-protector-strong -Wformat -Werror=format-security -fPIC -Wdate-time -D_FORTIFY_SOURCE=2' \
         --with-ld-opt='-Wl,-Bsymbolic-functions -flto=auto -ffat-lto-objects -flto=auto -Wl,-z,relro -Wl,-z,now -fPIC' \
-        --prefix=/usr                                    \
-        --conf-path=/etc/nginx/nginx.conf                \
-        --http-log-path=/var/log/nginx/access.log        \
-        --error-log-path=/var/log/nginx/error.log        \
-        --pid-path=/var/run/nginx.pid                    \
-        --lock-path=/var/lock/nginx.lock                 \
-        --http-client-body-temp-path=/var/lib/nginx/body \
-        --http-fastcgi-temp-path=/var/lib/nginx/fastcgi  \
-        --http-proxy-temp-path=/var/lib/nginx/proxy      \
-        --http-scgi-temp-path=/var/lib/nginx/scgi        \
-        --http-uwsgi-temp-path=/var/lib/nginx/uwsgi      \
-        --with-threads                                   \
-        --with-compat                                    \
-        --with-debug                                     \
-        --with-pcre-jit                                  \
-        --with-http_ssl_module                           \
-        --with-http_v2_module                            \
-        --with-http_realip_module                        \
-        --with-http_addition_module                      \
-        --with-http_xslt_module                          \
-        --with-http_image_filter_module                  \
-        --with-http_geoip_module                         \
-        --with-http_sub_module                           \
-        --with-http_dav_module                           \
-        --with-http_flv_module                           \
-        --with-http_mp4_module                           \
-        --with-http_gunzip_module                        \
-        --with-http_gzip_static_module                   \
-        --with-http_auth_request_module                  \
-        --with-http_random_index_module                  \
-        --with-http_secure_link_module                   \
-        --with-http_degradation_module                   \
-        --with-http_slice_module                         \
-        --with-http_stub_status_module                   \
-        --with-http_perl_module                          \
-        --with-stream                                    \
-        --with-stream_ssl_module                         \
-        --with-stream_realip_module                      \
-        --with-stream_geoip_module                       \
-        --with-stream_ssl_preread_module                 \
-        --add-module=../ngx_http_geoip2_module-$NGX_GEOIP2_VER          \
+        --prefix=/usr                                          \
+        --conf-path=/etc/nginx/nginx.conf                      \
+        --http-log-path=/var/log/nginx/access.log              \
+        --error-log-path=/var/log/nginx/error.log              \
+        --pid-path=/var/run/nginx.pid                          \
+        --lock-path=/var/lock/nginx.lock                       \
+        --http-client-body-temp-path=/var/lib/nginx/body       \
+        --http-fastcgi-temp-path=/var/lib/nginx/fastcgi        \
+        --http-proxy-temp-path=/var/lib/nginx/proxy            \
+        --http-scgi-temp-path=/var/lib/nginx/scgi              \
+        --http-uwsgi-temp-path=/var/lib/nginx/uwsgi            \
+        --with-threads                                         \
+        --with-compat                                          \
+        --with-debug                                           \
+        --with-pcre-jit                                        \
+        --with-http_ssl_module                                 \
+        --with-http_v2_module                                  \
+        --with-http_realip_module                              \
+        --with-http_addition_module                            \
+        --with-http_xslt_module                                \
+        --with-http_image_filter_module                        \
+        --with-http_geoip_module                               \
+        --with-http_sub_module                                 \
+        --with-http_dav_module                                 \
+        --with-http_flv_module                                 \
+        --with-http_mp4_module                                 \
+        --with-http_gunzip_module                              \
+        --with-http_gzip_static_module                         \
+        --with-http_auth_request_module                        \
+        --with-http_random_index_module                        \
+        --with-http_secure_link_module                         \
+        --with-http_degradation_module                         \
+        --with-http_slice_module                               \
+        --with-http_stub_status_module                         \
+        --with-http_perl_module                                \
+        --with-perl=$(which perl)                              \
+        --with-perl_modules_path=/usr/share/perl5/vendor_perl  \
+        --with-stream                                          \
+        --with-stream_ssl_module                               \
+        --with-stream_realip_module                            \
+        --with-stream_geoip_module                             \
+        --with-stream_ssl_preread_module                       \
+        --add-module=../ngx_http_geoip2_module-$NGX_GEOIP2_VER \
         --add-module=../ngx-fancyindex-$NGX_FANCYINDEX_VER
-    make
+    make CCFLAGS="-DPERL_MALLOC_WRAP=0"
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
-        -e 's%/usr/local/%/usr/%g' \
         -i objs/src/http/modules/perl/Makefile
     DESTDIR=/rootfs make install
     rm -rf /rootfs/var
@@ -109,6 +110,13 @@ FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
+
+# no cache after this stage
+ARG CACHEBUST=1
+ARG TARGETPLATFORM
+
+# always use latest version
+#ARG NGX_UI_VER=2.1.17
 
 # install dependencies
 SHELL ["bash", "-c"]
@@ -121,34 +129,39 @@ RUN <<-EOS
         apt-get update
         apt-get install -y \
             libpcre3 libxslt1.1 libgd3 libgeoip1t64 \
-            perl openssl nginx-full \
-            cron logrotate
+            perl openssl nginx-full
 
-        echo "**** prepare goaccess ****"
-        apt-get install -y goaccess
+        apt-get install -y cron logrotate goaccess
 
         apt-get autoremove
         apt-get clean
         rm -rf /var/lib/apt/lists/*
     else
         apk update
-        apk add --no-cache nginx cron logrotate goaccess
+        apk add --no-cache pcre \
+            nginx-mod-http-perl \
+            nginx-mod-http-geoip \
+            nginx-mod-http-dav-ext \
+            nginx-mod-http-xslt-filter \
+            nginx-mod-http-image-filter \
+
+        # php-fpm
+        apk add --no-cache php php-fpm php-fileinfo file
+        ln -sfv /usr/sbin/php-fpm* /usr/sbin/php-fpm || true
+
+        apk add --no-cache cronie logrotate goaccess
+
+        # alpine has different crontab names
+        which crond && ln -sfv $(which crond) /usr/sbin/cron || true
     fi
 
     # goaccess: share the same conf dir with nginx
-    mv /etc/goaccess/* /etc/nginx/
-    rm -rf /etc/goaccess
+    mv /etc/goaccess/* /etc/nginx/ || true
+    rm -rf /etc/goaccess || true
 
     # no default crontab for logrotate
     rm -rf /etc/cron.*
-EOS
 
-# no cache after this stage
-ARG CACHEBUST=1
-
-ARG NGX_UI_VER=2.1.17
-ARG TARGETPLATFORM
-RUN <<-EOS
     set -ex
     echo "**** prepare nginx-ui ****"
 
@@ -157,7 +170,8 @@ RUN <<-EOS
         linux/arm64)    TARGET=linux-arm64-v8a ;;
     esac
 
-    curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    #curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    curl -sL https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
 EOS
 
 # prepare rootfs
@@ -169,14 +183,21 @@ RUN <<-EOS
     set -ex -o pipefail
     echo "**** finish ****"
 
-    ldconfig
+    # fails on alpine
+    ldconfig || true
+
     nginx -V
     nginx-ui -version
 
     mv /etc/nginx /etc/nginx.default
 
-    rm -fv /var/www/html/*
+    mkdir -pv /var/www/html
+    rm -fv /var/www/html/* || true
     cp -fv /etc/nginx.default/index.html /var/www/html/
+
+    # add user if not exists
+    groupadd www-data || true
+    useradd -g www-data -m -s /sbin/nologin www-data || true
 EOS
 
 # 8080 for mgmt, 7890 for goaccess
@@ -187,3 +208,5 @@ VOLUME /var/www/html
 VOLUME /var/log
 
 ENTRYPOINT ["/entrypoint.sh"]
+
+# vim:ft=dockerfile

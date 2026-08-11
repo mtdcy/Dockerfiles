@@ -4,7 +4,7 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-ARG NGX_VER=1.29.2
+ARG NGX_VER=1.29.8
 
 # always use latest version
 #ARG NGX_UI_VER=2.1.17

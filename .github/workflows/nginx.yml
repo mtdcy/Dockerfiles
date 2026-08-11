@@ -5,7 +5,6 @@ on:
   push:
     paths:
       - nginx/Dockerfile
-      - nginx/Dockerfile.lite
       - nginx/rootfs/**
       - .github/workflows/nginx.yml
 
@@ -14,7 +13,7 @@ on:
 #   types:
 #     - completed
 
-  workflow_call: null
+  workflow_call:
 
   workflow_dispatch:
     inputs:
@@ -107,7 +106,7 @@ jobs:
         with:
           push: ${{ vars.PUSH_REGISTRY }}
           context: nginx
-          file: nginx/Dockerfile.lite
+          file: nginx/Dockerfile
           platforms: ${{ env.platforms }}
           build-contexts: |
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
