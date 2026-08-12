@@ -51,22 +51,6 @@ jobs:
             -e "/ *nginx *:[ 0-9.]\+/s/:.*$/: $m.$n.$r/"
           message="update nginx => $m.$n.$r"
 
-          # geoip2
-          IFS='.' read -r m n <<< "$(yq '.env.geoip2' .github/workflows/nginx.yml)"
-          if curl --fail -sIL -o /dev/null https://github.com/leev/ngx_http_geoip2_module/archive/$m.$((n+1)).tar.gz; then
-            n=$((n+1))
-            sed -i "s/geoip2:.*$/geoip2: $m.$n/" .github/workflows/nginx.yml
-            message="$message/geoip2=> $m.$n"
-          fi
-
-          # fancyindex
-          IFS='.' read -r m n r <<< "$(yq '.env.fancyindex' .github/workflows/nginx.yml)"
-          if curl --fail -sIL -o /dev/null https://github.com/aperezdc/ngx-fancyindex/archive/v$m.$n.$((r+1)).tar.gz; then
-            r=$((r+1))
-            sed -i "s/fancyindex:.*$/fancyindex: $m.$n.$r/" .github/workflows/nginx.yml
-            message="$message/fancyindex => $m.$n.$r"
-          fi
-
           git add nginx .github/workflows/nginx.yml
           git commit -m "$message" || exit 0
 
