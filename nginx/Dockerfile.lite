@@ -89,9 +89,7 @@ EOS
 # 8080 for mgmt, 7890 for goaccess
 EXPOSE  80 443 8080 7890
 
-VOLUME /etc/nginx
-VOLUME /var/www/html
-VOLUME /var/log
+VOLUME /etc/nginx /var/www /var/log
 
 ENTRYPOINT ["/entrypoint.sh"]
 

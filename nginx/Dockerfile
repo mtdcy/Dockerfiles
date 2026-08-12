@@ -204,7 +204,7 @@ EOS
 EXPOSE  80 443 8080 7890
 
 VOLUME /etc/nginx
-VOLUME /var/www/html
+VOLUME /var/www
 VOLUME /var/log
 
 ENTRYPOINT ["/entrypoint.sh"]

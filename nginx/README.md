@@ -22,6 +22,12 @@ Access nginx statistics with http://<your_ip>/report.html
 - 8080      - nginx ui mgmt port
 - 7890      - goaccess statistics port (WebSocket)
 
+### Volumes
+
+- /etc/nginx    - nginx config files
+- /var/www      - sites contents
+- /var/log      - log files
+
 ### Resources
 
 - default [nginx.conf](rootfs/etc/nginx/nginx.conf).
