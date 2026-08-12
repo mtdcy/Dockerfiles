@@ -115,8 +115,8 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 ARG CACHEBUST=1
 ARG TARGETPLATFORM
 
-# always use latest version
-#ARG NGX_UI_VER=2.1.17
+# Tested version
+ARG NGX_UI_VER=2.5.7
 
 # install dependencies
 SHELL ["bash", "-c"]
@@ -170,9 +170,9 @@ RUN <<-EOS
         linux/arm64)    TARGET=linux-arm64-v8a ;;
     esac
 
-    #curl -fsSL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    # https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz \
     curl -fvSL -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-        https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz \
+        https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz \
         | tar -C /usr/bin/ -xz nginx-ui
 EOS
 

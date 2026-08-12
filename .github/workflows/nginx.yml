@@ -24,7 +24,6 @@ on:
 env:
   platforms: linux/amd64,linux/arm64
   nginx: 1.30.2
-  nginx-ui: 2.1.17
 
 jobs:
   build-nginx:
@@ -112,6 +111,5 @@ jobs:
             baseimage:latest=docker-image://${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
           build-args: |
             NGX_VER=${{ steps.inspect.outputs.version }}
-            NGX_UI_VER=${{ env.nginx-ui }}
             CACHEBUST=${{ steps.inspect.outputs.cachebust }}
           tags: ${{ steps.inspect.outputs.tags }}
