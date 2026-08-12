@@ -98,7 +98,7 @@ RUN <<-EOS
         --with-stream_ssl_preread_module                       \
         --add-module=../ngx_http_geoip2_module-$NGX_GEOIP2_VER \
         --add-module=../ngx-fancyindex-$NGX_FANCYINDEX_VER
-    make CCFLAGS="-DPERL_MALLOC_WRAP=0"
+    make -j$(nproc) CCFLAGS="-DPERL_MALLOC_WRAP=0"
     sed -e 's%^DESTDIR\ .*$%DESTDIR ?=%' \
         -i objs/src/http/modules/perl/Makefile
     DESTDIR=/rootfs make install
