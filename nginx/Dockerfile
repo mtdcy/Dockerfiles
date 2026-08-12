@@ -171,7 +171,9 @@ RUN <<-EOS
     esac
 
     #curl -fsSL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
-    curl -fsSL https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    curl -fvSL -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
+        https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz \
+        | tar -C /usr/bin/ -xz nginx-ui
 EOS
 
 # prepare rootfs
