@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1
 FROM baseimage:latest AS builder
 
-ARG NGX_VER=1.29.8
+ARG NGX_VER=1.30.4
 ARG NGX_GEOIP2_VER=3.4
-ARG NGX_FANCYINDEX_VER=0.5.2
+ARG NGX_FANCYINDEX_VER=0.6.0
 
 ADD https://github.com/leev/ngx_http_geoip2_module/archive/$NGX_GEOIP2_VER.tar.gz \
     https://github.com/aperezdc/ngx-fancyindex/archive/v$NGX_FANCYINDEX_VER.tar.gz \
@@ -170,8 +170,8 @@ RUN <<-EOS
         linux/arm64)    TARGET=linux-arm64-v8a ;;
     esac
 
-    #curl -sL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
-    curl -sL https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    #curl -fsSL https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    curl -fsSL https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
 EOS
 
 # prepare rootfs
