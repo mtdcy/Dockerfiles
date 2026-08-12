@@ -14,6 +14,7 @@ BUILDX_ARGS += --build-arg MIRROR=$(MIRROR)
 BUILDX_ARGS += --build-arg TZ=Asia/Shanghai
 BUILDX_ARGS += --build-arg CACHEBUST=$(shell date +%s)
 
+##---------------------- build and test baseimage ----------------------##
 ubuntu-latest:
 	@docker buildx build $(BUILDX_ARGS)                                  \
 		--platform $(DOCKER_PLATFORM)                                    \
@@ -26,25 +27,24 @@ alpine-latest:
 		--build-context ubuntu:latest=docker-image://alpine:3            \
 		-t baseimage:$@ -f baseimage/Dockerfile baseimage
 
+##-------------------- build and test normal images --------------------##
 BASEIMAGE ?= baseimage:ubuntu-latest
 
-# e.g: make baseimage/Dockerfile.alpine
+# e.g: make nginx/Dockerfile BASEIMAGE=lcr.io/mtdcy/baseimage:alpine-3
 %:
-	if test -d $@; then                                                  \
-		docker compose --project-directory $@                            \
-			build $(BUILDX_ARGS);                                        \
+	@if test -d $@; then                                                 \
+		docker compose --project-directory $@ build $(BUILDX_ARGS);      \
 	else                                                                 \
 		docker buildx build $(BUILDX_ARGS)                               \
 			--platform $(DOCKER_PLATFORM)                                \
 			--build-context baseimage:latest=docker-image://$(BASEIMAGE) \
-			-t $(shell dirname $@):latest                                \
-			-f $@ $(shell dirname $@);                                   \
+			--tag $(shell dirname $@):latest                             \
+			--file $@ $(shell dirname $@);                               \
 	fi
 
-.PHONY:
-
+##------------------------------ cleanup ------------------------------##
 DANGLING := $(shell docker images --filter "dangling=true" -q --no-trunc)
 
 clean:
 	test -n "$(DANGLING)" && docker rmi $(DANGLING) || true
-	docker buildx prune -f
+	docker buildx prune --force
