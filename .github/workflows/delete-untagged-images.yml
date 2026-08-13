@@ -3,9 +3,9 @@ name: Cleanup registry
 
 on:
   schedule:
-    - cron: '0 0 * * 0'  # weekly
+    - cron: '0 0 * * *'  # Daily
 
-  workflow_dispatch: null
+  workflow_dispatch:
 
 jobs:
   delete-untagged-images:
@@ -17,5 +17,5 @@ jobs:
         uses: dataaxiom/ghcr-cleanup-action@v1
         with:
           token: ${{ secrets.REGISTRY_TOKEN }}
-          packages: baseimage,builder,nginx,ip2route,nvim
+          packages: baseimage,builder,nginx,ip2route
           delete-untagged: true
