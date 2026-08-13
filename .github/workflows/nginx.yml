@@ -22,7 +22,7 @@ on:
         description: nginx version to build
 
 env:
-  nginx: 1.30.2
+  nginx: 1.30.3
 
 jobs:
   build:
