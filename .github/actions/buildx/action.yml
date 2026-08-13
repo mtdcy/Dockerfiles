@@ -3,11 +3,6 @@ name: 'Buildx Composite Action'
 description: 'Gitea & GitHub 通用构建模块'
 
 inputs:
-  runner:
-    description: 'runs-on which runner'
-    required: false
-    type: string
-    default: 'ubuntu-latest'
   platforms:
     description: 'build for platforms'
     required: false
