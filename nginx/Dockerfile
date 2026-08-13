@@ -111,8 +111,6 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-# no cache after this stage
-ARG CACHEBUST=1
 ARG TARGETPLATFORM
 
 # Tested version
@@ -120,7 +118,7 @@ ARG NGX_UI_VER=2.5.7
 
 # install dependencies
 SHELL ["bash", "-c"]
-RUN <<-EOS
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     set -ex
     echo "**** install nginx runtimes ****"
 
@@ -162,7 +160,6 @@ RUN <<-EOS
     # no default crontab for logrotate
     rm -rf /etc/cron.*
 
-    set -ex
     echo "**** prepare nginx-ui ****"
 
     TARGET="linux-64"
@@ -170,11 +167,21 @@ RUN <<-EOS
         linux/arm64)    TARGET=linux-arm64-v8a ;;
     esac
 
-    # https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz \
-    curl -fvSL -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
-        https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz \
-        | tar -C /usr/bin/ -xz nginx-ui
+    curl_opts=(
+        -fvSL
+        # 伪装浏览器请求（防止被防火墙拦截）
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    )
+
+    # 防止被Github拦截
+    test -z "${GITHUB_TOKEN}" || curl_opts+=( -H "Authorization: Bearer ${GITHUB_TOKEN}" )
+
+    #curl "${curl_opts[@]}" https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    curl "${curl_opts[@]}" https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
 EOS
+
+# no cache after this stage
+ARG CACHEBUST=1
 
 # prepare rootfs
 COPY --from=builder /rootfs/ /
