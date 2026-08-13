@@ -52,6 +52,7 @@ jobs:
           context: baseimage
           baseimage: alpine:3
           tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
 
       - name: Build wine
