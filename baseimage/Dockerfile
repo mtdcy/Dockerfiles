@@ -52,7 +52,7 @@ RUN <<-EOS
         dpkg-reconfigure tzdata
 
         # Fix: Certificate verification failed: The certificate is NOT trusted.
-        apt upgrade ca-certificates
+        apt upgrade -y ca-certificates
 
         apt-get clean
         rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
