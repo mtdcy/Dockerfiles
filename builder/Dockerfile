@@ -23,6 +23,15 @@ RUN <<-EOS
     echo "**** setup musl-gcc ****"
     /tmp/musl-gcc.sh
 
+    # remove share libraries if static one exists
+    while read -r so; do
+        [[ "$so" =~ libc.so$ ]] && continue
+
+        if test -f "${so/%.so/.a}"; then
+            rm -fv "$so"*
+        fi
+    done < <(find /opt/ -name "*.so")
+
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
     if ldd --version | grep GLIBC; then
