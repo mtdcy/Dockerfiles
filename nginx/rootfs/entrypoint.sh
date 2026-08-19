@@ -2,7 +2,7 @@
 #
 # s6-overlay breaks a job into pieces => complexity
 
-info () {
+info()  {
     echo -e "🐳\\033[34m [$(date '+%Y/%m/%d %H:%M:%S')] $* \\033[0m" >&2
 }
 
@@ -14,8 +14,8 @@ if [ -z "$1" ]; then
 
     if [ -n "$PUID" ] && [ "$PUID" -ne "$(id -u www-data)" ]; then
         info "**** apply uid $PUID ****"
-        usermod www-data -u "$PUID" 2>/dev/null ||
-        useradd www-data -u "$PUID" -U -M -s /sbin/nologin
+        usermod www-data -u "$PUID" 2> /dev/null ||
+            useradd www-data -u "$PUID" -U -M -s /sbin/nologin
     fi
 
     if [ -n "$PGID" ] && [ "$PGID" -ne "$(id -g www-data)" ]; then
@@ -24,7 +24,7 @@ if [ -z "$1" ]; then
     fi
 
     if [ ! -f /etc/nginx/nginx.conf ]; then
-        info "**** apply default configs ****"
+        info "**** copy default configs ****"
         mkdir -p /etc/nginx
         cp -rfv /etc/nginx.default/* /etc/nginx/
         chown -R www-data /etc/nginx
@@ -37,19 +37,30 @@ if [ -z "$1" ]; then
         -e '/^master_process/s/^/#/' \
         -i /etc/nginx/nginx.conf
 
-    mkdir -p /var/lib/nginx /var/log/nginx /var/run/nginx
+    # default directories
+    mkdir -p /var/lib/nginx /var/run/nginx
     chown -R www-data /var/lib/nginx /var/log/nginx
     chmod -R 0750 /var/log/nginx
 
+    # default log files
+    mkdir -p /var/log/nginx
+    chown -R www-data /var/log/nginx
     touch /var/log/nginx/access.log
     touch /var/log/nginx/error.log
 
-    # some directories included by nginx.conf
+    # default config directories
     mkdir -p /etc/nginx/conf.d
+    mkdir -p /etc/nginx/global.d
     mkdir -p /etc/nginx/sites-available
     mkdir -p /etc/nginx/sites-enabled
     mkdir -p /etc/nginx/streams-available
     mkdir -p /etc/nginx/streams-enabled
+
+    # default index.html
+    if ! test -f /var/www/html/index.html; then
+        mkdir -p /var/www/html
+        cp -f /etc/nginx.default/index.html /var/www/html/
+    fi
 
     # always start plugins as root
     for x in /entrypoint.d/*.sh; do
@@ -60,11 +71,6 @@ if [ -z "$1" ]; then
 
     info "**** start crontab process ****"
     /usr/sbin/cron -P -f 2>&1 | tee -a /var/log/cron.log &
-
-    #if which cmdlets.sh && test -n "$NGX_VERSION"; then
-    #    # try update nginx
-    #    cmdlets.sh install nginx@$NGX_VERSION || true
-    #fi
 
     info "**** start nginx process ****"
     exec $(which nginx) -g "daemon off; master_process on;"

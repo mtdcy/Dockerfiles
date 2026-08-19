@@ -4,7 +4,7 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
-ARG NGX_VER=1.29.8
+ARG NGX_VER=1.30.4
 
 # Tested version
 ARG NGX_UI_VER=2.5.7
@@ -12,19 +12,20 @@ ARG NGX_UI_VER=2.5.7
 ARG CACHEBUST=1
 ARG TARGETPLATFORM
 
-COPY rootfs/ /
+ENV PATH="/opt/bin:$PATH"
 
-ENV NGX_VERSION=$NGX_VER
+COPY rootfs/ /
 
 SHELL ["bash", "-c"]
 RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     set -ex
-    echo "**** install nginx runtimes ****"
+    echo "**** prepare nginx runtimes ****"
 
     if which apt-get; then
         export DEBIAN_FRONTEND=noninteractive
         apt-get update
         apt-get install -y cron logrotate goaccess
+
         apt-get autoremove
         apt-get clean
         rm -rf /var/lib/apt/lists/*
@@ -35,6 +36,9 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
         # php-fpm
         apk add --no-cache php php-fpm php-fileinfo file
         ln -sfv /usr/sbin/php-fpm* /usr/sbin/php-fpm || true
+
+        # alpine has different crontab names
+        which crond && ln -sfv $(which crond) /usr/sbin/cron || true
     fi
 
     # goaccess: share the same conf dir with nginx
@@ -44,16 +48,10 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     # no default crontab for logrotate
     rm -rf /etc/cron.*
 
-    # alpine has different crontab names
-    which crond && ln -sfv $(which crond) /usr/sbin/cron || true
-
-    set -ex
     echo "**** prepare nginx ****"
-    if curl -fsSL --connect-timeout 3 http://git.mtdcy.top -o /dev/null; then
-        bash -c "$(curl -fsSL http://git.mtdcy.top/mtdcy/cmdlets/raw/branch/main/cmdlets.sh)" install
-    else
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/mtdcy/cmdlets/main/cmdlets.sh)" install
-    fi
+    mkdir -pv /opt/bin
+    curl -fvSL http://cmdlets.mtdcy.top/latest/cmdlets.sh -o /opt/bin/cmdlets.sh
+    chmod a+x /opt/bin/cmdlets.sh
 
     cmdlets.sh install nginx@$NGX_VER
 
@@ -74,7 +72,7 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     test -z "${GITHUB_TOKEN}" || curl_opts+=( -H "Authorization: Bearer ${GITHUB_TOKEN}" )
 
     #curl "${curl_opts[@]}" https://github.com/0xJacky/nginx-ui/releases/latest/download/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
-    curl "${curl_opts[@]}" https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /usr/bin/ -xz nginx-ui
+    curl "${curl_opts[@]}" https://github.com/0xJacky/nginx-ui/releases/download/v$NGX_UI_VER/nginx-ui-${TARGET,,}.tar.gz | tar -C /opt/bin/ -xz nginx-ui
 
     echo "**** finish ****"
 
@@ -85,10 +83,6 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     nginx-ui -version
 
     mv /etc/nginx /etc/nginx.default
-
-    mkdir -pv /var/www/html
-    rm -fv /var/www/html/* || true
-    cp -fv /etc/nginx.default/index.html /var/www/html/
 
     # add user if not exists
     groupadd www-data || true
