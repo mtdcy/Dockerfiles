@@ -31,17 +31,15 @@ jobs:
         run: |-
           set -ex
 
+          bash -c "$(curl -fsSL https://cmdlets.mtdcy.top/latest/cmdlets.sh)" install
+
           IFS='=.' read -r m n r <<< "$(yq '.env.nginx' .github/workflows/nginx.yml)"
 
-          # update revision
-          if curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$n.$((r+1)).tar.gz; then
+          # update revision only
+          if cmdlets.sh install nginx@$m.$n.$((r+1)); then
             r=$((r+1))
-          # update minor
-          # elif curl --fail -sIL -o /dev/null https://nginx.org/download/nginx-$m.$((n+1)).0.tar.gz; then
-          #   n=$((n+1))
-          #   r=0
           else
-            exit 0
+            exit 0  # do not return error
           fi
 
           curl --fail -sL https://nginx.org/en/CHANGES-$m.$n -o nginx/NGX_CHANGES ||
