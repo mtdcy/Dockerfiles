@@ -73,6 +73,7 @@ jobs:
   full:
     name: Build full builders
     runs-on: ubuntu-latest
+    if: ${{ vars.LOCAL_REGISTRY }}
     needs:
       - builder
     strategy:

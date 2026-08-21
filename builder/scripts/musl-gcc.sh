@@ -6,8 +6,8 @@ info()  { echo -e "🚀 \\033[32m$*\\033[39m"; }
 
 TARGET="$(uname -m)-linux-musl"
 
-if curl -fsSI --connect-timeout 1 https://git.mtdcy.top -o /dev/null; then
-    url=https://git.mtdcy.top:8443/mtdcy/musl-gcc-build/releases/download/latest/$TARGET.tar.xz
+if curl -fsSI --connect-timeout 1 https://gitea.mtdcy.top -o /dev/null; then
+    url=https://gitea.mtdcy.top:8443/mtdcy/musl-gcc-build/releases/download/latest/$TARGET.tar.xz
 else
     url=https://github.com/mtdcy/musl-gcc-build/releases/latest/download/$TARGET.tar.xz
 fi

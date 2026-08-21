@@ -21,7 +21,7 @@ RUN <<-EOS
 
     echo "🚀 install nvim 🚀"
 
-    sudo git clone --depth 1 https://git.mtdcy.top:8443/mtdcy/pretty.nvim.git nvim
+    sudo git clone --depth 1 https://gitea.mtdcy.top:8443/mtdcy/pretty.nvim.git nvim
 
     ln -sfv /opt/nvim/run /opt/bin/nvim
 
