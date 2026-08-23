@@ -2,11 +2,13 @@
 
 FROM baseimage:latest AS builder
 
+ARG NODE_VERSION=v24
+ARG GO_VERSION=1.26.7
+ARG RUST_VERSION=1.98.0
 ARG LLVM_MINGW_VERSION=20260616
+
 ARG MIRROR
 ARG TARGETPLATFORM
-# no cache for this stage
-ARG CACHEBUST=1
 
 COPY --chmod=0755 entrypoint.sh /opt/
 
@@ -20,12 +22,12 @@ ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
-RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
+RUN <<-EOS
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
     if ldd --version | grep GLIBC; then
         # LTS: v24
-        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^v24[0-9.]+" -m1)
+        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^$NODE_VERSION[0-9.]+" -m1)
         case "$TARGETPLATFORM" in
           linux/arm64)
             curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
@@ -35,11 +37,15 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
           ;;
         esac
     fi
+EOS
 
+RUN <<-EOS
     echo "**** setup golang ****"
-    goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
-    curl -fsSL https://go.dev/dl/$goversion.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
+    #goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+    curl -fsSL https://go.dev/dl/go$GO_VERSION.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
+EOS
 
+RUN <<-EOS
     echo "**** setup rust ****"
     if test -n "${MIRROR}"; then
         export RUSTUP_DIST_SERVER=$MIRROR/rust-static
@@ -48,10 +54,12 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
 
     /tmp/rustup-init.sh -y --no-modify-path     \
         --profile minimal                       \
-        --default-toolchain stable
+        --default-toolchain $RUST_VERSION
 
-    rustup target add $(uname -m)-pc-windows-gnullvm
+    rustup target add --toolchain=$RUST_VERSION $(uname -m)-pc-windows-gnullvm
+EOS
 
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     echo "**** setup llvm-mingw ****"
     curl_opts=(
         -fvSL
@@ -62,8 +70,8 @@ RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
     # 防止被Github拦截
     test -z "${GITHUB_TOKEN}" || curl_opts+=( -H "Authorization: Bearer ${GITHUB_TOKEN}" )
 
-    local platform=$(uname -m)
-    curl "${curl_opts[@]}" https://github.com/mstorsjo/llvm-mingw/releases/download/$LLVM_MINGW_VERSION/llvm-mingw-$LLVM_MINGW_VERSION-ucrt-ubuntu-22.04-$platform.tar.xz | tar -C /opt -xJ --strip-components=1
+    platform=$(uname -m)
+    curl "${curl_opts[@]}" https://github.com/mstorsjo/llvm-mingw/releases/download/$LLVM_MINGW_VERSION/llvm-mingw-$LLVM_MINGW_VERSION-ucrt-ubuntu-22.04-$platform.tar.xz | tar -xJ --strip-components=1
 
     # 清理不需要的架构
     for arch in *-w64-mingw32; do

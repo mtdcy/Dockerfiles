@@ -2,10 +2,12 @@
 
 FROM baseimage:latest AS builder
 
+ARG NODE_VERSION=v24
+ARG GO_VERSION=1.26.7
+ARG RUST_VERSION=1.98.0
+
 ARG MIRROR
 ARG TARGETPLATFORM
-# no cache for this stage
-ARG CACHEBUST=1
 
 COPY --chmod=0755 entrypoint.sh /opt/
 
@@ -20,6 +22,45 @@ WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 RUN <<-EOS
+    echo "**** setup nodejs ****"
+    # node prebuilts only for glibc
+    if ldd --version | grep GLIBC; then
+        # LTS: v24
+        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^$NODE_VERSION[0-9.]+" -m1)
+        case "$TARGETPLATFORM" in
+          linux/arm64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+          linux/amd64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+        esac
+    fi
+EOS
+
+RUN <<-EOS
+    echo "**** setup golang ****"
+    #goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+    curl -fsSL https://go.dev/dl/go$GO_VERSION.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
+EOS
+
+RUN <<-EOS
+    echo "**** setup rust ****"
+    if test -n "${MIRROR}"; then
+        export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+        export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+    fi
+
+    /tmp/rustup-init.sh -y --no-modify-path     \
+        --profile minimal                       \
+        --default-toolchain $RUST_VERSION
+
+    rustup target add --toolchain=$RUST_VERSION $(uname -m)-unknown-linux-musl
+EOS
+
+# musl-gcc.sh has no version control yet
+ARG CACHEBUST
+RUN <<-EOS
     echo "**** setup musl-gcc ****"
     /tmp/musl-gcc.sh
 
@@ -30,40 +71,9 @@ RUN <<-EOS
         if test -f "${so/%.so/.a}"; then
             rm -fv "$so"*
         fi
-    done < <(find /opt/ -name "*.so")
-
-    echo "**** setup nodejs ****"
-    # node prebuilts only for glibc
-    if ldd --version | grep GLIBC; then
-        # LTS: v24
-        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^v24[0-9.]+" -m1)
-        case "$TARGETPLATFORM" in
-          linux/arm64)
-            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
-          ;;
-          linux/amd64)
-            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
-          ;;
-        esac
-    fi
+    done < <(find /opt/$(uname -m)-linux-musl -name "*.so")
 
     find /opt -name "*.la" -exec rm -rf {} \;
-
-    echo "**** setup golang ****"
-    goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
-    curl -fsSL https://go.dev/dl/$goversion.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
-
-    echo "**** setup rust ****"
-    if test -n "${MIRROR}"; then
-        export RUSTUP_DIST_SERVER=$MIRROR/rust-static
-        export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
-    fi
-
-    /tmp/rustup-init.sh -y --no-modify-path     \
-        --profile minimal                       \
-        --default-toolchain stable
-
-    rustup target add $(uname -m)-unknown-linux-musl
 EOS
 
 FROM baseimage:latest

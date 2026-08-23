@@ -11,10 +11,6 @@ on:
       - builder/scripts/**
       - .github/workflows/builder.yml
 
-  # update rust toolchain and others weekly
-  schedule:
-    - cron: '0 0 * * 1'  # weekly
-
 # workflows_run:
 #   workflows: [Build baseimage]
 #   types:
@@ -23,6 +19,12 @@ on:
   workflow_call:
 
   workflow_dispatch:
+
+env:
+  node_version: v24
+  go_version: 1.26.7
+  rust_version: 1.98.0
+  llvm_mingw_version: 20260616
 
 jobs:
   builder:
@@ -51,6 +53,11 @@ jobs:
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-24.04
+          args: |
+            NODE_VERION=${{ env.node_version }}
+            GO_VERSION=${{ env.go_version }}
+            RUST_VERSION=${{ env.rust_version }}
+            LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
       - name: Build ubuntu-22.04 builder
         uses: ./.github/actions/buildx
@@ -60,6 +67,11 @@ jobs:
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
+          args: |
+            NODE_VERION=${{ env.node_version }}
+            GO_VERSION=${{ env.go_version }}
+            RUST_VERSION=${{ env.rust_version }}
+            LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
       - name: Build mingw64 builder
         uses: ./.github/actions/buildx
@@ -70,6 +82,11 @@ jobs:
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
+          args: |
+            NODE_VERION=${{ env.node_version }}
+            GO_VERSION=${{ env.go_version }}
+            RUST_VERSION=${{ env.rust_version }}
+            LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
   full:
     name: Build full builders
