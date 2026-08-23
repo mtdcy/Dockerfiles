@@ -4,7 +4,8 @@ name: Build builder
 on:
   push:
     paths:
-      - builder/Dockerfile**
+      - builder/Dockerfile
+      - builder/Dockerfile.llvm-mingw64
       - builder/entrypoint.sh
       - builder/resources/**
       - builder/scripts/**
@@ -65,7 +66,7 @@ jobs:
         with:
           platforms: linux/amd64
           context: builder
-          dockerfile: builder/Dockerfile.mingw64
+          dockerfile: builder/Dockerfile.llvm-mingw64
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
