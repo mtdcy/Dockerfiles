@@ -82,6 +82,7 @@ jobs:
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-llvm-ucrt
           args: |
             NODE_VERION=${{ env.node_version }}
             GO_VERSION=${{ env.go_version }}

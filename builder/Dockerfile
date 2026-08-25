@@ -6,17 +6,12 @@ ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
 ARG RUST_VERSION=1.98.0
 
-ARG MIRROR
+ARG MIRROR=
 ARG TARGETPLATFORM
 
 COPY --chmod=0755 entrypoint.sh /opt/
 
 COPY ./scripts/* /tmp/
-
-ENV GOROOT="/opt/go"
-ENV RUSTUP_HOME="/opt/rustup"
-ENV CARGO_HOME="/opt/cargo"
-ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
 WORKDIR /opt/
 
@@ -46,7 +41,11 @@ EOS
 
 RUN <<-EOS
     echo "**** setup rust ****"
-    if test -n "${MIRROR}"; then
+    export CARGO_HOME=/opt/cargo
+    export RUSTUP_HOME=/opt/rustup
+    export PATH="$CARGO_HOME/bin:$PATH"
+
+    if test -n "$MIRROR"; then
         export RUSTUP_DIST_SERVER=$MIRROR/rust-static
         export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
     fi
@@ -56,6 +55,24 @@ RUN <<-EOS
         --default-toolchain $RUST_VERSION
 
     rustup target add --toolchain=$RUST_VERSION $(uname -m)-unknown-linux-musl
+
+    echo "**** setup cargo ****"
+    apt-get update
+    apt-get install -y gcc libssl-dev pkg-config
+
+    if test -n "$MIRROR"; then
+    cat << EOF >> "$CARGO_HOME/config.toml"
+[source.crates-io]
+replace-with = 'crates-io-mirrors'
+
+[source.crates-io-mirrors]
+registry = "sparse+$MIRROR/crates.io-index/"
+EOF
+    fi
+
+    # install host tools: cargo-c
+    cargo install cargo-c
+    rm -rf $CARGO_HOME/{registry,git,config.toml}
 EOS
 
 # musl-gcc.sh has no version control yet
@@ -80,6 +97,8 @@ FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
+
+ARG MIRROR=https://mirrors.mtdcy.top
 
 WORKDIR /opt/
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
@@ -129,8 +148,8 @@ COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
 ENV GOROOT="/opt/go"
-ENV RUSTUP_HOME="/opt/rustup"
 ENV CARGO_HOME="/opt/cargo"
+ENV RUSTUP_HOME="/opt/rustup"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
 RUN <<-EOS
