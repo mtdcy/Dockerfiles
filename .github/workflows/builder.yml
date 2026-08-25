@@ -59,19 +59,19 @@ jobs:
             RUST_VERSION=${{ env.rust_version }}
             LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
-      - name: Build ubuntu-22.04 builder
-        uses: ./.github/actions/buildx
-        with:
-          context: builder
-          dockerfile: builder/Dockerfile
-          baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
-          tags: |
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
-          args: |
-            NODE_VERION=${{ env.node_version }}
-            GO_VERSION=${{ env.go_version }}
-            RUST_VERSION=${{ env.rust_version }}
-            LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
+      #- name: Build ubuntu-22.04 builder
+      #  uses: ./.github/actions/buildx
+      #  with:
+      #    context: builder
+      #    dockerfile: builder/Dockerfile
+      #    baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-22.04
+      #    tags: |
+      #      ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:ubuntu-22.04
+      #    args: |
+      #      NODE_VERION=${{ env.node_version }}
+      #      GO_VERSION=${{ env.go_version }}
+      #      RUST_VERSION=${{ env.rust_version }}
+      #      LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
       - name: Build mingw64 builder
         uses: ./.github/actions/buildx
@@ -98,7 +98,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - baseimage: ubuntu-22.04
+          #- baseimage: ubuntu-22.04
           - baseimage: ubuntu-24.04
           - baseimage: mingw64-latest
             platforms: linux/amd64
@@ -116,7 +116,7 @@ jobs:
           submodules: false
           fetch-depth: 1
 
-      - name: Build ubuntu-24.04 builder
+      - name: Build full builders
         uses: ./.github/actions/buildx
         with:
           platforms: ${{ matrix.platforms }}
