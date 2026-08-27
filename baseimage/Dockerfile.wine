@@ -70,7 +70,7 @@ RUN <<-EOS
     echo "**** Install Wine64 ****"
 
     apt update
-    apt install -y --no-install-recommends xvfb wine xauth file \
+    apt install -y --no-install-recommends wine file \
                 binfmt-support wine-binfmt \
                 winetricks cabextract
 
@@ -80,31 +80,12 @@ EOS
 #2. Override with new Wine64
 COPY --from=builder /rootfs/ /
 
-# shared wine prefix
-ENV WINEPREFIX=/opt/wine
-ENV WINEDEBUG=-all
-ENV WINEARCH=win64
-
-WORKDIR $WINEPREFIX
-
-#3. Prepare Wine64
+#3. Final: never run wine here, which generate driver_c
 RUN <<-EOS
     set -ex
-    echo "**** Prepare Wine64 ****"
+    echo "**** Finish ****"
 
     ldconfig
-
-    # first time run gave an error:
-    #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
-    winecfg || true
-
-    echo "**** winetricks ****"
-
-    # run wineserver and wait for terminates issue by winetricks
-    wineserver -w
-
-    winetricks corefonts
-    winetricks nocrashdialog || true
 
     # enable wine-binfmt
     update-binfmts --import wine
