@@ -106,6 +106,7 @@ LABEL maintainer="mtdcy.chen@gmail.com"
 
 WORKDIR /opt/
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+
 RUN <<-EOS
     echo "**** install essentials ****"
 
@@ -132,6 +133,7 @@ RUN <<-EOS
     rm -rf "$HOME/.cache" || true
 EOS
 
+# install builder tools
 COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
@@ -140,18 +142,51 @@ ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
+# shared wine prefix
+ENV WINEPREFIX=/opt/wine
 ENV WINEDEBUG=err+module
+ENV WINEARCH=win64
 
-# 00a4:err:ntoskrnl:ZwLoadDriver failed to create driver L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\winebth": c0000142
-# 003c:fixme:service:scmdatabase_autostart_services Auto-start service L"winebth" failed to start: 1114
-ENV WINEDLLOVERRIDES="winebth.dll="
+# Wine headless mode
+ENV DISPLAY=
+ENV WINE_MONO_OVERRIDES="1"
+ENV WINE_GECKO_OVERRIDES="1"
 
 RUN <<-EOS
+    echo "**** setup Wine64 ****"
+
     # first time run gave an error:
     #   wine: failed to open L"C:\\windows\\syswow64\\rundll32.exe"
-    winecfg || true
+    wineboot --init && wineserver -w
 
-    echo "**** post setup ****"
+    # windows version
+    winecfg /v && winecfg /v win10 && winecfg /v
+
+    # headless mode
+    wine reg add "HKCU\Software\Wine\Drivers" /v "Graphics" /d "null" /f
+
+    # 删除无用（自启动失败）的服务
+    wine reg delete "HKLM\System\CurrentControlSet\Services\MountMgr" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\PlugPlay" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\Eventlog" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\nsiproxy" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\NDIS" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\winebth" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\winebus" /f
+    wine reg delete "HKLM\System\CurrentControlSet\Services\winehid" /f
+
+    # 禁用 Wine 的崩溃对话框（直接让进程异常退出，不弹窗挂起）
+    wine reg add "HKCU\Software\Wine\WineDbg" /v "ShowCrashDialog" /t REG_DWORD /d 0 /f
+
+    #winetricks corefonts
+    winetricks vd=off   # virtual desktop
+    winetricks nocrashdialog
+    winetricks autostart_winedbg=disabled
+
+    # wait until wine is done (write reg and files to disk)
+    wineserver -w && wineboot -s
+
+    echo "**** Finish ****"
 
     # fails on alpine-3, why?
     ldconfig || true
