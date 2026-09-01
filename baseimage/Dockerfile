@@ -13,7 +13,6 @@ ENV TZ=${TZ}
 ENV LANG=${LANG}
 ENV LC_ALL=${LANG}
 
-ENV DEBIAN_FRONTEND=noninteractive
 RUN <<-EOS
     set -ex
     echo "**** apply mirrors ****"
@@ -29,59 +28,85 @@ RUN <<-EOS
             -i /etc/apt/sources.list.d/ubuntu.sources || true
         sed -e "s|https\?://dl-cdn.alpinelinux.org|$sources|g"  \
             -i /etc/apk/repositories || true
+        sed -e 's|^metalink=|#metalink=|g' \
+            -e "s|^#baseurl=http://download.example/pub/fedora/linux|baseurl=$sources/fedora|g" \
+            -i /etc/yum.repos.d/fedora.repo \
+            -i /etc/yum.repos.d/fedora-updates.repo || true
     fi
 
     echo "**** install essentials ****"
 
-    if which apt-get; then
-        apt-get update
+    # no which in fedora, why
+    case "$(grep "^ID=.*" /etc/os-release)" in
+        ID=ubuntu)
+            export DEBIAN_FRONTEND=noninteractive
 
-        # Fix: error processing package libc-bin
-        apt-get --reinstall install -y libc-bin || true
+            apt-get update
 
-        apt-get install -y               \
-        ca-certificates                  \
-            bash locales tzdata          \
-            wget curl                    \
-            tar xz-utils zstd lzip unzip \
-            procps                       \
-            iputils-ping                 \
-            bind9-dnsutils               \
-            sudo
+            # Fix: error processing package libc-bin
+            apt-get --reinstall install -y libc-bin || true
 
-        dpkg-reconfigure tzdata
+            apt-get install -y               \
+            ca-certificates                  \
+                bash locales tzdata          \
+                wget curl                    \
+                tar xz-utils zstd lzip unzip \
+                procps                       \
+                iputils-ping                 \
+                bind9-dnsutils               \
+                sudo
 
-        # Fix: Certificate verification failed: The certificate is NOT trusted.
-        apt upgrade -y ca-certificates
+            dpkg-reconfigure tzdata
 
-        apt-get clean
-        rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
-    else
-        apk update
-        apk add --no-cache         \
-            ca-certificates        \
-            bash shadow            \
-            musl-locales tzdata    \
-            wget curl              \
-            tar xz zstd lzip unzip \
-            procps                 \
-            iputils                \
-            bind-tools             \
-            sudo
-    fi
+            # Fix: Certificate verification failed: The certificate is NOT trusted.
+            apt upgrade -y ca-certificates
 
-    # Fix: Certificate verification failed: The certificate is NOT trusted.
-    update-ca-certificates || true
+            apt-get clean
+            rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
+
+            # Fix: Certificate verification failed: The certificate is NOT trusted.
+            update-ca-certificates
+
+            userdel ubuntu || true
+            ;;
+        ID=fedora)
+            dnf makecache
+
+            dnf install -y --skip-unavailable \
+                bash git which \
+                locales tzdata glibc-langpack-en \
+                ca-certificates \
+                wget curl \
+                procps iputils \
+                sudo 
+
+            dnf clean all
+
+            update-ca-trust
+            ;;
+        ID=alpine)
+            apk update
+            apk add --no-cache         \
+                ca-certificates        \
+                bash shadow            \
+                musl-locales tzdata    \
+                wget curl              \
+                tar xz zstd lzip unzip \
+                procps                 \
+                iputils                \
+                bind-tools             \
+                sudo
+            ;;
+    esac
 
     # set the right MIRROR
     if test -n "${MIRROR}"; then
         sed -e "s|$sources|$MIRROR|g" \
-            -e "s|$sources|$MIRROR|g" \
-            -e "s|$sources|$MIRROR|g" \
             -i /etc/apt/sources.list  \
-            -i /etc/apt/sources.list.d/ubuntu.sources || true
-        sed -e "s|$sources|$MIRROR|g" \
-            -i /etc/apk/repositories || true
+            -i /etc/apt/sources.list.d/ubuntu.sources \
+            -i /etc/apk/repositories \
+            -i /etc/yum.repos.d/fedora.repo \
+            -i /etc/yum.repos.d/fedora-updates.repo || true
     fi
 
     echo "**** post setup ****"
@@ -93,6 +118,4 @@ RUN <<-EOS
     else
         echo ">>>> wrong TZ:$TZ <<<<"
     fi
-
-    userdel ubuntu || true
 EOS

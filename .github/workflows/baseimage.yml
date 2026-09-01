@@ -55,6 +55,15 @@ jobs:
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-latest
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:alpine-3
 
+      - name: Build fedora-42
+        uses: ./.github/actions/buildx
+        with:
+          context: baseimage
+          baseimage: fedora:42
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:fedora-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:fedora-42
+
       - name: Build wine
         uses: ./.github/actions/buildx
         with:
