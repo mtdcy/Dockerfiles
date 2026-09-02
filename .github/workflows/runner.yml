@@ -1,0 +1,51 @@
+---
+name: Build runners
+
+on:
+  push:
+    paths:
+      - runner/Dockerfile
+      - .github/workflows/runner.yml
+
+# workflows_run:
+#   workflows: [Build baseimage]
+#   types:
+#     - completed
+
+  workflow_call:
+
+  workflow_dispatch:
+
+env:
+  node_version: v24
+
+jobs:
+  build-runners:
+    name: Build runners
+    runs-on: ubuntu-latest
+    # 向 buildx 走私 vars/secrets
+    env:
+      MIRRORS: ${{ vars.MIRRORS }}
+      REGISTRY: ${{ vars.REGISTRY }}
+      REGISTRY_USER: ${{ vars.REGISTRY_USER }}
+      REGISTRY_TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: false
+          fetch-depth: 1
+
+      - name: Build fedora-42 runner
+        uses: ./.github/actions/buildx
+        with:
+          platforms: linux/amd64
+          context: runner
+          dockerfile: runner/Dockerfile
+          baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:fedora-42
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/runner:fedora-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/runner:fedora-42
+          args: |-
+            NODE_VERION=${{ env.node_version }}
