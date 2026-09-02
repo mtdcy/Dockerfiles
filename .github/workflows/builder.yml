@@ -73,6 +73,20 @@ jobs:
       #      RUST_VERSION=${{ env.rust_version }}
       #      LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
+      - name: Build cygwin64 builder
+        uses: ./.github/actions/buildx
+        with:
+          platforms: linux/amd64
+          context: builder
+          dockerfile: builder/Dockerfile.cygwin64
+          baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+          tags: |
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:cygwin64-latest
+          args: |
+            NODE_VERION=${{ env.node_version }}
+            GO_VERSION=${{ env.go_version }}
+            RUST_VERSION=${{ env.rust_version }}
+
       - name: Build mingw64 builder
         uses: ./.github/actions/buildx
         with:
@@ -101,6 +115,8 @@ jobs:
           #- baseimage: ubuntu-22.04
           - baseimage: ubuntu-24.04
           - baseimage: mingw64-latest
+            platforms: linux/amd64
+          - baseimage: cygwin64-latest
             platforms: linux/amd64
     # 向 buildx 走私 vars/secrets
     env:
