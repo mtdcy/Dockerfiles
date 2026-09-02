@@ -55,24 +55,6 @@ RUN <<-EOS
         --default-toolchain $RUST_VERSION
 
     rustup target add --toolchain=$RUST_VERSION $(uname -m)-unknown-linux-musl
-
-    echo "**** setup cargo ****"
-    apt-get update
-    apt-get install -y gcc libssl-dev pkg-config
-
-    if test -n "$MIRROR"; then
-    cat << EOF >> "$CARGO_HOME/config.toml"
-[source.crates-io]
-replace-with = 'crates-io-mirrors'
-
-[source.crates-io-mirrors]
-registry = "sparse+$MIRROR/crates.io-index/"
-EOF
-    fi
-
-    # install host tools: cargo-c
-    cargo install cargo-c
-    rm -rf $CARGO_HOME/{registry,git,config.toml}
 EOS
 
 # musl-gcc.sh has no version control yet
