@@ -30,7 +30,7 @@ export               LAN="${LAN:-$WAN}"
 
 export        ROUTE_FILE="${ROUTE_FILE:-/config/route/route.lst}"
 
-export       TEST_DOMAIN="${TEST_DOMAIN:-www.baidu.com}"
+export       TEST_DOMAIN="${TEST_DOMAIN:-www.google.com}"
 
 # Notes:
 #
@@ -42,7 +42,7 @@ if "$iptables" -S 2>&1 | grep -Fw "Invalid argument"; then
 fi
 export iptables
 
-info () {
+info()  {
     echo -e "🐳\\033[33m $* \\033[0m🐳" >&2
 }
 
@@ -135,7 +135,7 @@ case "$MODE" in
 
                 echocmd /entrypoint.d/socks5.sh
                 ;;
-            ssh://*|*) # 1:1 tunnel
+            ssh://* | *) # 1:1 tunnel
                 # sanity check
                 [ "$MODE" = route ] || unset -v LOCAL_ADDR REMOTE_ADDR
 
@@ -156,7 +156,7 @@ if [ "$MODE" = route ] && [ -f "$RULES_FILE" ]; then
     ROUTE_DEVICE="$LOCAL_DEVICE"
     ROUTE_ADDR="$REMOTE_ADDR"
     export ROUTE_DEVICE ROUTE_ADDR ROUTE_FILE ROUTE_FLUSH
-    
+
     info "***** prepare ip2route @$ROUTE_DEVICE => $ROUTE_ADDR *****"
 
     echocmd /entrypoint.d/ip2route.sh
@@ -166,7 +166,8 @@ fi
 if [[ "$REMOTE_HOST" =~ ^n2n:// ]] && [ -z "$REMOTE_ADDR" ]; then
     info "***** no socks or dns server for n2n gateway *****"
     info "*****  ** no gateway, access restricted. **  *****"
-    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done & wait $!
+    while sleep 15; do echocmd ping -c 1 -q "${LOCAL_ADDR%/*}"; done &
+                                                                       wait $!
     exit
 fi
 
@@ -174,7 +175,7 @@ if [ -n "$DNSMASQ_PORT" ]; then
     # no ipset if not in route mode
     [ "$MODE" = route ] || unset -v DNSMASQ_IPSET
 
-    case "$MODE" in 
+    case "$MODE" in
         basic)
             info "***** prepare dns2socks *****"
 
@@ -202,7 +203,8 @@ if ss -tunlp | grep -Fwq ":5201"; then
     info "***** skip iperf3 as 5201 already in use *****"
 else
     info "***** prepare iperf3 @5201 *****"
-    /usr/bin/iperf3 -s | tee -a /config/logs/iperf3.log 2>&1 & disown
+    /usr/bin/iperf3 -s | tee -a /config/logs/iperf3.log 2>&1 &
+                                                               disown
 fi
 
 info "***** system ready *****"
@@ -213,4 +215,5 @@ info "***** start healthd *****"
 
 export HEALTHD_LOGFILE=/config/logs/healthd.log
 
-/entrypoint.d/healthd.sh & wait $!
+/entrypoint.d/healthd.sh &
+                           wait $!
