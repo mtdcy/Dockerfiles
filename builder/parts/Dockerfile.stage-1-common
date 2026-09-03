@@ -1,0 +1,54 @@
+# syntax=docker/dockerfile:1
+
+FROM baseimage:latest AS builder
+
+ARG NODE_VERSION=v24
+ARG GO_VERSION=1.26.7
+
+ARG MIRROR=
+ARG TARGETPLATFORM
+
+COPY --chmod=0755 entrypoint.sh /opt/
+
+COPY ./scripts/* /tmp/
+
+WORKDIR /opt/
+
+SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+RUN <<-EOS
+    echo "**** setup nodejs ****"
+    # node prebuilts only for glibc
+    if ldd --version | grep GLIBC; then
+        # LTS: v24
+        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^$NODE_VERSION[0-9.]+" -m1)
+        case "$TARGETPLATFORM" in
+          linux/arm64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+          linux/amd64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+        esac
+    fi
+EOS
+
+RUN <<-EOS
+    echo "**** setup golang ****"
+    #goversion=$(curl -s "https://go.dev/VERSION?m=text" | grep "^go")
+    curl -fsSL https://go.dev/dl/go$GO_VERSION.${TARGETPLATFORM//\//-}.tar.gz | tar -xz
+EOS
+
+RUN <<-EOS
+    echo "**** setup rust ****"
+    export CARGO_HOME=/opt/cargo
+    export RUSTUP_HOME=/opt/rustup
+    export PATH="$CARGO_HOME/bin:$PATH"
+
+    if test -n "$MIRROR"; then
+        export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+        export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+    fi
+
+    /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
+EOS
+

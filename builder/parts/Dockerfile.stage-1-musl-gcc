@@ -1,0 +1,19 @@
+
+# musl-gcc.sh has no version control yet
+ARG CACHEBUST
+RUN <<-EOS
+    echo "**** setup musl-gcc ****"
+    /tmp/musl-gcc.sh
+
+    # remove share libraries if static one exists
+    while read -r so; do
+        [[ "$so" =~ libc.so$ ]] && continue
+
+        if test -f "${so/%.so/.a}"; then
+            rm -fv "$so"*
+        fi
+    done < <(find /opt/$(uname -m)-linux-musl -name "*.so")
+
+    find /opt -name "*.la" -exec rm -rf {} \;
+EOS
+

@@ -4,7 +4,6 @@ FROM baseimage:latest AS builder
 
 ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
-ARG RUST_VERSION=1.98.0
 
 ARG MIRROR=
 ARG TARGETPLATFORM
@@ -17,19 +16,20 @@ WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 RUN <<-EOS
-    node --version | grep "$NODE_VERSION" && exit 0 || true
-
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
-    IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^$NODE_VERSION[0-9.]+" -m1)
-    case "$TARGETPLATFORM" in
-      linux/arm64)
-        curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
-      ;;
-      linux/amd64)
-        curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
-      ;;
-    esac
+    if ldd --version | grep GLIBC; then
+        # LTS: v24
+        IFS=' ' read -r version _ < <(curl -sL https://nodejs.org/dist/index.tab | grep -oE "^$NODE_VERSION[0-9.]+" -m1)
+        case "$TARGETPLATFORM" in
+          linux/arm64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-arm64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+          linux/amd64)
+            curl -fsSL "https://nodejs.org/dist/$version/node-$version-linux-x64.tar.xz" | tar -xJ --strip-components=1
+          ;;
+        esac
+    fi
 EOS
 
 RUN <<-EOS
@@ -49,12 +49,9 @@ RUN <<-EOS
         export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
     fi
 
-    /tmp/rustup-init.sh -y --no-modify-path     \
-        --profile minimal                       \
-        --default-toolchain $RUST_VERSION
-
-    rustup target add --toolchain=$RUST_VERSION $(uname -m)-pc-windows-gnu
+    /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
 EOS
+
 
 # cygwin-gcc has no version control yet
 ARG CACHEBUST
@@ -62,9 +59,9 @@ RUN <<-EOS
     echo "**** setup cygwin-gcc ****"
 
     if curl -fsSI --connect-timeout 1 https://gitea.mtdcy.top -o /dev/null; then
-        url=https://gitea.mtdcy.top/mtdcy/cygwin-gcc-build/releases/download/latest/$TARGET.tar.xz
+        url=https://gitea.mtdcy.top/mtdcy/cygwin-gcc-build/releases/download/latest/$(uname -m)-pc-cygwin.tar.xz
     else
-        url=https://github.com/mtdcy/cygwin-gcc-build/releases/latest/download/$TARGET.tar.xz
+        url=https://github.com/mtdcy/cygwin-gcc-build/releases/latest/download/$(uname -m)-pc-cygwin.tar.xz
     fi
 
     curl -fsSL "$url" | tar -xJ -C /opt
@@ -77,6 +74,8 @@ FROM baseimage:latest
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
 
+ARG MIRROR=https://mirrors.mtdcy.top
+
 WORKDIR /opt/
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 
@@ -88,9 +87,9 @@ RUN <<-EOS
     apt-get install -y \
         wget curl git diffutils findutils ncurses-bin \
         tar gzip xz-utils lzip unzip zstd \
-        libtool automake autoconf autopoint \
-        cmake meson pkg-config \
-        texinfo gettext moreutils \
+        build-essential libtool pkg-config \
+        automake autoconf gettext autopoint \
+        cmake meson texinfo moreutils \
         nasm yasm bison flex \
         luajit perl libhttp-daemon-perl \
         python3 python3-pip python3-venv \
@@ -106,7 +105,7 @@ RUN <<-EOS
     rm -rf "$HOME/.cache" || true
 EOS
 
-# install builder tools
+# install build tools like go/rust from stage-1 builder
 COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
@@ -114,6 +113,34 @@ ENV GOROOT="/opt/go"
 ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+
+# override entrypoint
+ENTRYPOINT ["/opt/entrypoint.sh"]
+# !! *-pc-cygwin target is not ready !!
+# ARG RUST_VERSION=1.98.0
+# RUN <<-EOS
+#     if which rustup; then
+#         if test -n "$MIRROR"; then
+#             export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+#             export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+#         fi
+# 
+#         # install toolchain and target(s)
+#         rustup toolchain install $RUST_VERSION \
+#             --default \
+#             --profile minimal \
+#             --target $(uname -m)-pc-cygwin \
+#         
+#         rustup show
+# 
+#         rustc --version
+#         cargo --version
+#     fi
+# EOS
+
+ARG TARGETPLATFORM
+ENV BUILDER_NAME="${TARGETPLATFORM/linux/cygwin}"
+# final setup: wine
 
 # shared wine prefix
 ENV WINEPREFIX=/opt/wine
@@ -164,11 +191,8 @@ RUN <<-EOS
     # fails on alpine-3, why?
     ldconfig || true
 
-    $(uname -m)-pc-cygwin-gcc --version
     node --version
     go version
-    cargo --version
-    rustc --version
 
     rm -rf $CARGO_HOME/registry
     rm -rf $CARGO_HOME/*-cache
@@ -193,8 +217,3 @@ RUN <<-EOS
     echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
 EOS
 
-# override entrypoint
-ENTRYPOINT ["/opt/entrypoint.sh"]
-
-ARG TARGETPLATFORM
-ENV BUILDER_NAME="${TARGETPLATFORM//linux/cygwin}"

@@ -4,7 +4,6 @@ FROM baseimage:latest AS builder
 
 ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
-ARG RUST_VERSION=1.98.0
 
 ARG MIRROR=
 ARG TARGETPLATFORM
@@ -50,12 +49,9 @@ RUN <<-EOS
         export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
     fi
 
-    /tmp/rustup-init.sh -y --no-modify-path     \
-        --profile minimal                       \
-        --default-toolchain $RUST_VERSION
-
-    rustup target add --toolchain=$RUST_VERSION $(uname -m)-unknown-linux-musl
+    /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
 EOS
+
 
 # musl-gcc.sh has no version control yet
 ARG CACHEBUST
@@ -84,40 +80,25 @@ ARG MIRROR=https://mirrors.mtdcy.top
 
 WORKDIR /opt/
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+
 RUN <<-EOS
     echo "**** install essentials ****"
 
-    if which apt-get; then
-        export DEBIAN_FRONTEND=noninteractive
-        apt-get update
-        apt-get install -y \
-            wget curl git diffutils findutils ncurses-bin \
-            tar gzip xz-utils lzip unzip zstd \
-            build-essential libtool pkg-config \
-            automake autoconf gettext autopoint \
-            cmake meson texinfo moreutils \
-            nasm yasm bison flex \
-            luajit perl libhttp-daemon-perl \
-            python3 python3-pip python3-venv \
-            openssh-client rsync \
-            libssl-dev
-        apt-get clean
-        rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
-    else
-        apk update
-        apk add --no-cache \
-            grep sed gawk coreutils \
-            wget curl git diffutils findutils ncurses \
-            tar gzip xz lzip unzip zstd \
-            linux-headers build-base libtool pkgconfig \
-            automake autoconf gettext \
-            cmake meson texinfo moreutils \
-            nasm yasm bison flex \
-            luajit perl perl-http-daemon \
-            nodejs python3 py3-pip python3-dev \
-            openssh rsync \
-            openssl-dev
-    fi
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y \
+        wget curl git diffutils findutils ncurses-bin \
+        tar gzip xz-utils lzip unzip zstd \
+        build-essential libtool pkg-config \
+        automake autoconf gettext autopoint \
+        cmake meson texinfo moreutils \
+        nasm yasm bison flex \
+        luajit perl libhttp-daemon-perl \
+        python3 python3-pip python3-venv \
+        openssh-client rsync \
+        libssl-dev
+    apt-get clean
+    rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
 
     echo "**** install latest meson ****"
     python3 -m pip install --upgrade pip || true
@@ -126,6 +107,7 @@ RUN <<-EOS
     rm -rf "$HOME/.cache" || true
 EOS
 
+# install build tools like go/rust from stage-1 builder
 COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
@@ -134,6 +116,11 @@ ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
 
+# override entrypoint
+ENTRYPOINT ["/opt/entrypoint.sh"]
+# final setup: ubuntu
+
+ARG RUST_VERSION=1.98.0
 RUN <<-EOS
     echo "**** post setup ****"
 
@@ -156,8 +143,25 @@ RUN <<-EOS
     node --version
     gcc --version
     go version
-    cargo --version
-    rustc --version
+
+    if which rustup; then
+        if test -n "$MIRROR"; then
+            export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+            export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+        fi
+
+        # install toolchain and target(s)
+        rustup toolchain install $RUST_VERSION \
+            --default \
+            --profile minimal \
+            --target $(uname -m)-unknown-linux-gnu \
+            --target $(uname -m)-unknown-linux-musl \
+        
+        rustup show
+
+        rustc --version
+        cargo --version
+    fi
 
     rm -rf $CARGO_HOME/registry
     rm -rf $CARGO_HOME/*-cache
@@ -179,9 +183,6 @@ RUN <<-EOS
 
     echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
 EOS
-
-# override entrypoint
-ENTRYPOINT ["/opt/entrypoint.sh"]
 
 ARG TARGETPLATFORM
 ENV BUILDER_NAME="$TARGETPLATFORM"

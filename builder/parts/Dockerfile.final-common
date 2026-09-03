@@ -1,0 +1,47 @@
+FROM baseimage:latest
+
+# labels
+LABEL maintainer="mtdcy.chen@gmail.com"
+
+ARG MIRROR=https://mirrors.mtdcy.top
+
+WORKDIR /opt/
+SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+
+RUN <<-EOS
+    echo "**** install essentials ****"
+
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y \
+        wget curl git diffutils findutils ncurses-bin \
+        tar gzip xz-utils lzip unzip zstd \
+        build-essential libtool pkg-config \
+        automake autoconf gettext autopoint \
+        cmake meson texinfo moreutils \
+        nasm yasm bison flex \
+        luajit perl libhttp-daemon-perl \
+        python3 python3-pip python3-venv \
+        openssh-client rsync \
+        libssl-dev
+    apt-get clean
+    rm -rf /var/lib/apt/lists/* /var/tmp/* /var/log/*
+
+    echo "**** install latest meson ****"
+    python3 -m pip install --upgrade pip || true
+    # --break-system-packages: This environment is externally managed
+    python3 -m pip install --upgrade meson --break-system-packages
+    rm -rf "$HOME/.cache" || true
+EOS
+
+# install build tools like go/rust from stage-1 builder
+COPY --from=builder /opt /opt
+
+# must set these ENVs explicitly, or run container with --entrypoint='' will have problem
+ENV GOROOT="/opt/go"
+ENV CARGO_HOME="/opt/cargo"
+ENV RUSTUP_HOME="/opt/rustup"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+
+# override entrypoint
+ENTRYPOINT ["/opt/entrypoint.sh"]

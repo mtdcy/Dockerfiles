@@ -1,0 +1,24 @@
+ARG RUST_VERSION=1.98.0
+RUN <<-EOS
+    if which rustup; then
+        if test -n "$MIRROR"; then
+            export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+            export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+        fi
+
+        # install toolchain and target(s)
+        rustup toolchain install $RUST_VERSION \
+            --default \
+            --profile minimal \
+            --target $(uname -m)-pc-windows-gnu \
+            --target $(uname -m)-pc-windows-gnullvm \
+        
+        rustup show
+
+        rustc --version
+        cargo --version
+    fi
+EOS
+
+ARG TARGETPLATFORM
+ENV BUILDER_NAME="${TARGETPLATFORM/linux/mingw}"

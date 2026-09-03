@@ -4,8 +4,6 @@ FROM baseimage:latest AS builder
 
 ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
-ARG RUST_VERSION=1.98.0
-ARG LLVM_MINGW_VERSION=20260616
 
 ARG MIRROR=
 ARG TARGETPLATFORM
@@ -51,17 +49,40 @@ RUN <<-EOS
         export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
     fi
 
-    /tmp/rustup-init.sh -y --no-modify-path     \
-        --profile minimal                       \
-        --default-toolchain $RUST_VERSION
+    /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
+EOS
 
-    rustup target add --toolchain=$RUST_VERSION $(uname -m)-pc-windows-gnullvm
+
+ARG LLVM_MINGW_VERSION=20260616
+RUN --mount=type=secret,id=GITHUB_TOKEN,env=GITHUB_TOKEN <<-EOS
+    echo "**** setup llvm-mingw ****"
+    curl_opts=(
+        -fvSL
+        # 伪装浏览器请求（防止被防火墙拦截）
+        -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+    )
+
+    # 防止被Github拦截
+    test -z "${GITHUB_TOKEN}" || curl_opts+=( -H "Authorization: Bearer ${GITHUB_TOKEN}" )
+
+    platform=$(uname -m)
+    curl "${curl_opts[@]}" https://github.com/mstorsjo/llvm-mingw/releases/download/$LLVM_MINGW_VERSION/llvm-mingw-$LLVM_MINGW_VERSION-ucrt-ubuntu-22.04-$platform.tar.xz | tar -xJ --strip-components=1
+
+    # 清理不需要的架构
+    for arch in *-w64-mingw32; do
+        [ "$arch" = "generic-w64-mingw32" ] && continue # 所有架构共享的公共核心资产库
+        [ "$arch" = "$platform-w64-mingw32" ] && continue # 当前架构
+        rm -rf "$arch"
+        rm -f "bin/$arch"*
+    done
 EOS
 
 FROM baseimage:latest
 
 # labels
 LABEL maintainer="mtdcy.chen@gmail.com"
+
+ARG MIRROR=https://mirrors.mtdcy.top
 
 WORKDIR /opt/
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
@@ -74,9 +95,9 @@ RUN <<-EOS
     apt-get install -y \
         wget curl git diffutils findutils ncurses-bin \
         tar gzip xz-utils lzip unzip zstd \
-        mingw-w64 binutils-mingw-w64 mingw-w64-tools \
-        libtool automake autoconf autopoint \
-        cmake meson texinfo gettext moreutils \
+        build-essential libtool pkg-config \
+        automake autoconf gettext autopoint \
+        cmake meson texinfo moreutils \
         nasm yasm bison flex \
         luajit perl libhttp-daemon-perl \
         python3 python3-pip python3-venv \
@@ -92,7 +113,7 @@ RUN <<-EOS
     rm -rf "$HOME/.cache" || true
 EOS
 
-# install builder tools
+# install build tools like go/rust from stage-1 builder
 COPY --from=builder /opt /opt
 
 # must set these ENVs explicitly, or run container with --entrypoint='' will have problem
@@ -100,6 +121,34 @@ ENV GOROOT="/opt/go"
 ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
 ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+
+# override entrypoint
+ENTRYPOINT ["/opt/entrypoint.sh"]
+ARG RUST_VERSION=1.98.0
+RUN <<-EOS
+    if which rustup; then
+        if test -n "$MIRROR"; then
+            export RUSTUP_DIST_SERVER=$MIRROR/rust-static
+            export RUSTUP_UPDATE_ROOT=$MIRROR/rust-static/rustup
+        fi
+
+        # install toolchain and target(s)
+        rustup toolchain install $RUST_VERSION \
+            --default \
+            --profile minimal \
+            --target $(uname -m)-pc-windows-gnu \
+            --target $(uname -m)-pc-windows-gnullvm \
+        
+        rustup show
+
+        rustc --version
+        cargo --version
+    fi
+EOS
+
+ARG TARGETPLATFORM
+ENV BUILDER_NAME="${TARGETPLATFORM/linux/mingw}"
+# final setup: wine
 
 # shared wine prefix
 ENV WINEPREFIX=/opt/wine
@@ -143,18 +192,15 @@ RUN <<-EOS
     winetricks autostart_winedbg=disabled
 
     # wait until wine is done (write reg and files to disk)
-    wineboot -s && wineserver -w 
+    wineserver -w && wineboot -s
 
     echo "**** Finish ****"
 
     # fails on alpine-3, why?
     ldconfig || true
 
-    $(uname -m)-w64-mingw32-gcc --version
     node --version
     go version
-    cargo --version
-    rustc --version
 
     rm -rf $CARGO_HOME/registry
     rm -rf $CARGO_HOME/*-cache
@@ -179,8 +225,3 @@ RUN <<-EOS
     echo 'PS1="[\e[31m${BUILDER_NAME}\e[m] \e[34m\w \e[32m\$\e[m "' >> /home/buildbot/.bashrc
 EOS
 
-# override entrypoint
-ENTRYPOINT ["/opt/entrypoint.sh"]
-
-ARG TARGETPLATFORM
-ENV BUILDER_NAME="${TARGETPLATFORM//linux/mingw}"

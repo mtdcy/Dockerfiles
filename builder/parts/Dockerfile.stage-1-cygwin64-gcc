@@ -1,0 +1,17 @@
+
+# cygwin-gcc has no version control yet
+ARG CACHEBUST
+RUN <<-EOS
+    echo "**** setup cygwin-gcc ****"
+
+    if curl -fsSI --connect-timeout 1 https://gitea.mtdcy.top -o /dev/null; then
+        url=https://gitea.mtdcy.top/mtdcy/cygwin-gcc-build/releases/download/latest/$(uname -m)-pc-cygwin.tar.xz
+    else
+        url=https://github.com/mtdcy/cygwin-gcc-build/releases/latest/download/$(uname -m)-pc-cygwin.tar.xz
+    fi
+
+    curl -fsSL "$url" | tar -xJ -C /opt
+    
+    find /opt -name "*.la" -exec rm -rf {} +
+EOS
+

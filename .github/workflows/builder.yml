@@ -5,7 +5,7 @@ on:
   push:
     paths:
       - builder/Dockerfile
-      - builder/Dockerfile.llvm-mingw64
+      - builder/Dockerfile.**
       - builder/entrypoint.sh
       - builder/resources/**
       - builder/scripts/**
@@ -82,6 +82,7 @@ jobs:
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:cygwin64-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:cygwin64-gcc-13
           args: |
             NODE_VERION=${{ env.node_version }}
             GO_VERSION=${{ env.go_version }}
@@ -92,7 +93,7 @@ jobs:
         with:
           platforms: linux/amd64
           context: builder
-          dockerfile: builder/Dockerfile.llvm-mingw64
+          dockerfile: builder/Dockerfile.mingw64
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
           tags: |
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/builder:mingw64-latest
