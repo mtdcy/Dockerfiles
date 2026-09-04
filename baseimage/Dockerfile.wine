@@ -2,12 +2,14 @@
 
 FROM ubuntu:latest AS builder
 
-ARG WINE=https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
-ADD $WINE /tmp/
+#ARG WINE_URL=https://dl.winehq.org/wine/source/11.0/wine-11.0.tar.xz
+#ARG WINE_URL=https://gitlab.winehq.org/wine/wine.git
+ARG WINE_URL=https://gitlab.winehq.org/jhol/wine.git
+ARG WINE_TAG=msys2-hacks-26
 
 WORKDIR /rootfs
+SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
 RUN <<-EOS
-    set -ex
     echo "**** Install WINE build dependencies ****"
 
     sed -e 's/^Types: deb$/Types: deb deb-src/' \
@@ -21,7 +23,16 @@ RUN <<-EOS
     echo "**** Install patched WINE64 ****"
 
     {
-        tar -xf /tmp/${WINE##*/} -C /tmp
+        case "$WINE_URL" in
+            *.git)
+                git clone --depth 1 -b "$WINE_TAG" "$WINE_URL" /tmp/wine-$WINE_TAG
+                ;;
+            *)
+                curl -fsSL "$WINE_URL" -o /tmp/${WINE_URL##*/}
+                tar -xf /tmp/${WINE_URL##*/} -C /tmp
+                ;;
+        esac
+
         cd /tmp/wine-*
 
         true > /rootfs/wine-build
@@ -70,9 +81,9 @@ RUN <<-EOS
     echo "**** Install Wine64 ****"
 
     apt update
-    apt install -y --no-install-recommends wine file \
-                binfmt-support wine-binfmt \
-                winetricks cabextract
+    apt install -y --no-install-recommends \
+                wine64 binfmt-support wine-binfmt \
+                file winetricks cabextract
 
     rm -rf /var/lib/apt/lists/*
 EOS

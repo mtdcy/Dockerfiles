@@ -66,11 +66,17 @@ jobs:
 
       - name: Build wine
         uses: ./.github/actions/buildx
+        env:
+          WINE_URL: ${{ vars.WINE_URL || 'https://gitlab.winehq.org/jhol/wine.git' }}
+          WINE_TAG: msys2-hacks-26
         with:
           context: baseimage
           platforms: linux/amd64
           dockerfile: baseimage/Dockerfile.wine
           baseimage: ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:ubuntu-24.04
           tags: |-
-            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-11.0
             ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-latest
+            ${{ vars.REGISTRY }}/${{ vars.REGISTRY_USER }}/baseimage:wine-${{ env.WINE_TAG }}
+          args: |-
+            WINE_URL=${{ env.WINE_URL }}
+            WINE_TAG=${{ env.WINE_TAG }}
