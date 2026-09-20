@@ -41,7 +41,7 @@ COPY --from=builder /opt /opt
 ENV GOROOT="/opt/go"
 ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
-ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/zig:/opt/bin:$PATH"
 
 # override entrypoint
 ENTRYPOINT ["/opt/entrypoint.sh"]

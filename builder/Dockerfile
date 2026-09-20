@@ -4,8 +4,10 @@ FROM baseimage:latest AS builder
 
 ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
+ARG ZIG_VERSION=0.16.0
 
-ARG MIRROR=
+ARG MIRROR
+ARG ZIG_MIRROR
 ARG TARGETPLATFORM
 
 COPY --chmod=0755 entrypoint.sh /opt/
@@ -15,6 +17,7 @@ COPY ./scripts/* /tmp/
 WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+
 RUN <<-EOS
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
@@ -51,6 +54,26 @@ RUN <<-EOS
 
     /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
 EOS
+
+RUN <<-EOS
+    echo "**** setup zig ****"
+
+    case "$TARGETPLATFORM" in
+        linux/arm64)    ZIG_ARCH=aarch64-linux  ;;
+        *)              ZIG_ARCH=x86_64-linux   ;;
+    esac
+
+    if test -n "$ZIG_MIRROR"; then
+        ZIG_URL=$MIRROR/zig-$ZIG_ARCH-$ZIG_VERSION.tar.xz
+        curl -fsIL "$ZIG_URL" -o /dev/null || unset ZIG_URL
+    fi
+
+    test -n "$ZIG_URL" || ZIG_URL=https://ziglang.org/download/$ZIG_VERSION/zig-$ZIG_ARCH-$ZIG_VERSION.tar.xz
+
+    mkdir -pv /opt/zig
+    curl -fsSL "$ZIG_URL" | tar -C /opt/zig --strip-components=1 -xJ
+EOS
+
 
 
 # musl-gcc.sh has no version control yet
@@ -121,7 +144,7 @@ COPY --from=builder /opt /opt
 ENV GOROOT="/opt/go"
 ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
-ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/zig:/opt/bin:$PATH"
 
 # override entrypoint
 ENTRYPOINT ["/opt/entrypoint.sh"]
@@ -131,14 +154,16 @@ ARG RUST_VERSION=1.98.0
 RUN <<-EOS
     echo "**** post setup ****"
 
-    # fix ld-musl
-    ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
+    if test -d /opt/$(uname -m)-linux-musl; then
+        # fix ld-musl
+        ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
 
-    # hack libgcc_s.a => some build system like rustc won't search for libgcc.a
-    ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
+        # hack libgcc_s.a => some build system like rustc won't search for libgcc.a
+        ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
 
-    # fix LD_LIBRARY_PATH
-    echo /opt/$(uname -m)-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+        # fix LD_LIBRARY_PATH
+        echo /opt/$(uname -m)-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+    fi
 
     # fails on alpine-3, why?
     ldconfig || true
@@ -150,6 +175,8 @@ RUN <<-EOS
     node --version
     gcc --version
     go version
+
+    which zig && zig version || true
 
     if which rustup; then
         if test -n "$MIRROR"; then

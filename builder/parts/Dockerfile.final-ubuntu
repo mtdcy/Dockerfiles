@@ -4,14 +4,16 @@ ARG RUST_VERSION=1.98.0
 RUN <<-EOS
     echo "**** post setup ****"
 
-    # fix ld-musl
-    ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
+    if test -d /opt/$(uname -m)-linux-musl; then
+        # fix ld-musl
+        ln -sfv $(find /opt -name libc.so) /lib/ld-musl-$(uname -m).so.1
 
-    # hack libgcc_s.a => some build system like rustc won't search for libgcc.a
-    ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
+        # hack libgcc_s.a => some build system like rustc won't search for libgcc.a
+        ln -sfv libgcc.a $(find /opt/ -name libgcc.a | sed 's/libgcc.a$/libgcc_s.a/')
 
-    # fix LD_LIBRARY_PATH
-    echo /opt/$(uname -m)-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+        # fix LD_LIBRARY_PATH
+        echo /opt/$(uname -m)-linux-musl/lib > /etc/ld.so.conf.d/$(uname -m)-linux-musl.conf
+    fi
 
     # fails on alpine-3, why?
     ldconfig || true
@@ -23,6 +25,8 @@ RUN <<-EOS
     node --version
     gcc --version
     go version
+
+    which zig && zig version || true
 
     if which rustup; then
         if test -n "$MIRROR"; then

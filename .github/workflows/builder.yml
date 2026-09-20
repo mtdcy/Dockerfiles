@@ -25,6 +25,7 @@ env:
   go_version: 1.26.7
   rust_version: 1.98.0
   llvm_mingw_version: 20260616
+  zig_version: 0.16.0
 
 jobs:
   builder:
@@ -57,7 +58,8 @@ jobs:
             NODE_VERION=${{ env.node_version }}
             GO_VERSION=${{ env.go_version }}
             RUST_VERSION=${{ env.rust_version }}
-            LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
+            ZIG_VERSION=${{ env.zig_version }}
+            ZIG_MIRROR=${{ vars.ZIG_MIRROR }}
 
       #- name: Build ubuntu-22.04 builder
       #  uses: ./.github/actions/buildx
@@ -71,7 +73,6 @@ jobs:
       #      NODE_VERION=${{ env.node_version }}
       #      GO_VERSION=${{ env.go_version }}
       #      RUST_VERSION=${{ env.rust_version }}
-      #      LLVM_MINGW_VERSION=${{ env.llvm_mingw_version }}
 
       - name: Build cygwin64 builder
         uses: ./.github/actions/buildx

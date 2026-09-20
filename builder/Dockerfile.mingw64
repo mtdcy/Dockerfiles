@@ -4,8 +4,10 @@ FROM baseimage:latest AS builder
 
 ARG NODE_VERSION=v24
 ARG GO_VERSION=1.26.7
+ARG ZIG_VERSION=0.16.0
 
-ARG MIRROR=
+ARG MIRROR
+ARG ZIG_MIRROR
 ARG TARGETPLATFORM
 
 COPY --chmod=0755 entrypoint.sh /opt/
@@ -15,6 +17,7 @@ COPY ./scripts/* /tmp/
 WORKDIR /opt/
 
 SHELL ["/bin/bash", "-ex", "-o", "pipefail", "-c"]
+
 RUN <<-EOS
     echo "**** setup nodejs ****"
     # node prebuilts only for glibc
@@ -51,6 +54,26 @@ RUN <<-EOS
 
     /tmp/rustup-init.sh -y --no-modify-path --default-toolchain none
 EOS
+
+RUN <<-EOS
+    echo "**** setup zig ****"
+
+    case "$TARGETPLATFORM" in
+        linux/arm64)    ZIG_ARCH=aarch64-linux  ;;
+        *)              ZIG_ARCH=x86_64-linux   ;;
+    esac
+
+    if test -n "$ZIG_MIRROR"; then
+        ZIG_URL=$MIRROR/zig-$ZIG_ARCH-$ZIG_VERSION.tar.xz
+        curl -fsIL "$ZIG_URL" -o /dev/null || unset ZIG_URL
+    fi
+
+    test -n "$ZIG_URL" || ZIG_URL=https://ziglang.org/download/$ZIG_VERSION/zig-$ZIG_ARCH-$ZIG_VERSION.tar.xz
+
+    mkdir -pv /opt/zig
+    curl -fsSL "$ZIG_URL" | tar -C /opt/zig --strip-components=1 -xJ
+EOS
+
 
 
 ARG LLVM_MINGW_VERSION=20260616
@@ -120,7 +143,7 @@ COPY --from=builder /opt /opt
 ENV GOROOT="/opt/go"
 ENV CARGO_HOME="/opt/cargo"
 ENV RUSTUP_HOME="/opt/rustup"
-ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/bin:$PATH"
+ENV PATH="$CARGO_HOME/bin:$GOROOT/bin:/opt/zig:/opt/bin:$PATH"
 
 # override entrypoint
 ENTRYPOINT ["/opt/entrypoint.sh"]
