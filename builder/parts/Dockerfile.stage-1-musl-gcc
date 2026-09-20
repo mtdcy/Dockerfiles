@@ -3,17 +3,24 @@
 ARG CACHEBUST
 RUN <<-EOS
     echo "**** setup musl-gcc ****"
-    /tmp/musl-gcc.sh
+    TARGET="$(uname -m)-linux-musl"
+
+    if curl -fsSI --connect-timeout 1 https://gitea.mtdcy.top -o /dev/null; then
+        url=https://gitea.mtdcy.top:8443/mtdcy/musl-gcc-build/releases/download/latest/$TARGET.tar.xz
+    else
+        url=https://github.com/mtdcy/musl-gcc-build/releases/latest/download/$TARGET.tar.xz
+    fi
+
+    curl -fsSL "$url" -o /tmp/$(basename $url)
+    tar -C /opt -xf /tmp/$(basename $url)
 
     # remove share libraries if static one exists
     while read -r so; do
         [[ "$so" =~ libc.so$ ]] && continue
 
-        if test -f "${so/%.so/.a}"; then
-            rm -fv "$so"*
-        fi
-    done < <(find /opt/$(uname -m)-linux-musl -name "*.so")
+        test -f "${so/%.so/.a}" && rm -fv "$so"* || true
+    done < <(find /opt/$TARGET -name "*.so")
 
-    find /opt -name "*.la" -exec rm -rf {} \;
+    find /opt/$TARGET -name "*.la" -exec rm -rf {} +
 EOS
 
